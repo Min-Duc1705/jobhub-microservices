@@ -20,27 +20,27 @@
 
 ```mermaid
 graph TD
-    Client[Client Apps / React] -->|HTTPS| API_Gateway
+    Client["Client Apps / React"] -->|HTTPS| API_Gateway
     
-    API_Gateway[Ocelot API Gateway] -->|Routing| Core_Services
+    API_Gateway["Ocelot API Gateway"] -->|Routing| Core_Services
     API_Gateway -->|Routing| AI_Services
     
-    subgraph "Core Microservices (.NET 8)"
-        Auth[Auth Service<br/>(Identity/JWT)]
-        Job[Job Service<br/>(Post/Search)]
-        Resume[Resume Service<br/>(Profile/Files)]
-        Company[Company Service<br/>(Employers)]
+    subgraph Core_Microservices ["Core Microservices (.NET 8)"]
+        Auth["Auth Service (Identity/JWT)"]
+        Job["Job Service (Post/Search)"]
+        Resume["Resume Service (Profile/Files)"]
+        Company["Company Service (Employers)"]
     end
     
-    subgraph "AI Microservices (Python/FastAPI)"
-        CVI[CV Intelligence Service<br/>SBERT / LLM Feedback]
-        DA[Data Analytics Service<br/>XGBoost / Prophet]
+    subgraph AI_Microservices ["AI Microservices (Python/FastAPI)"]
+        CVI["CV Intelligence Service (SBERT / LLM Feedback)"]
+        DA["Data Analytics Service (XGBoost / Prophet)"]
     end
     
     Core_Services -.-> RabbitMQ
     AI_Services -.-> RabbitMQ
     
-    RabbitMQ((RabbitMQ<br/>Event Bus))
+    RabbitMQ(("RabbitMQ Event Bus"))
 ```
 
 ---
