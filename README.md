@@ -19,7 +19,7 @@
 ## 🏗️ Kiến Trúc Hệ Thống (Architecture)
 
 ```mermaid
-graph TD
+flowchart LR
     Client["Client Apps / React"] -->|HTTPS| API_Gateway
     
     API_Gateway["Ocelot API Gateway"] -->|Routing| Auth
