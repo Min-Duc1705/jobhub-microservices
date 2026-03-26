@@ -22,8 +22,12 @@
 graph TD
     Client["Client Apps / React"] -->|HTTPS| API_Gateway
     
-    API_Gateway["Ocelot API Gateway"] -->|Routing| Core_Services
-    API_Gateway -->|Routing| AI_Services
+    API_Gateway["Ocelot API Gateway"] -->|Routing| Auth
+    API_Gateway -->|Routing| Job
+    API_Gateway -->|Routing| Resume
+    API_Gateway -->|Routing| Company
+    API_Gateway -->|Routing| CVI
+    API_Gateway -->|Routing| DA
     
     subgraph Core_Microservices ["Core Microservices (.NET 8)"]
         Auth["Auth Service (Identity/JWT)"]
@@ -37,8 +41,12 @@ graph TD
         DA["Data Analytics Service (XGBoost / Prophet)"]
     end
     
-    Core_Services -.-> RabbitMQ
-    AI_Services -.-> RabbitMQ
+    Auth -.-> RabbitMQ
+    Job -.-> RabbitMQ
+    Resume -.-> RabbitMQ
+    Company -.-> RabbitMQ
+    CVI -.-> RabbitMQ
+    DA -.-> RabbitMQ
     
     RabbitMQ(("RabbitMQ Event Bus"))
 ```
