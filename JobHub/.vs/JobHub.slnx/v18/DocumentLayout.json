@@ -3,12 +3,16 @@
   "WorkspaceRootPath": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{D647EC38-909B-4454-881D-985FDC409D00}|ApiGateway\\ApiGateway.csproj|t:\\tryhard_it_project\\final\\backend\\jobhub\\apigateway\\ocelot.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{D647EC38-909B-4454-881D-985FDC409D00}|ApiGateway\\ApiGateway.csproj|solutionrelative:apigateway\\ocelot.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{509E8C45-C3BA-127D-4C1C-B527ED4B12D8}|JobService\\JobService.csproj|t:\\tryhard_it_project\\final\\backend\\jobhub\\jobservice\\jobservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{509E8C45-C3BA-127D-4C1C-B527ED4B12D8}|JobService\\JobService.csproj|solutionrelative:jobservice\\jobservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{3F741F9B-C90D-4ECD-B00D-77CCD5697FB7}|CommonService\\CommonService.csproj|t:\\tryhard_it_project\\final\\backend\\jobhub\\commonservice\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3F741F9B-C90D-4ECD-B00D-77CCD5697FB7}|CommonService\\CommonService.csproj|solutionrelative:commonservice\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{2EA502A3-A5A9-4600-B784-6A46FD01F596}|ProfileService\\ProfileService.csproj|t:\\tryhard_it_project\\final\\backend\\jobhub\\profileservice\\profileservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{2EA502A3-A5A9-4600-B784-6A46FD01F596}|ProfileService\\ProfileService.csproj|solutionrelative:profileservice\\profileservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{13CD7524-D7EF-FBA7-315C-8F7A194B195B}|ResumeService\\ResumeService.csproj|t:\\tryhard_it_project\\final\\backend\\jobhub\\resumeservice\\resumeservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{13CD7524-D7EF-FBA7-315C-8F7A194B195B}|ResumeService\\ResumeService.csproj|solutionrelative:resumeservice\\resumeservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     }
   ],
   "DocumentGroupContainers": [
@@ -31,27 +35,40 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ocelot.json",
-              "DocumentMoniker": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\ApiGateway\\ocelot.json",
-              "RelativeDocumentMoniker": "ApiGateway\\ocelot.json",
-              "ToolTip": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\ApiGateway\\ocelot.json",
-              "RelativeToolTip": "ApiGateway\\ocelot.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-03-24T05:17:53.761Z",
+              "Title": "JobService",
+              "DocumentMoniker": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\JobService\\JobService.csproj",
+              "RelativeDocumentMoniker": "JobService\\JobService.csproj",
+              "ToolTip": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\JobService\\JobService.csproj",
+              "RelativeToolTip": "JobService\\JobService.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-03-28T13:59:06.587Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ResumeService",
+              "DocumentMoniker": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\ResumeService\\ResumeService.csproj",
+              "RelativeDocumentMoniker": "ResumeService\\ResumeService.csproj",
+              "ToolTip": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\ResumeService\\ResumeService.csproj",
+              "RelativeToolTip": "ResumeService\\ResumeService.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-03-28T13:55:38.69Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Class1.cs",
-              "DocumentMoniker": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\CommonService\\Class1.cs",
-              "RelativeDocumentMoniker": "CommonService\\Class1.cs",
-              "ToolTip": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\CommonService\\Class1.cs",
-              "RelativeToolTip": "CommonService\\Class1.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-24T05:07:42.443Z",
+              "Title": "ProfileService",
+              "DocumentMoniker": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\ProfileService\\ProfileService.csproj",
+              "RelativeDocumentMoniker": "ProfileService\\ProfileService.csproj",
+              "ToolTip": "T:\\TryHard_IT_Project\\Final\\Backend\\JobHub\\ProfileService\\ProfileService.csproj",
+              "RelativeToolTip": "ProfileService\\ProfileService.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-03-28T13:55:36.983Z",
               "EditorCaption": ""
             }
           ]

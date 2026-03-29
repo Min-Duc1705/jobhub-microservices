@@ -1,0 +1,78 @@
+# ==========================
+# CÁC FILE CẤU HÌNH NHẠY CẢM
+# ==========================
+.env
+*.env
+.env.*
+!.env.example
+secrets.json
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+ocelot.Production.json
+*.pem
+*.crt
+*.key
+*.pfx
+
+# ==========================
+# .NET
+# ==========================
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+.idea/
+*.sln.iml
+*.nupkg
+packages/
+
+# ==========================
+# PYTHON (Dành cho AI Services)
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+.nox/
+.tox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# ==========================
+# DỮ LIỆU CỤC BỘ DOCKER (NẾU CÓ)
+# ==========================
+.docker-data/
+
+# ==========================
+# OS GENERATED
+# ==========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

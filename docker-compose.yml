@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # --------------------------------------------------------------------------
+  # 1. POSTGRESQL (Core Database cho toàn bộ 6 Microservices .NET)
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: jobhub_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: JobHubDb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # 2. RABBITMQ (Message Broker cho MassTransit event-driven)
+  # --------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: jobhub_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"    # Cổng cho Service kết nối
+      - "15672:15672"  # Cổng UI cho Administrator
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # 3. REDIS (Distributed Caching & API Response Cache)
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: jobhub_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    # command: redis-server --requirepass your_secure_password # Mở cmt nếu muốn cài pass
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # 4. MINIO (Object Storage dùng chung để lưu CV, Avatar)
+  # --------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: jobhub_minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # Cổng API S3
+      - "9001:9001" # Cổng Web Console Panel
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: AdminPassword123!
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # --------------------------------------------------------------------------
+  # 5. MONGODB (Cơ sở dữ liệu NoSQL lưu phân tích, cache AI Models)
+  # --------------------------------------------------------------------------
+  mongodb:
+    image: mongo:6-jammy
+    container_name: jobhub_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - mongodb_data:/data/db
+
+  # --------------------------------------------------------------------------
+  # 6. ELASTICSEARCH (Tìm kiếm Full-text tốc độ cao cho JobService)
+  # --------------------------------------------------------------------------
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: jobhub_elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # Tạm tắt mật khẩu Elasticsearch lúc code Local
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m # Giới hạn RAM chống nhai bộ nhớ
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+# Đăng ký các ổ cứng ảo (Lưu cục bộ vào máy của bạn, ko mất data khi tắt container)
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
+  minio_data:
+  mongodb_data:
+  elasticsearch_data:
