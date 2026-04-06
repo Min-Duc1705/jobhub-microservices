@@ -1,0 +1,819 @@
+{
+  "info": {
+    "_postman_id": "jobhub-full-collection-v2",
+    "name": "JobHub - Full API Collection",
+    "description": "Postman collection đầy đủ cho JobHub Microservices.\n\n📌 Ports:\n- AuthService:    http://localhost:5001\n- ProfileService: http://localhost:5002\n- ApiGateway:     http://localhost:5000\n\n🚀 Hướng dẫn:\n1. Chạy 'Login (Admin)' → accessToken tự lưu\n2. Chạy từng nhóm API cần test\n3. Các biến (skillId, customerId...) tự lưu qua test script\n\n⚠️ Lưu ý: Trong bộ API này tất cả request đã được chuyển qua cổng chung {{baseUrl}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:5000", "type": "string", "description": "API Gateway — tất cả request đều qua đây" },
+    { "key": "accessToken",  "value": "", "type": "string" },
+    { "key": "roleId",       "value": "", "type": "string" },
+    { "key": "permissionId", "value": "", "type": "string" },
+    { "key": "userId",       "value": "", "type": "string" },
+    { "key": "customerId",   "value": "", "type": "string" },
+    { "key": "skillId",      "value": "", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.accessToken) {",
+              "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+              "    console.log('✅ accessToken saved');",
+              "}",
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has accessToken', () => pm.expect(res.data.accessToken).to.be.a('string'));"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@jobhub.vn\",\n  \"password\": \"Admin@123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }
+          }
+        },
+        {
+          "name": "Login (Candidate)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.accessToken) {",
+              "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+              "    console.log('✅ Candidate token saved');",
+              "}",
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"candidate@jobhub.vn\",\n  \"password\": \"User@123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }
+          }
+        },
+        {
+          "name": "Register (Candidate)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "pm.test('Has email', () => pm.expect(res.data.email).to.be.a('string'));",
+              "pm.test('Has username', () => pm.expect(res.data.username).to.not.be.empty);"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"candidate@jobhub.vn\",\n  \"username\": \"Nguyen Van A\",\n  \"password\": \"User@123456\",\n  \"role\": \"CANDIDATE\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Register (HR)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"hr@company.vn\",\n  \"username\": \"HR Manager\",\n  \"password\": \"Hr@123456\",\n  \"role\": \"HR\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Register (❌ ADMIN - Phải báo lỗi 400)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Phải báo lỗi 400 khi đăng ký ADMIN', () => pm.response.to.have.status(400));",
+              "const res = pm.response.json();",
+              "pm.test('Message chứa từ chối', () => pm.expect(res.message).to.include('ADMIN'));"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"hacker@evil.com\",\n  \"username\": \"Hacker\",\n  \"password\": \"Hack@123456\",\n  \"role\": \"ADMIN\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Register (❌ Thiếu Username - Phải báo lỗi 400)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"noname@jobhub.vn\",\n  \"password\": \"NoName@123\",\n  \"role\": \"CANDIDATE\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Verify Email (OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"candidate@jobhub.vn\",\n  \"otpCode\": \"123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","verify-email"] }
+          }
+        },
+        {
+          "name": "Get Account (me)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Has role', () => pm.expect(res.data.role).to.be.a('object'));",
+              "pm.test('Has permissions', () => pm.expect(res.data.permissions).to.be.an('array'));"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/account", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","account"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"Admin@123456\",\n  \"newPassword\": \"NewAdmin@123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","change-password"] }
+          }
+        },
+        {
+          "name": "Send OTP Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"candidate@jobhub.vn\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/send-otp-reset", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","send-otp-reset"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"candidate@jobhub.vn\",\n  \"otpCode\": \"123456\",\n  \"newPassword\": \"NewPass@123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh"] },
+            "description": "RefreshToken đọc từ HttpOnly Cookie — phải login trước."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","logout"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🎭 Roles",
+      "item": [
+        {
+          "name": "Get All Roles (phân trang + filter + sort)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có meta phân trang', () => {",
+              "    pm.expect(res.data.pageNumber).to.be.a('number');",
+              "    pm.expect(res.data.pageSize).to.be.a('number');",
+              "    pm.expect(res.data.totalCount).to.be.a('number');",
+              "});",
+              "if (res.data.items && res.data.items.length > 0) {",
+              "    pm.collectionVariables.set('roleId', res.data.items[0].id);",
+              "    console.log('✅ roleId saved:', res.data.items[0].id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles?pageNumber=1&pageSize=5&searchTerm=&sortBy=name&isDescending=false",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","roles"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "5" },
+                { "key": "searchTerm",   "value": "" },
+                { "key": "sortBy",       "value": "name" },
+                { "key": "isDescending", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Roles (sort Descending)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles?pageNumber=1&pageSize=10&sortBy=name&isDescending=true",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","roles"],
+              "query": [
+                { "key": "pageNumber", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortBy", "value": "name" },
+                { "key": "isDescending", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Roles Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/dropdown", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","dropdown"] }
+          }
+        },
+        {
+          "name": "Get Role By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "Create Role",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "if (res.data && res.data.id) {",
+              "    pm.collectionVariables.set('roleId', res.data.id);",
+              "    console.log('✅ roleId saved:', res.data.id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"RECRUITER\",\n  \"description\": \"Nhà tuyển dụng nội bộ\",\n  \"permissionIds\": []\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","roles"] }
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"RECRUITER\",\n  \"description\": \"Nhà tuyển dụng nội bộ (updated)\",\n  \"isActive\": true,\n  \"permissionIds\": []\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "❌ Get All Roles (Không có token - 401)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Phải 401 khi không có token', () => pm.response.to.have.status(401));"]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","roles"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🔑 Permissions",
+      "item": [
+        {
+          "name": "Get All Permissions (phân trang + filter module)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có phân trang', () => pm.expect(res.data.items).to.be.an('array'));",
+              "if (res.data.items && res.data.items.length > 0) {",
+              "    pm.collectionVariables.set('permissionId', res.data.items[0].id);",
+              "    console.log('✅ permissionId saved:', res.data.items[0].id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/permissions?pageNumber=1&pageSize=10&module=USER&sortBy=name&isDescending=false",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","permissions"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "10" },
+                { "key": "module",       "value": "USER", "description": "Filter theo module: AUTH, USER, ROLE, PERMISSION, PROFILE, SKILL" },
+                { "key": "method",       "value": "", "disabled": true, "description": "GET | POST | PUT | DELETE | PATCH" },
+                { "key": "searchTerm",   "value": "", "disabled": true },
+                { "key": "sortBy",       "value": "name" },
+                { "key": "isDescending", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Permissions (filter method=GET)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/permissions?pageNumber=1&pageSize=20&method=GET",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","permissions"],
+              "query": [
+                { "key": "pageNumber", "value": "1" },
+                { "key": "pageSize", "value": "20" },
+                { "key": "method", "value": "GET" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Permissions Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/dropdown", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","dropdown"] }
+          }
+        },
+        {
+          "name": "Get Permission By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","{{permissionId}}"] }
+          }
+        },
+        {
+          "name": "Create Permission",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "if (res.data && res.data.id) {",
+              "    pm.collectionVariables.set('permissionId', res.data.id);",
+              "    console.log('✅ permissionId saved:', res.data.id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Xem danh sách job\",\n  \"apiPath\": \"/api/v1/jobs\",\n  \"method\": \"GET\",\n  \"module\": \"JOB\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions"] }
+          }
+        },
+        {
+          "name": "Update Permission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Xem danh sách job (updated)\",\n  \"apiPath\": \"/api/v1/jobs\",\n  \"method\": \"GET\",\n  \"module\": \"JOB\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","{{permissionId}}"] }
+          }
+        },
+        {
+          "name": "Delete Permission",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","{{permissionId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "👤 Users (Admin)",
+      "item": [
+        {
+          "name": "Get All Users (phân trang + filter status + sort)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có phân trang', () => pm.expect(res.data.items).to.be.an('array'));",
+              "if (res.data.items && res.data.items.length > 0) {",
+              "    pm.collectionVariables.set('userId', res.data.items[0].id);",
+              "    console.log('✅ userId saved:', res.data.items[0].id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?pageNumber=1&pageSize=10&status=Active&sortBy=email&isDescending=false",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","users"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "10" },
+                { "key": "searchTerm",   "value": "", "disabled": true },
+                { "key": "status",       "value": "Active", "description": "Active | Pending | Suspended | Deactivated" },
+                { "key": "roleId",       "value": "", "disabled": true },
+                { "key": "sortBy",       "value": "email", "description": "email | createdDate" },
+                { "key": "isDescending", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Users (filter Pending + page 2)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?pageNumber=2&pageSize=5&status=Pending",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","users"],
+              "query": [
+                { "key": "pageNumber", "value": "2" },
+                { "key": "pageSize", "value": "5" },
+                { "key": "status", "value": "Pending" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Create User (Admin tạo thẳng)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "if (res.data && res.data.id) {",
+              "    pm.collectionVariables.set('userId', res.data.id);",
+              "    console.log('✅ userId saved:', res.data.id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"testuser@jobhub.vn\",\n  \"username\": \"Test User\",\n  \"password\": \"Test@123456\",\n  \"roleId\": null\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api","v1","users"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"testuser_updated@jobhub.vn\",\n  \"username\": \"Updated User\",\n  \"status\": \"Active\",\n  \"roleId\": null\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Reset User Password (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"newPassword\": \"Reset@123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}","reset-password"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "❌ Get Users (CANDIDATE token - Phải 403)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Phải 403 với CANDIDATE token', () => pm.response.to.have.status(403));"]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api","v1","users"] },
+            "description": "⚠️ Login bằng Candidate trước rồi mới chạy test này"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "👤 Customers (ProfileService)",
+      "item": [
+        {
+          "name": "Get All Customers (Admin - phân trang + sort)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có phân trang', () => pm.expect(res.data.items).to.be.an('array'));",
+              "if (res.data.items && res.data.items.length > 0) {",
+              "    pm.collectionVariables.set('customerId', res.data.items[0].id);",
+              "    console.log('✅ customerId saved:', res.data.items[0].id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers?pageNumber=1&pageSize=10&sortBy=createdDate&isDescending=true",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","customers"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "10" },
+                { "key": "searchTerm",   "value": "", "disabled": true },
+                { "key": "type",         "value": "", "disabled": true, "description": "CANDIDATE | HR" },
+                { "key": "sortBy",       "value": "createdDate", "description": "createdDate | fullName" },
+                { "key": "isDescending", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Customers (filter type=CANDIDATE)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers?pageNumber=1&pageSize=10&type=CANDIDATE",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","customers"],
+              "query": [
+                { "key": "pageNumber", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "type", "value": "CANDIDATE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/customers/{{customerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","customers","{{customerId}}"] }
+          }
+        },
+        {
+          "name": "Get My Profile (me)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có AppUserId', () => pm.expect(res.data.appUserId).to.be.a('string'));",
+              "pm.test('Có skills array', () => pm.expect(res.data.skills).to.be.an('array'));"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/customers/me", "host": ["{{baseUrl}}"], "path": ["api","v1","customers","me"] }
+          }
+        },
+        {
+          "name": "Update My Profile (me)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Nguyen Van A\",\n  \"phone\": \"0901234567\",\n  \"gender\": \"MALE\",\n  \"dateOfBirth\": \"1998-05-15\",\n  \"address\": \"Ha Noi, Viet Nam\",\n  \"summary\": \"Senior Backend Developer với 5 năm kinh nghiệm .NET\",\n  \"yearsOfExperience\": 5,\n  \"expectedSalary\": 30000000,\n  \"jobSearchStatus\": \"ACTIVELY_LOOKING\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/customers/me", "host": ["{{baseUrl}}"], "path": ["api","v1","customers","me"] }
+          }
+        },
+        {
+          "name": "Add Skill to My Profile",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"skillId\": \"{{skillId}}\",\n  \"yearsOfExperience\": 3\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/skills/me", "host": ["{{baseUrl}}"], "path": ["api","v1","skills","me"] }
+          }
+        },
+        {
+          "name": "Remove Skill from My Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/skills/me/{{skillId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","skills","me","{{skillId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🛠️ Skills (ProfileService)",
+      "item": [
+        {
+          "name": "Get All Skills - Admin (phân trang + filter + sort)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có phân trang', () => pm.expect(res.data.items).to.be.an('array'));",
+              "if (res.data.items && res.data.items.length > 0) {",
+              "    pm.collectionVariables.set('skillId', res.data.items[0].id);",
+              "    console.log('✅ skillId saved:', res.data.items[0].id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/skills?pageNumber=1&pageSize=10&searchTerm=&sortBy=name&isDescending=false",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","skills"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "10" },
+                { "key": "searchTerm",   "value": "", "description": "Tìm theo tên skill" },
+                { "key": "sortBy",       "value": "name", "description": "name | createDate" },
+                { "key": "isDescending", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Skills (filter searchTerm=.NET)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/skills?pageNumber=1&pageSize=10&searchTerm=.NET",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","skills"],
+              "query": [
+                { "key": "pageNumber", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "searchTerm", "value": ".NET" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Skills Dropdown (mọi user)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Trả về array', () => pm.expect(res.data).to.be.an('array'));",
+              "if (res.data && res.data.length > 0) {",
+              "    pm.collectionVariables.set('skillId', res.data[0].id);",
+              "    console.log('✅ skillId saved:', res.data[0].id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/skills/dropdown", "host": ["{{baseUrl}}"], "path": ["api","v1","skills","dropdown"] }
+          }
+        },
+        {
+          "name": "Get Skill By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/skills/{{skillId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","skills","{{skillId}}"] }
+          }
+        },
+        {
+          "name": "Create Skill (Admin)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "if (res.data && res.data.id) {",
+              "    pm.collectionVariables.set('skillId', res.data.id);",
+              "    console.log('✅ skillId saved:', res.data.id);",
+              "}"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"ASP.NET Core\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/skills", "host": ["{{baseUrl}}"], "path": ["api","v1","skills"] }
+          }
+        },
+        {
+          "name": "Create Skill (❌ Tên rỗng - 400)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Phải 400 khi tên rỗng', () => pm.response.to.have.status(400));"]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/skills", "host": ["{{baseUrl}}"], "path": ["api","v1","skills"] }
+          }
+        },
+        {
+          "name": "Update Skill (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"ASP.NET Core 8\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/skills/{{skillId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","skills","{{skillId}}"] }
+          }
+        },
+        {
+          "name": "Delete Skill (Admin - Soft Delete)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Status 200 hoặc 204', () => pm.expect([200,204]).to.include(pm.response.code));"]
+          }}],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/skills/{{skillId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","skills","{{skillId}}"] }
+          }
+        },
+        {
+          "name": "❌ Create Skill (CANDIDATE - Phải 403)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": ["pm.test('Phải 403 với token CANDIDATE', () => pm.response.to.have.status(403));"]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"React\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/skills", "host": ["{{baseUrl}}"], "path": ["api","v1","skills"] },
+            "description": "⚠️ Login bằng Candidate trước rồi chạy — phải bị từ chối 403"
+          }
+        }
+      ]
+    }
+
+  ]
+}

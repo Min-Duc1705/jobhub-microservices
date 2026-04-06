@@ -1,14 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using CommonService.Specifications;
 
-namespace CommonService.Repository
+namespace CommonService.Repository;
+
+public interface IGenericRepository<T> where T : class
 {
-    public interface IGenericRepository<T> where T : class
-{
-    // ---- CRUD cơ bản ----
+    // ── CRUD cơ bản ───────────────────────────────────────────────────────────
+
     Task<T?> GetByIdAsync(Guid id);
+
     /// <summary>Người dùng thường: chỉ lấy bản ghi chưa bị xóa (IsDeleted = false)</summary>
     Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
 
@@ -20,7 +19,8 @@ namespace CommonService.Repository
     void Delete(T entity);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
-    // ---- Specification Pattern ----
+    // ── Specification Pattern ──────────────────────────────────────────────────
+
     /// <summary>Lấy 1 entity duy nhất theo Specification</summary>
     Task<T?> GetEntityWithSpec(ISpecification<T> spec, CancellationToken cancellationToken = default);
 
@@ -29,5 +29,4 @@ namespace CommonService.Repository
 
     /// <summary>Đếm tổng số bản ghi theo Specification (để tính tổng trang)</summary>
     Task<int> CountAsync(ISpecification<T> spec, CancellationToken cancellationToken = default);
-}
 }

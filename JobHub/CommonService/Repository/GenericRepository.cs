@@ -1,34 +1,34 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using CommonService.Models.Interface;
+using CommonService.Specifications;
+using Microsoft.EntityFrameworkCore;
 
-namespace CommonService.Repository
-{
-    public class GenericRepository<TContext, T> : IGenericRepository<T>
+namespace CommonService.Repository;
+
+public class GenericRepository<TContext, T> : IGenericRepository<T>
     where TContext : DbContext
     where T : class, ISoftDelete
 {
-    protected readonly TContext _context;
+    protected readonly TContext  _context;
     protected readonly DbSet<T> _dbSet;
 
     public GenericRepository(TContext context)
     {
         _context = context;
-        _dbSet = context.Set<T>();
+        _dbSet   = context.Set<T>();
     }
 
-    // ---- CRUD cơ bản ----
+    // ── CRUD cơ bản ───────────────────────────────────────────────────────────
+
     public async Task<T?> GetByIdAsync(Guid id)
         => await _dbSet.FindAsync(id);
 
-    // Người dùng thường: chỉ lấy bản ghi chưa bị xóa mềm
+    /// <summary>Người dùng thường: chỉ lấy bản ghi chưa bị xóa (IsDeleted = false)</summary>
     public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _dbSet.AsNoTracking()
                        .Where(e => !e.IsDeleted)
                        .ToListAsync(cancellationToken);
 
-    // Admin: trả về tất cả, kể cả bản ghi đã Soft Delete
+    /// <summary>Admin: trả về tất cả, kể cả bản ghi đã Soft Delete</summary>
     public async Task<IEnumerable<T>> GetAllIncludingDeletedAsync(CancellationToken cancellationToken = default)
         => await _dbSet.AsNoTracking().ToListAsync(cancellationToken);
 
@@ -38,7 +38,7 @@ namespace CommonService.Repository
     public void Update(T entity)
         => _dbSet.Update(entity);
 
-    // Xóa mềm: chỉ đánh dấu IsDeleted, không DELETE khỏi DB
+    /// <summary>Xóa mềm: chỉ đánh dấu IsDeleted, không DELETE khỏi DB</summary>
     public void Delete(T entity)
     {
         entity.IsDeleted = true;
@@ -49,7 +49,8 @@ namespace CommonService.Repository
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);
 
-    // ---- Specification Pattern ----
+    // ── Specification Pattern ──────────────────────────────────────────────────
+
     public async Task<T?> GetEntityWithSpec(ISpecification<T> spec, CancellationToken cancellationToken = default)
     {
         var query = SpecificationEvaluator<T>.GetQuery(_dbSet.AsNoTracking(), spec);
@@ -64,13 +65,10 @@ namespace CommonService.Repository
 
     public async Task<int> CountAsync(ISpecification<T> spec, CancellationToken cancellationToken = default)
     {
-        // Count chỉ cần Criteria (WHERE), không cần Paging/OrderBy
         var query = _dbSet.AsNoTracking().AsQueryable();
         if (spec.Criteria != null)
-        {
             query = query.Where(spec.Criteria);
-        }
+
         return await query.CountAsync(cancellationToken);
     }
-}
 }

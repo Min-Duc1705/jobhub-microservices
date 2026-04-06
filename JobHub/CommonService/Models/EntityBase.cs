@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using CommonService.Models.Interface;
 
-namespace CommonService.Models
+namespace CommonService.Models;
+
+public abstract class EntityBase<T> : IEntityBase<T>
 {
-    
-    public abstract class EntityBase<T> : IEntityBase<T>
-    {
-        public T Id { get; set; } = default!;
-    }
+    public T Id { get; set; } = default!;
 }

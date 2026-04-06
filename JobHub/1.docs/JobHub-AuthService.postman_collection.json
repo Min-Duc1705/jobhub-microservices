@@ -1,0 +1,465 @@
+{
+  "info": {
+    "_postman_id": "jobhub-auth-service-collection",
+    "name": "JobHub - AuthService",
+    "description": "Postman collection cho toàn bộ API của AuthService (JobHub).\n\nBase URL: http://localhost:5001\n\nHướng dẫn sử dụng:\n1. Chạy 'Login' hoặc 'Register' trước\n2. accessToken sẽ tự động lưu vào collection variable\n3. Các request cần auth sẽ tự dùng token đó",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:5001", "type": "string" },
+    { "key": "accessToken",  "value": "",                     "type": "string" },
+    { "key": "roleId",       "value": "",                     "type": "string" },
+    { "key": "permissionId", "value": "",                     "type": "string" },
+    { "key": "userId",       "value": "",                     "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "    console.log('✅ accessToken saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@jobhub.vn\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@jobhub.vn\",\n  \"password\": \"User@123\",\n  \"confirmPassword\": \"User@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Verify Email (OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@jobhub.vn\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","verify-email"] }
+          }
+        },
+        {
+          "name": "Resend OTP (Register)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@jobhub.vn\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/resend-otp?otpType=REGISTER",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","auth","resend-otp"],
+              "query": [{ "key": "otpType", "value": "REGISTER" }]
+            }
+          }
+        },
+        {
+          "name": "Send OTP Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@jobhub.vn\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/send-otp-reset", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","send-otp-reset"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@jobhub.vn\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewPass@123\",\n  \"confirmPassword\": \"NewPass@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh"] },
+            "description": "RefreshToken được đọc từ HttpOnly Cookie 'refresh_token' — đảm bảo đã login trước để cookie được set."
+          }
+        },
+        {
+          "name": "Get Account (me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/account", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","account"] }
+          }
+        },
+        {
+          "name": "Update Email",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newEmail\": \"updated@jobhub.vn\",\n  \"currentPassword\": \"Admin@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/email", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","email"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Admin@123\",\n  \"newPassword\": \"NewAdmin@123\",\n  \"confirmPassword\": \"NewAdmin@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","change-password"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","logout"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🎭 Roles",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles?pageNumber=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","roles"],
+              "query": [
+                { "key": "pageNumber",  "value": "1" },
+                { "key": "pageSize",    "value": "10" },
+                { "key": "searchTerm",  "value": "", "disabled": true },
+                { "key": "isActive",    "value": "true", "disabled": true },
+                { "key": "sortBy",      "value": "name", "disabled": true },
+                { "key": "isDescending","value": "false", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Roles Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/dropdown", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","dropdown"] }
+          }
+        },
+        {
+          "name": "Get Role By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "Create Role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('roleId', res.data.id);",
+                  "    console.log('✅ roleId saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"RECRUITER\",\n  \"description\": \"Nhà tuyển dụng — có quyền đăng tin và quản lý ứng viên\",\n  \"permissionIds\": []\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","roles"] }
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"RECRUITER\",\n  \"description\": \"Nhà tuyển dụng (updated)\",\n  \"isActive\": true,\n  \"permissionIds\": []\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","{{roleId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🔑 Permissions",
+      "item": [
+        {
+          "name": "Get All Permissions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/permissions?pageNumber=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","permissions"],
+              "query": [
+                { "key": "pageNumber",  "value": "1" },
+                { "key": "pageSize",    "value": "10" },
+                { "key": "searchTerm",  "value": "", "disabled": true },
+                { "key": "module",      "value": "", "disabled": true },
+                { "key": "method",      "value": "GET", "disabled": true },
+                { "key": "sortBy",      "value": "name", "disabled": true },
+                { "key": "isDescending","value": "false", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Permissions Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/dropdown", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","dropdown"] }
+          }
+        },
+        {
+          "name": "Get Permission By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","{{permissionId}}"] }
+          }
+        },
+        {
+          "name": "Create Permission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('permissionId', res.data.id);",
+                  "    console.log('✅ permissionId saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Xem danh sách job\",\n  \"apiPath\": \"/api/v1/jobs\",\n  \"method\": \"GET\",\n  \"module\": \"JOB\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions"] }
+          }
+        },
+        {
+          "name": "Update Permission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Xem danh sách job (updated)\",\n  \"apiPath\": \"/api/v1/jobs\",\n  \"method\": \"GET\",\n  \"module\": \"JOB\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","{{permissionId}}"] }
+          }
+        },
+        {
+          "name": "Delete Permission",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","permissions","{{permissionId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "👤 Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?pageNumber=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","users"],
+              "query": [
+                { "key": "pageNumber",  "value": "1" },
+                { "key": "pageSize",    "value": "10" },
+                { "key": "searchTerm",  "value": "", "disabled": true },
+                { "key": "status",      "value": "Active", "disabled": true },
+                { "key": "roleId",      "value": "", "disabled": true },
+                { "key": "sortBy",      "value": "email", "disabled": true },
+                { "key": "isDescending","value": "false", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Create User (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('userId', res.data.id);",
+                  "    console.log('✅ userId saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@jobhub.vn\",\n  \"password\": \"Test@123\",\n  \"roleId\": null\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api","v1","users"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser_updated@jobhub.vn\",\n  \"status\": \"Active\",\n  \"roleId\": null\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Reset User Password (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"Reset@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}","reset-password"] }
+          }
+        }
+      ]
+    }
+
+  ]
+}

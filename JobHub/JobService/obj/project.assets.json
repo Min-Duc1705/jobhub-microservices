@@ -1430,7 +1430,10 @@
         },
         "runtime": {
           "bin/placeholder/CommonService.dll": {}
-        }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
       }
     }
   },

@@ -6,6 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- Cho phép class library dùng ASP.NET Core types:
+       IExceptionHandler, IAsyncResultFilter, IAsyncAuthorizationFilter, WebApplication, ... -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="MassTransit" Version="8.5.8" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.8" />
