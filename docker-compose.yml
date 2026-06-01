@@ -1,4 +1,4 @@
-version: '3.8'
+# docker-compose.yml — JobHub Microservices Stack
 
 services:
   # --------------------------------------------------------------------------
@@ -16,11 +16,14 @@ services:
       POSTGRES_DB: JobHubDb
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d  # Tự động tạo databases khi khởi động lần đầu
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s  # Chờ init script tạo databases xong trước khi check
+
 
   # --------------------------------------------------------------------------
   # 2. RABBITMQ (Message Broker cho MassTransit event-driven)
@@ -54,7 +57,6 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    # command: redis-server --requirepass your_secure_password # Mở cmt nếu muốn cài pass
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -65,7 +67,7 @@ services:
   # 4. MINIO (Object Storage dùng chung để lưu CV, Avatar)
   # --------------------------------------------------------------------------
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2024-11-07T00-52-20Z
     container_name: jobhub_minio
     restart: unless-stopped
     ports:
@@ -104,12 +106,438 @@ services:
       - "9200:9200"
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false # Tạm tắt mật khẩu Elasticsearch lúc code Local
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m # Giới hạn RAM chống nhai bộ nhớ
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
-# Đăng ký các ổ cứng ảo (Lưu cục bộ vào máy của bạn, ko mất data khi tắt container)
+  # --------------------------------------------------------------------------
+  # 7. JOBHUB MICROSERVICES (.NET 8) - TẠM THỜI TẮT (Chạy local bằng IDE/dotnet CLI)
+  # --------------------------------------------------------------------------
+  # authservice:
+  #   image: jobhub-authservice:latest
+  #   build:
+  #     context: ./JobHub
+  #     dockerfile: AuthService/Dockerfile
+  #   container_name: jobhub_authservice
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5001:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - RUNNING_IN_DOCKER=true
+  #     - ConnectionStrings__AuthDb=Host=postgres;Port=5432;Database=AuthService;Username=postgres;Password=root
+  #     - ConnectionStrings__Redis=redis:6379
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__Port=5672
+  #     - RabbitMQ__Username=guest
+  #     - RabbitMQ__Password=guest
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+
+  # jobservice:
+  #   image: jobhub-jobservice:latest
+  #   build:
+  #     context: ./JobHub
+  #     dockerfile: JobService/Dockerfile
+  #   container_name: jobhub_jobservice
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5002:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - RUNNING_IN_DOCKER=true
+  #     - ConnectionStrings__JobDb=Host=postgres;Port=5432;Database=JobService;Username=postgres;Password=root
+  #     - ConnectionStrings__Redis=redis:6379
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__Port=5672
+  #     - RabbitMQ__Username=guest
+  #     - RabbitMQ__Password=guest
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+
+  # companyservice:
+  #   image: jobhub-companyservice:latest
+  #   build:
+  #     context: ./JobHub
+  #     dockerfile: CompanyService/Dockerfile
+  #   container_name: jobhub_companyservice
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5003:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - RUNNING_IN_DOCKER=true
+  #     - ConnectionStrings__CompanyDb=Host=postgres;Port=5432;Database=CompanyService;Username=postgres;Password=root
+  #     - ConnectionStrings__Redis=redis:6379
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__Port=5672
+  #     - RabbitMQ__Username=guest
+  #     - RabbitMQ__Password=guest
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+
+  # profileservice:
+  #   image: jobhub-profileservice:latest
+  #   build:
+  #     context: ./JobHub
+  #     dockerfile: ProfileService/Dockerfile
+  #   container_name: jobhub_profileservice
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5004:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - RUNNING_IN_DOCKER=true
+  #     - ConnectionStrings__ProfileDb=Host=postgres;Port=5432;Database=ProfileService;Username=postgres;Password=root
+  #     - ConnectionStrings__Redis=redis:6379
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__Port=5672
+  #     - RabbitMQ__Username=guest
+  #     - RabbitMQ__Password=guest
+  #     - MinIO__Endpoint=minio:9000
+  #     - MinIO__AccessKey=admin
+  #     - MinIO__SecretKey=AdminPassword123!
+  #     - MinIO__Secure=false
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_started
+
+  # resumeservice:
+  #   image: jobhub-resumeservice:latest
+  #   build:
+  #     context: ./JobHub
+  #     dockerfile: ResumeService/Dockerfile
+  #   container_name: jobhub_resumeservice
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5005:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - RUNNING_IN_DOCKER=true
+  #     - ConnectionStrings__ResumeDb=Host=postgres;Port=5432;Database=ResumeService;Username=postgres;Password=root
+  #     - ConnectionStrings__Redis=redis:6379
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__Port=5672
+  #     - RabbitMQ__Username=guest
+  #     - RabbitMQ__Password=guest
+  #     - MinIO__Endpoint=minio:9000
+  #     - MinIO__AccessKey=admin
+  #     - MinIO__SecretKey=AdminPassword123!
+  #     - MinIO__Secure=false
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_started
+
+  # apigateway:
+  #   image: jobhub-apigateway:latest
+  #   build:
+  #     context: ./JobHub
+  #     dockerfile: ApiGateway/Dockerfile
+  #   container_name: jobhub_apigateway
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5000:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - RUNNING_IN_DOCKER=true
+  #     - RUNNING_IN_DOCKER=true
+  #   depends_on:
+  #     - authservice
+  #     - jobservice
+  #     - companyservice
+  #     - profileservice
+  #     - resumeservice
+
+
+  # --------------------------------------------------------------------------
+  # 8. JOBHUB MICROSERVICES (.NET 8) - active definitions for Compose build/manage
+  # --------------------------------------------------------------------------
+  authservice:
+    image: jobhub-authservice:latest
+    build:
+      context: ./JobHub
+      dockerfile: AuthService/Dockerfile
+    container_name: jobhub_authservice
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+      - ConnectionStrings__AuthDb=Host=postgres;Port=5432;Database=AuthService;Username=postgres;Password=root
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  jobservice:
+    image: jobhub-jobservice:latest
+    build:
+      context: ./JobHub
+      dockerfile: JobService/Dockerfile
+    container_name: jobhub_jobservice
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5002:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+      - ConnectionStrings__JobDb=Host=postgres;Port=5432;Database=JobService;Username=postgres;Password=root
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  companyservice:
+    image: jobhub-companyservice:latest
+    build:
+      context: ./JobHub
+      dockerfile: CompanyService/Dockerfile
+    container_name: jobhub_companyservice
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5003:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+      - ConnectionStrings__CompanyDb=Host=postgres;Port=5432;Database=CompanyService;Username=postgres;Password=root
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  profileservice:
+    image: jobhub-profileservice:latest
+    build:
+      context: ./JobHub
+      dockerfile: ProfileService/Dockerfile
+    container_name: jobhub_profileservice
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5004:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+      - ConnectionStrings__ProfileDb=Host=postgres;Port=5432;Database=ProfileService;Username=postgres;Password=root
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+      - MinIO__Endpoint=minio:9000
+      - MinIO__AccessKey=admin
+      - MinIO__SecretKey=AdminPassword123!
+      - MinIO__Secure=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  resumeservice:
+    image: jobhub-resumeservice:latest
+    build:
+      context: ./JobHub
+      dockerfile: ResumeService/Dockerfile
+    container_name: jobhub_resumeservice
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5005:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+      - ConnectionStrings__ResumeDb=Host=postgres;Port=5432;Database=ResumeService;Username=postgres;Password=root
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+      - MinIO__Endpoint=minio:9000
+      - MinIO__AccessKey=admin
+      - MinIO__SecretKey=AdminPassword123!
+      - MinIO__Secure=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  notificationservice:
+    image: jobhub-notificationservice:latest
+    build:
+      context: ./JobHub
+      dockerfile: NotificationService/Dockerfile
+    container_name: jobhub_notificationservice
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5008:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+      - ConnectionStrings__NotificationDb=Host=postgres;Port=5432;Database=NotificationService;Username=postgres;Password=root
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  apigateway:
+    image: jobhub-apigateway:latest
+    build:
+      context: ./JobHub
+      dockerfile: ApiGateway/Dockerfile
+    container_name: jobhub_apigateway
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - RUNNING_IN_DOCKER=true
+    depends_on:
+      - authservice
+      - jobservice
+      - companyservice
+      - profileservice
+      - resumeservice
+      - notificationservice
+      - cvintelligenceservice
+      - dataanalyticsservice
+
+  # --------------------------------------------------------------------------
+  # 9. JOBHUB AI MICROSERVICES (FastAPI)
+  # --------------------------------------------------------------------------
+  cvintelligenceservice:
+    image: jobhub-cvintelligenceservice:latest
+    build:
+      context: ./JobHub/CVIntelligenceService
+      dockerfile: Dockerfile
+    container_name: jobhub_cvintelligence
+    restart: unless-stopped
+    ports:
+      - "5006:5006"
+    env_file:
+      - ./JobHub/CVIntelligenceService/.env
+    environment:
+      - MONGO_URL=mongodb://root:root@mongodb:27017/?authSource=admin
+      - MONGO_DB=CVIntelligenceDB
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - ./JobHub/CVIntelligenceService/gemini-keys.json:/app/gemini-keys.json
+    depends_on:
+      mongodb:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5006/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+  dataanalyticsservice:
+    image: jobhub-dataanalyticsservice:latest
+    build:
+      context: ./JobHub/DataAnalyticsService
+      dockerfile: Dockerfile
+    container_name: jobhub_dataanalytics
+    restart: unless-stopped
+    ports:
+      - "5007:5007"
+    env_file:
+      - ./JobHub/DataAnalyticsService/.env
+    environment:
+      - MONGO_URL=mongodb://root:root@mongodb:27017/?authSource=admin
+      - MONGO_DB=DataAnalyticsDB
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - MODEL_PATH=app/ml/artifacts/salary_model.pkl
+    depends_on:
+      mongodb:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5007/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+# Đăng ký các ổ cứng ảo (lưu data cục bộ, không mất khi tắt container)
 volumes:
   postgres_data:
   rabbitmq_data:

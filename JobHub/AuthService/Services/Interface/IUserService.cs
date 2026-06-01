@@ -12,5 +12,6 @@ namespace AuthService.Services.Interface
         Task<UserResponse>  UpdateUserAsync(Guid id, UpdateUserRequest request);
         Task DeleteUserAsync(Guid id);
         Task ResetPasswordAsync(Guid id, ResetPasswordRequest request);
+        Task BroadcastNotificationAsync(BroadcastNotificationRequest request);
     }
 }

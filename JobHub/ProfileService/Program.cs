@@ -33,6 +33,8 @@ builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICustomerService, CustomerServiceImpl>();
 builder.Services.AddScoped<ISkillService, SkillServiceImpl>();
+builder.Services.AddMinioStorage(builder.Configuration);
+builder.Services.AddFileService();
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ProfileService.Mapping.ProfileMappingProfile).Assembly));
@@ -43,6 +45,9 @@ builder.Services.AddMassTransit(x =>
     x.SetKebabCaseEndpointNameFormatter();
 
     x.AddConsumer<UserRegisteredEventConsumer>();
+    x.AddConsumer<SkillCreatedConsumer>();
+    x.AddConsumer<SkillUpdatedConsumer>();
+    x.AddConsumer<SkillDeletedConsumer>();
 
     // Outbox cho ProfileService
     x.AddEntityFrameworkOutbox<ProfileDbContext>(o =>
@@ -79,6 +84,12 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<FormatResponseFilter>();
     options.Filters.Add<PermissionInterceptor>();
+})
+.AddJsonOptions(opts =>
+{
+    // Cho phép deserialize enum từ string ("MALE", "FEMALE", "ACTIVELY_LOOKING"...)
+    opts.JsonSerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
@@ -119,4 +130,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// ── Database Migration ────────────────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ProfileDbContext>();
+    await db.Database.MigrateAsync(); // Tạo schema (bảng) tự động khi khởi động
+}
+
 app.Run();
+

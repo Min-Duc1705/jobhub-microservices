@@ -34,6 +34,8 @@ public class TokenServiceImpl : ITokenService
             new(ClaimTypes.Email,            user.Email),
             new(ClaimTypes.NameIdentifier,   user.Id.ToString()),
             new("UserId",                    user.Id.ToString()),
+            new(ClaimTypes.Name,             user.Username),
+            new("Username",                  user.Username),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
@@ -68,6 +70,8 @@ public class TokenServiceImpl : ITokenService
             new(ClaimTypes.Email,            user.Email),
             new(ClaimTypes.NameIdentifier,   user.Id.ToString()),
             new("UserId",                    user.Id.ToString()),
+            new(ClaimTypes.Name,             user.Username),
+            new("Username",                  user.Username),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 

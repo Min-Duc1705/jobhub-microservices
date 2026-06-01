@@ -17,5 +17,8 @@ namespace AuthService.Repositories.Interface
 
         /// <summary>Kiểm tra email đã tồn tại chưa.</summary>
         Task<bool> EmailExistsAsync(string email);
+
+        /// <summary>Lấy danh sách người dùng theo tên vai trò (hoặc "ALL" để lấy tất cả).</summary>
+        Task<List<AppUser>> GetUsersByRoleAsync(string roleName);
     }
 }

@@ -26,4 +26,12 @@ namespace AuthService.Models.Request
         public string  Status   { get; set; } = "Active";
         public Guid?   RoleId   { get; set; }
     }
+
+    public class BroadcastNotificationRequest
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Type { get; set; } = "default";
+        public string TargetGroup { get; set; } = "ALL";
+    }
 }

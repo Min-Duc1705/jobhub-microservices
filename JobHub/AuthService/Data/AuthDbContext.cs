@@ -33,6 +33,11 @@ public class AuthDbContext : DbContext
             entity.ToTable("AppUsers");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Email).IsUnique().HasDatabaseName("IX_Users_Email");
+            
+            // Thêm các index phục vụ truy vấn và filter
+            entity.HasIndex(e => e.Username).HasDatabaseName("IX_Users_Username");
+            entity.HasIndex(e => e.IsDeleted).HasDatabaseName("IX_Users_IsDeleted");
+            entity.HasIndex(e => e.Status).HasDatabaseName("IX_Users_Status");
 
             entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
             entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
@@ -54,6 +59,7 @@ public class AuthDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => e.Name).IsUnique().HasDatabaseName("IX_Roles_Name");
+            entity.HasIndex(e => e.IsDeleted).HasDatabaseName("IX_Roles_IsDeleted"); // Index soft-delete
 
             // Role M-N Permission — EF tự tạo bảng trung gian
             entity.HasMany(r => r.Permissions)
@@ -75,6 +81,9 @@ public class AuthDbContext : DbContext
             entity.HasIndex(e => new { e.ApiPath, e.Method })
                   .IsUnique()
                   .HasDatabaseName("IX_Permissions_Path_Method");
+                  
+            // Thêm index cho filter theo Module
+            entity.HasIndex(e => e.Module).HasDatabaseName("IX_Permissions_Module");
         });
 
         // ── MassTransit Outbox/Inbox Tables ────────────────────────────────────

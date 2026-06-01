@@ -158,9 +158,33 @@ public class RoleServiceImpl : IRoleService
 
     private async Task InvalidatePermissionCacheForRoleAsync(Guid roleId)
     {
+        // Lấy danh sách email của users đang dùng role này
         var emails = await _roleRepo.GetUserEmailsByRoleIdAsync(roleId);
         if (emails.Count == 0) return;
-        var deleteTasks = emails.Select(email => _cacheService.RemoveAsync($"perm:{email}"));
-        await Task.WhenAll(deleteTasks);
+
+        // Lấy permissions MỚI của role sau khi update
+        var updatedRole = await _roleRepo.GetWithPermissionsAsync(roleId);
+        if (updatedRole == null)
+        {
+            // Fallback: chỉ xóa cache nếu không lấy được role
+            var deleteTasks = emails.Select(email => _cacheService.RemoveAsync($"perm:{email}"));
+            await Task.WhenAll(deleteTasks);
+            return;
+        }
+
+        var newPermissions = updatedRole.Permissions
+            .Select(p => new CommonService.Models.PermissionCacheDto
+            {
+                ApiPath = p.ApiPath,
+                Method  = p.Method,
+                Module  = p.Module,
+            })
+            .ToList();
+
+        // Repopulate cache với permissions mới — session hiện tại không bị gián đoạn
+        var refreshTasks = emails.Select(email =>
+            _cacheService.SetAsync($"perm:{email}", newPermissions, TimeSpan.FromMinutes(30)));
+        await Task.WhenAll(refreshTasks);
     }
+
 }

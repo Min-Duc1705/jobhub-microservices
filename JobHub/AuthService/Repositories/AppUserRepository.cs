@@ -36,5 +36,20 @@ namespace AuthService.Repositories
                 .IgnoreQueryFilters()
                 .AnyAsync(u => u.Email.ToLower() == email.ToLower());
         }
+
+        public async Task<List<AppUser>> GetUsersByRoleAsync(string roleName)
+        {
+            if (string.Equals(roleName, "ALL", StringComparison.OrdinalIgnoreCase))
+            {
+                return await _context.AppUsers
+                    .Where(u => !u.IsDeleted)
+                    .ToListAsync();
+            }
+
+            return await _context.AppUsers
+                .Include(u => u.Role)
+                .Where(u => u.Role != null && u.Role.Name.ToUpper() == roleName.ToUpper() && !u.IsDeleted)
+                .ToListAsync();
+        }
     }
 }

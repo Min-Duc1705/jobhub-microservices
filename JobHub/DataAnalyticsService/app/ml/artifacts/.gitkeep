@@ -1,0 +1,3 @@
+# Thư mục này chứa file model đã train (.pkl).
+# File .pkl KHÔNG được commit lên git (đã thêm vào .gitignore).
+# Để tạo file model: chạy scripts/train_salary_model.py

@@ -11,13 +11,9 @@ public static class CorsConfiguration
             options.AddPolicy(PolicyName, builder =>
             {
                 builder
-                    .WithOrigins(
-                        "http://localhost:5173",  // Vite dev (React)
-                        "http://localhost:3000",  // React dev (CRA)
-                        "http://localhost:4173"   // Vite preview
-                    )
+                    .SetIsOriginAllowed(origin => true) // Cho phép tất cả các nguồn (gồm Ngrok, Vercel, Localhost)
                     .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                    .WithHeaders("Authorization", "Content-Type", "Accept")
+                    .WithHeaders("Authorization", "Content-Type", "Accept", "x-no-retry")
                     .AllowCredentials()
                     .SetPreflightMaxAge(TimeSpan.FromSeconds(3600));
             });

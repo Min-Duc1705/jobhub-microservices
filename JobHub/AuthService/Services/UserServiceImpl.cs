@@ -7,6 +7,8 @@ using AuthService.Specifications;
 using AutoMapper;
 using CommonService.Common;
 using CommonService.Exceptions;
+using CommonService.Events;
+using MassTransit;
 
 namespace AuthService.Services;
 
@@ -15,12 +17,14 @@ public class UserServiceImpl : IUserService
     private readonly IAppUserRepository _userRepo;
     private readonly IRoleRepository    _roleRepo;
     private readonly IMapper            _mapper;
+    private readonly IPublishEndpoint   _publishEndpoint;
 
-    public UserServiceImpl(IAppUserRepository userRepo, IRoleRepository roleRepo, IMapper mapper)
+    public UserServiceImpl(IAppUserRepository userRepo, IRoleRepository roleRepo, IMapper mapper, IPublishEndpoint publishEndpoint)
     {
         _userRepo = userRepo;
         _roleRepo = roleRepo;
         _mapper   = mapper;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<ResultPaginationDto<UserResponse>> GetAllUsersAsync(UserFilterRequest filter)
@@ -93,6 +97,7 @@ public class UserServiceImpl : IUserService
         if (Enum.TryParse<UserStatus>(request.Status, out var newStatus))
             user.Status = newStatus;
 
+        user.Username         = request.Username;
         user.Email            = request.Email;
         user.RoleId           = request.RoleId ?? user.RoleId;
         user.LastModifiedDate = DateTimeOffset.UtcNow;
@@ -109,6 +114,22 @@ public class UserServiceImpl : IUserService
             ?? throw new NotFoundException($"Không tìm thấy user với ID: {id}");
 
         _userRepo.Delete(user);
+        await _userRepo.SaveChangesAsync();
+    }
+
+    public async Task BroadcastNotificationAsync(BroadcastNotificationRequest request)
+    {
+        var users = await _userRepo.GetUsersByRoleAsync(request.TargetGroup);
+        foreach (var user in users)
+        {
+            await _publishEndpoint.Publish(new SendNotificationEvent
+            {
+                UserId = user.Id,
+                Title = request.Title,
+                Message = request.Message,
+                Type = request.Type
+            });
+        }
         await _userRepo.SaveChangesAsync();
     }
 

@@ -33,7 +33,9 @@ public class OcelotErrorResponseMiddleware
             var statusCode = context.Response.StatusCode;
 
             // Chỉ xử lý các status lỗi phổ biến từ Ocelot/Gateway
-            if (statusCode is not (401 or 403 or 404 or 500))
+            // 406 xảy ra khi Ocelot challenge JWT nhưng không thể trả body đúng Content-Type
+            // → map về 401 Unauthorized cho nhất quán với phần còn lại của hệ thống
+            if (statusCode is not (401 or 403 or 404 or 406 or 500))
                 return;
 
             // Nếu đã có Content-Type là JSON → service đã trả body chuẩn rồi, bỏ qua
@@ -46,19 +48,24 @@ public class OcelotErrorResponseMiddleware
                 401 => ("Unauthorized",          "Bạn chưa đăng nhập hoặc token đã hết hạn."),
                 403 => ("Forbidden",             "Bạn không có quyền truy cập tài nguyên này."),
                 404 => ("Not Found",             "Không tìm thấy tài nguyên yêu cầu trên Gateway."),
+                406 => ("Unauthorized",          "Bạn chưa đăng nhập hoặc token đã hết hạn."),
                 500 => ("Internal Server Error", "Lỗi hệ thống Gateway khi xử lý request."),
                 _   => ("Error",                 "Đã có lỗi xảy ra.")
             };
 
+            // Ocelot challenge JWT không có token → trả 406, normalize về 401
+            var finalStatus = statusCode == 406 ? 401 : statusCode;
+            context.Response.StatusCode  = finalStatus;
+            context.Response.ContentType = "application/json";
+
             var response = new
             {
-                statusCode,
-                error   = errorName,
+                statusCode = finalStatus,
+                error      = errorName,
                 message,
-                data    = (object?)null
+                data       = (object?)null
             };
 
-            context.Response.ContentType = "application/json";
             var json = JsonSerializer.Serialize(response);
             await context.Response.WriteAsync(json);
         });

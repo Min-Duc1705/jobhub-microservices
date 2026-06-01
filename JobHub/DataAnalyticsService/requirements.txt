@@ -1,2 +1,18 @@
-fastapi
-uvicorn[standard]
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+motor==3.4.0
+pymongo==4.8.0
+aio-pika==9.4.1
+xgboost>=2.0.3
+scikit-learn>=1.5.2
+pandas>=2.2.2
+numpy>=1.26.4
+python-dotenv==1.0.1
+pydantic-settings==2.2.1
+joblib==1.4.2
+
+# ── Web Scraping (chỉ dùng cho scripts thủ công, KHÔNG phải API chính) ─────────
+requests==2.31.0
+beautifulsoup4==4.12.3
+# playwright đã bỏ ra khỏi Docker — cài thủ công khi cần crawl:
+# pip install playwright && playwright install chromium

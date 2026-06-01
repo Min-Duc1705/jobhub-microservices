@@ -85,6 +85,11 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<FormatResponseFilter>();
     options.Filters.Add<PermissionInterceptor>();
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
@@ -166,11 +171,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ── Database Seeder ───────────────────────────────────────────────────────────
+// ── Database Migration + Seeder ──────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    await DatabaseSeeder.SeedAsync(db);
+    var db           = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+    var cacheService = scope.ServiceProvider.GetRequiredService<CommonService.Caching.ICacheService>();
+    await db.Database.MigrateAsync();
+    await DatabaseSeeder.SeedAsync(db, cacheService);
 }
+
 
 app.Run();

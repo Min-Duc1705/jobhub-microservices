@@ -99,7 +99,7 @@ namespace AuthService.Services
                 Email        = request.Email.Trim().ToLowerInvariant(),
                 Username     = request.Username.Trim(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Status       = UserStatus.Active,
+                Status       = UserStatus.Pending,
                 RoleId       = defaultRole.Id,
                 CreatedDate  = DateTimeOffset.UtcNow,
             };
@@ -115,6 +115,8 @@ namespace AuthService.Services
             {
                 UserId       = user.Id,
                 Email        = user.Email,
+                Username     = user.Username,
+                Role         = request.Role,   // "CANDIDATE" hoặc "HR"
                 RegisteredAt = user.CreatedDate.UtcDateTime
             });
 
@@ -230,6 +232,26 @@ namespace AuthService.Services
             await _userRepo.SaveChangesAsync();
         }
 
+        // ── Update Username ─────────────────────────────────────────────────────
+
+        public async Task UpdateUsernameAsync(Guid userId, UpdateUsernameRequest request)
+        {
+            var user = await _userRepo.GetByIdAsync(userId)
+                ?? throw new NotFoundException("Tài khoản không tồn tại.");
+
+            if (string.IsNullOrWhiteSpace(request.Username))
+                throw new BadRequestException("Username không được để trống.");
+
+            if (request.Username.Length < 3 || request.Username.Length > 50)
+                throw new BadRequestException("Username phải từ 3 đến 50 ký tự.");
+
+            user.Username = request.Username.Trim();
+            user.LastModifiedDate = DateTimeOffset.UtcNow;
+            _userRepo.Update(user);
+
+            await _userRepo.SaveChangesAsync();
+        }
+
         // ── Change Password ────────────────────────────────────────────────────
 
         public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
@@ -250,27 +272,47 @@ namespace AuthService.Services
 
         public async Task VerifyEmailAsync(VerifyEmailRequest request)
         {
-            var cachedOtp = await _cache.GetAsync<string>($"otp:register:{request.Email.ToLowerInvariant()}");
+            var email = request.Email.ToLowerInvariant();
 
-            if (string.IsNullOrEmpty(cachedOtp))
-                throw new BadRequestException("Mã OTP đã hết hạn hoặc không tồn tại. Vui lòng yêu cầu gửi lại.");
+            if (request.OtpType == "RESET_PASSWORD")
+            {
+                // ── RESET_PASSWORD: chỉ kiểm tra OTP, không xóa (reset-password sẽ dùng lại) ──
+                var cachedOtp = await _cache.GetAsync<string>($"otp:reset:{email}");
 
-            if (cachedOtp != request.OtpCode)
-                throw new BadRequestException("Mã OTP không đúng.");
+                if (string.IsNullOrEmpty(cachedOtp))
+                    throw new BadRequestException("Mã OTP đã hết hạn hoặc không tồn tại. Vui lòng yêu cầu gửi lại.");
 
-            var user = await _userRepo.GetByEmailAsync(request.Email)
-                ?? throw new NotFoundException("Không tìm thấy tài khoản đang chờ xác thực.");
+                if (cachedOtp != request.OtpCode)
+                    throw new BadRequestException("Mã OTP không đúng.");
 
-            if (user.Status != UserStatus.Pending)
-                throw new BadRequestException("Tài khoản này đã được xác thực trước đó.");
+                // Không xóa key — để ResetPasswordAsync tự xóa sau khi đổi mật khẩu thành công
+            }
+            else
+            {
+                // ── REGISTER (default): xác thực OTP + kích hoạt tài khoản ──
+                var cachedOtp = await _cache.GetAsync<string>($"otp:register:{email}");
 
-            user.Status           = UserStatus.Active;
-            user.LastModifiedDate = DateTimeOffset.UtcNow;
-            _userRepo.Update(user);
-            await _userRepo.SaveChangesAsync();
+                if (string.IsNullOrEmpty(cachedOtp))
+                    throw new BadRequestException("Mã OTP đã hết hạn hoặc không tồn tại. Vui lòng yêu cầu gửi lại.");
 
-            await _cache.RemoveAsync($"otp:register:{request.Email.ToLowerInvariant()}");
+                if (cachedOtp != request.OtpCode)
+                    throw new BadRequestException("Mã OTP không đúng.");
+
+                var user = await _userRepo.GetByEmailAsync(request.Email)
+                    ?? throw new NotFoundException("Không tìm thấy tài khoản đang chờ xác thực.");
+
+                if (user.Status != UserStatus.Pending)
+                    throw new BadRequestException("Tài khoản này đã được xác thực trước đó.");
+
+                user.Status           = UserStatus.Active;
+                user.LastModifiedDate = DateTimeOffset.UtcNow;
+                _userRepo.Update(user);
+                await _userRepo.SaveChangesAsync();
+
+                await _cache.RemoveAsync($"otp:register:{email}");
+            }
         }
+
 
         public async Task SendOtpResetPasswordAsync(SendOtpRequest request)
         {

@@ -1,8 +1,11 @@
 using CommonService.Common;
 using CommonService.Exceptions;
+using CommonService.File;
 using CommonService.Filters;
+using CommonService.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CommonService.Extensions;
@@ -20,13 +23,34 @@ public static class WebAppExtensions
     /// <summary>
     /// Đăng ký GlobalExceptionHandler + ProblemDetails.
     /// Thay thế 2 dòng lặp lại ở mỗi service:
-    ///   builder.Services.AddExceptionHandler&lt;GlobalExceptionHandler&gt;();
+    ///   builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     ///   builder.Services.AddProblemDetails();
     /// </summary>
     public static IServiceCollection AddCommonApiServices(this IServiceCollection services)
     {
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+        return services;
+    }
+
+    /// <summary>
+    /// Đăng ký cấu hình MinIO và service IMinioStorageService.
+    /// </summary>
+    public static IServiceCollection AddMinioStorage(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<MinioSettings>(configuration.GetSection(MinioSettings.SectionName));
+        services.AddSingleton<IMinioStorageService, MinioStorageService>();
+        return services;
+    }
+
+    /// <summary>
+    /// Đăng ký <see cref="IFileService"/> (phụ thuộc vào IMinioStorageService + MinioSettings).
+    /// Gọi sau <see cref="AddMinioStorage"/> trong Program.cs.
+    /// </summary>
+    public static IServiceCollection AddFileService(this IServiceCollection services)
+    {
+        services.AddScoped<IFileService, FileService>();
         return services;
     }
 

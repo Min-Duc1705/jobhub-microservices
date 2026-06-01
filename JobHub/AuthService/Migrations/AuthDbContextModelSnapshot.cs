@@ -77,7 +77,16 @@ namespace AuthService.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Users_Email");
 
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Users_IsDeleted");
+
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_Users_Status");
+
+                    b.HasIndex("Username")
+                        .HasDatabaseName("IX_Users_Username");
 
                     b.ToTable("AppUsers", (string)null);
                 });
@@ -129,6 +138,9 @@ namespace AuthService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Module")
+                        .HasDatabaseName("IX_Permissions_Module");
+
                     b.HasIndex("ApiPath", "Method")
                         .IsUnique()
                         .HasDatabaseName("IX_Permissions_Path_Method");
@@ -173,6 +185,9 @@ namespace AuthService.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Roles_IsDeleted");
 
                     b.HasIndex("Name")
                         .IsUnique()

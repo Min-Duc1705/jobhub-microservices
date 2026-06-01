@@ -29,7 +29,7 @@ public class AuthMappingProfile : Profile
 
         // ── AppUser ───────────────────────────────────────────────────────────
         CreateMap<AppUser, UserResponse>()
-            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Email))
+            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
             .ForMember(dest => dest.Status,   opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Role,     opt => opt.MapFrom(src => src.Role));
 
@@ -38,7 +38,7 @@ public class AuthMappingProfile : Profile
 
         // Nested dùng trong LoginResponse
         CreateMap<AppUser, UserLoginDto>()
-            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Email))
+            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
             .ForMember(dest => dest.Status,   opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Role,     opt => opt.MapFrom(src => src.Role));
 

@@ -30,16 +30,30 @@ public class UserRegisteredEventConsumer : IConsumer<UserRegisteredEvent>
             return;
         }
 
+        // Map role đăng ký → CustomerType (dùng dictionary để dễ mở rộng)
+        var roleTypeMap = new Dictionary<string, CustomerType>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "CANDIDATE", CustomerType.CANDIDATE },
+            { "HR",        CustomerType.EMPLOYER  },
+            { "EMPLOYER",  CustomerType.EMPLOYER  },
+            // Thêm role mới ở đây nếu cần
+        };
+
+        var customerType = roleTypeMap.TryGetValue(message.Role ?? "", out var mapped)
+            ? mapped
+            : CustomerType.CANDIDATE;  // fallback an toàn
+
         var newCustomer = new Customer
         {
-            AppUserId = message.UserId,
-            Type = CustomerType.CANDIDATE, // Mặc định ai đăng kí mới cũng là ứng viên
+            AppUserId   = message.UserId,
+            Type        = customerType,
+            FullName    = message.Username,   // dùng Username làm tên ban đầu
             CreatedDate = DateTimeOffset.UtcNow,
-            CreatedBy = "System"
+            CreatedBy   = "System"
         };
 
         await _customerRepository.AddAsync(newCustomer);
         await _customerRepository.SaveChangesAsync();
-        _logger.LogInformation("Đã tự động tạo hồ sơ Customer trống cho {Email}", message.Email);
+        _logger.LogInformation("Đã tự động tạo hồ sơ Customer ({Type}) cho {Email}", customerType, message.Email);
     }
 }

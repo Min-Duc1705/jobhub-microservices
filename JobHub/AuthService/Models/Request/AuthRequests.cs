@@ -32,6 +32,8 @@ namespace AuthService.Models.Request
     {
         public string Email   { get; set; } = string.Empty;
         public string OtpCode { get; set; } = string.Empty;
+        /// <summary>REGISTER (default) hoặc RESET_PASSWORD</summary>
+        public string OtpType { get; set; } = "REGISTER";
     }
 
     public class SendOtpRequest
@@ -44,5 +46,10 @@ namespace AuthService.Models.Request
         public string Email       { get; set; } = string.Empty;
         public string OtpCode     { get; set; } = string.Empty;
         public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class UpdateUsernameRequest
+    {
+        public string Username { get; set; } = string.Empty;
     }
 }

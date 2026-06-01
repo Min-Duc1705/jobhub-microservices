@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "jobhub-full-collection-v2",
     "name": "JobHub - Full API Collection",
-    "description": "Postman collection đầy đủ cho JobHub Microservices.\n\n📌 Ports:\n- AuthService:    http://localhost:5001\n- ProfileService: http://localhost:5002\n- ApiGateway:     http://localhost:5000\n\n🚀 Hướng dẫn:\n1. Chạy 'Login (Admin)' → accessToken tự lưu\n2. Chạy từng nhóm API cần test\n3. Các biến (skillId, customerId...) tự lưu qua test script\n\n⚠️ Lưu ý: Trong bộ API này tất cả request đã được chuyển qua cổng chung {{baseUrl}}",
+    "description": "Postman collection đầy đủ cho JobHub Microservices.\n\n📌 Port Services (internal):\n- ApiGateway (Ocelot):    http://localhost:5000  ← Tất cả request đều qua đây\n- AuthService:            http://localhost:5001\n- JobService:             http://localhost:5002\n- CompanyService:         http://localhost:5003\n- ProfileService:         http://localhost:5004\n- ResumeService:          http://localhost:5005\n- CVIntelligenceService:  http://localhost:5006\n- DataAnalyticsService:   http://localhost:5007\n\n🚀 Hướng dẫn:\n1. Chạy 'Login (Admin)' → accessToken tự lưu vào biến collection\n2. Chạy từng nhóm API theo thứ tự từ trên xuống\n3. Biến (skillId, customerId, roleId...) tự lưu qua test script\n\n⚠️ Tất cả request (kể cả AI Services) đều gọi qua {{baseUrl}} - Ocelot tự forward về đúng Service",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,7 +12,10 @@
     { "key": "permissionId", "value": "", "type": "string" },
     { "key": "userId",       "value": "", "type": "string" },
     { "key": "customerId",   "value": "", "type": "string" },
-    { "key": "skillId",      "value": "", "type": "string" }
+    { "key": "skillId",      "value": "", "type": "string" },
+    { "key": "jobId",        "value": "", "type": "string" },
+    { "key": "companyId",    "value": "", "type": "string" },
+    { "key": "resumeId",     "value": "", "type": "string" }
   ],
   "item": [
 
@@ -813,7 +816,176 @@
           }
         }
       ]
+    },
+    {
+      "name": "🧠 CV Intelligence (AI — qua Gateway)",
+      "description": "Tất cả request qua {{baseUrl}} → Ocelot forward đến CVIntelligenceService:5006",
+      "item": [
+        {
+          "name": "1. Score Single CV (Chấm điểm 1 CV)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có matching_score', () => pm.expect(res.matching_score).to.be.a('number'));"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_description\": \"Yêu cầu ứng viên thành thạo ReactJS, Javascript. Đã làm việc với Redux.\",\n  \"cv_text\": \"Em mạnh về ReactJS, VueJS và Javascript. Em từng làm app quản lý bằng Redux.\",\n  \"application_id\": \"app-test-001\",\n  \"job_id\": \"job-test-001\",\n  \"customer_id\": \"user-test-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cv/score", "host": ["{{baseUrl}}"], "path": ["api","v1","cv","score"] }
+          }
+        },
+        {
+          "name": "2. Batch Score CVs (Chấm hàng loạt — lấy Top 5)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Kết quả là array', () => pm.expect(res).to.be.an('array'));",
+              "pm.test('Có ít nhất 1 kết quả', () => pm.expect(res.length).to.be.greaterThan(0));"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_description\": \"Tuyển Python Developer biết Docker và MongoDB.\",\n  \"cv_list\": [\n    { \"application_id\": \"cv1\", \"cv_text\": \"3 năm kinh nghiệm Python, Docker, MongoDB chuyên nghiệp.\" },\n    { \"application_id\": \"cv2\", \"cv_text\": \"Sinh viên kinh tế, biết Word, Excel, PowerPoint.\" },\n    { \"application_id\": \"cv3\", \"cv_text\": \"Backend Developer Python 1 năm kinh nghiệm, biết Flask, SQL.\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cv/score/batch?top_n=5", "host": ["{{baseUrl}}"], "path": ["api","v1","cv","score","batch"], "query": [{ "key": "top_n", "value": "5" }] }
+          }
+        },
+        {
+          "name": "3. Get Analyses By Job (Bảng kết quả theo jobId)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/cv/analyses/job-test-001", "host": ["{{baseUrl}}"], "path": ["api","v1","cv","analyses","job-test-001"] }
+          }
+        },
+        {
+          "name": "4. Track Behavior (Lưu hành vi xem Job)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"user-test-001\",\n  \"job_id\": \"job-test-001\",\n  \"interaction_type\": \"VIEW\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cv/track", "host": ["{{baseUrl}}"], "path": ["api","v1","cv","track"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Data Analytics (AI — qua Gateway)",
+      "description": "Tất cả request qua {{baseUrl}} → Ocelot forward đến DataAnalyticsService:5007",
+      "item": [
+        {
+          "name": "1. Predict Salary (Dự báo lương theo hồ sơ)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có predicted_salary_million_vnd', () => pm.expect(res.predicted_salary_million_vnd).to.be.a('number'));",
+              "pm.test('Có cache_hit info', () => pm.expect(res).to.have.property('cache_hit'));"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_title\": \"Backend Developer\",\n  \"years_of_experience\": 3,\n  \"skill_set\": [\"Python\", \"Docker\", \"Django\"],\n  \"location\": \"Hà Nội\",\n  \"level\": \"MIDDLE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/salary/predict", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","salary","predict"] }
+          }
+        },
+        {
+          "name": "2. Predict Salary (SENIOR React — kiểm tra cache lần 2)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Lần 2 phải là cache_hit = true', () => pm.expect(res.cache_hit).to.be.true);"
+            ]
+          }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_title\": \"Backend Developer\",\n  \"years_of_experience\": 3,\n  \"skill_set\": [\"Python\", \"Docker\", \"Django\"],\n  \"location\": \"Hà Nội\",\n  \"level\": \"MIDDLE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/salary/predict", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","salary","predict"] }
+          }
+        },
+        {
+          "name": "3. Add Salary Dataset (HR đóng góp thêm Data)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_title\": \"DevOps Engineer\",\n  \"years_of_experience\": 4,\n  \"skill_set\": [\"Docker\", \"Kubernetes\", \"AWS\"],\n  \"location\": \"TP.HCM\",\n  \"level\": \"SENIOR\",\n  \"actual_salary\": 55.0,\n  \"source\": \"hr-survey\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/salary/dataset", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","salary","dataset"] }
+          }
+        },
+        {
+          "name": "4. Get Dataset Stats (Thống kê kho lương)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Có tổng số bản ghi', () => pm.expect(res.total_records).to.be.a('number'));"
+            ]
+          }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/salary/dataset/stats", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","salary","dataset","stats"] }
+          }
+        },
+        {
+          "name": "5. View Trend Forecast React (6 tháng)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill_name\": \"React\",\n  \"months\": 6\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/trend", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","trend"] }
+          }
+        }
+      ]
     }
-
   ]
 }

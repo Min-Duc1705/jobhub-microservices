@@ -30,17 +30,30 @@ public class ProfileDbContext : DbContext
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.HasKey(c => c.Id);
-            entity.HasIndex(c => c.AppUserId).IsUnique();
+            entity.HasIndex(c => c.AppUserId).IsUnique().HasDatabaseName("IX_Customers_AppUserId");
+            
+            // Index phục vụ filter và lookup
+            entity.HasIndex(c => c.Phone).HasDatabaseName("IX_Customers_Phone");
+            entity.HasIndex(c => c.IsDeleted).HasDatabaseName("IX_Customers_IsDeleted");
+            entity.HasIndex(c => c.JobSearchStatus).HasDatabaseName("IX_Customers_JobSearchStatus");
 
             entity.Property(c => c.Type).HasConversion<string>();
             entity.Property(c => c.Gender).HasConversion<string>();
             entity.Property(c => c.JobSearchStatus).HasConversion<string>();
+            
+            entity.HasQueryFilter(c => !c.IsDeleted);
         });
 
         // ── Skill (Replica) ────────────────────────────────────────────────────
         modelBuilder.Entity<Skill>(entity =>
         {
             entity.HasKey(s => s.Id);
+            
+            // Index tên Skill vì hay được query/filter chính xác
+            entity.HasIndex(s => s.Name).HasDatabaseName("IX_Skills_Name");
+            entity.HasIndex(s => s.IsDeleted).HasDatabaseName("IX_Skills_IsDeleted");
+            
+            entity.HasQueryFilter(s => !s.IsDeleted);
         });
 
         // ── CustomerSkill (junction) ───────────────────────────────────────────
@@ -57,6 +70,9 @@ public class ProfileDbContext : DbContext
                   .WithMany(s => s.CustomerSkills)
                   .HasForeignKey(cs => cs.SkillId)
                   .OnDelete(DeleteBehavior.Cascade);
+                  
+            // Fix warning 10622: Lọc luôn bảng phụ nếu Customer hoặc Skill đã bị xóa mềm
+            entity.HasQueryFilter(cs => !cs.Customer.IsDeleted && !cs.Skill.IsDeleted);
         });
 
         // ── MassTransit Outbox/Inbox Tables ────────────────────────────────────

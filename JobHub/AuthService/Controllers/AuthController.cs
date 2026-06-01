@@ -70,6 +70,20 @@ namespace AuthService.Controllers
             return Ok(new { message = "Đã cập nhật Email/Password thành công." });
         }
 
+        // PUT /api/v1/auth/username
+        [HttpPut("username")]
+        [Authorize]
+        [ApiMessage("Cập nhật tên hiển thị thành công")]
+        public async Task<IActionResult> UpdateUsername([FromBody] UpdateUsernameRequest request)
+        {
+            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+                return Unauthorized();
+
+            await _authService.UpdateUsernameAsync(userId, request);
+            return Ok(new { message = "Đã cập nhật tên hiển thị thành công." });
+        }
+
         // GET /api/v1/auth/refresh
         [HttpGet("refresh")]
         [AllowAnonymous]
@@ -94,7 +108,7 @@ namespace AuthService.Controllers
             if (!string.IsNullOrEmpty(email))
                 await _authService.LogoutAsync(email);
 
-            return Ok(new { message = "Đăng xuất thành công." });
+            return Ok((object?)null);
         }
 
         // PATCH /api/v1/auth/change-password
@@ -113,14 +127,17 @@ namespace AuthService.Controllers
 
         // ── OTP Endpoints ─────────────────────────────────────────────────────────
 
-        // POST /api/v1/auth/verify-email
+        // POST /api/v1/auth/verify-email?otpType=REGISTER|RESET_PASSWORD
         [HttpPost("verify-email")]
         [AllowAnonymous]
         [ApiMessage("Xác thực email thành công")]
-        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+        public async Task<IActionResult> VerifyEmail(
+            [FromBody] VerifyEmailRequest request,
+            [FromQuery] string otpType = "REGISTER")
         {
+            request.OtpType = otpType; // query param override body field (an toàn hơn)
             await _authService.VerifyEmailAsync(request);
-            return Ok(new { message = "Tài khoản đã được xác thực. Bạn có thể đăng nhập ngay bây giờ." });
+            return Ok(new { message = "Xác thực thành công." });
         }
 
         // POST /api/v1/auth/send-otp-reset

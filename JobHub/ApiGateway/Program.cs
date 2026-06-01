@@ -5,7 +5,14 @@ using Ocelot.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Load ocelot.json ───────────────────────────────────────────────────────────
-builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+if (Environment.GetEnvironmentVariable("RUNNING_IN_DOCKER") == "true")
+{
+    builder.Configuration.AddJsonFile("ocelot.Docker.json", optional: false, reloadOnChange: true);
+}
+else
+{
+    builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+}
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 builder.Services.AddAppCors();
@@ -28,6 +35,8 @@ app.UseCors(CorsConfiguration.PolicyName);
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseWebSockets();
 
 // Ocelot phải là middleware cuối cùng
 await app.UseOcelot();

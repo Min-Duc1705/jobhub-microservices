@@ -18,5 +18,6 @@ public class UpdateCustomerRequest
     public JobSearchStatus? JobSearchStatus { get; set; }
     
     // --- Employer
+    public Guid? CompanyId { get; set; }
     public string? Position { get; set; }
 }

@@ -1,2 +1,15 @@
-fastapi
-uvicorn[standard]
+# torch được cài riêng trong Dockerfile với CPU-only wheel (xem Dockerfile)
+# Không liệt kê torch ở đây để tránh pip override bằng bản CUDA nặng
+
+sentence-transformers==2.7.0
+transformers==4.41.2
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+motor==3.4.0
+pymongo==4.8.0
+aio-pika==9.4.1
+google-generativeai==0.5.4
+python-dotenv==1.0.1
+numpy>=1.26.4
+scikit-learn>=1.5.2
+pydantic-settings==2.2.1

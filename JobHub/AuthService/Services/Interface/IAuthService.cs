@@ -12,6 +12,7 @@ namespace AuthService.Services.Interface
         Task                      LogoutAsync(string email);
 
         Task UpdateEmailAsync(Guid userId, UpdateEmailRequestDTO request);
+        Task UpdateUsernameAsync(Guid userId, UpdateUsernameRequest request);
         Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request);
 
         // ── OTP ──────────────────────────────────────────────────────────────

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{TITLE}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #faf9f9; font-family: 'Inter', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  </style>
+</head>
+<body style="background-color:#faf9f9; font-family:'Inter',Arial,sans-serif; margin:0; padding:0;">
+
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#faf9f9; padding:48px 16px;">
+    <tr>
+      <td align="center">
+
+        <!-- Inner container -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+
+          <!-- ── HEADER ───────────────────────────────────── -->
+          <tr>
+            <td align="center" style="padding:24px 0 16px;">
+              <span style="font-size:24px; font-weight:700; color:#002660; letter-spacing:0.05em;">
+                💼 JobHub
+              </span>
+            </td>
+          </tr>
+
+          <!-- ── BODY CARD ────────────────────────────────── -->
+          <tr>
+            <td style="background-color:#ffffff; border-radius:8px; padding:40px 36px; box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+              <!-- Title + Subtitle -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <h1 style="font-size:20px; font-weight:700; color:#1b1c1c; margin:0 0 12px;">{{TITLE}}</h1>
+                    <p style="font-size:15px; color:#434651; line-height:1.7; margin:0;">{{SUBTITLE}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- OTP Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                <tr>
+                  <td align="center" style="background-color:#f4f3f3; border-radius:8px; border:1px solid #c3c6d3; padding:28px 20px;">
+                    <!-- OTP Code -->
+                    <div id="otp-display" style="font-size:48px; font-weight:700; color:#003a8c; letter-spacing:0.3em; font-family:'Inter',Arial,sans-serif; padding-left:0.3em;">
+                      {{OTP_CODE}}
+                    </div>
+                    <!-- Timer -->
+                    <p style="font-size:13px; color:#434651; margin:14px 0 0; font-family:'Inter',Arial,sans-serif;">
+                      ⏱ Mã này sẽ hết hạn sau <strong>5 phút</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Security Warning -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                <tr>
+                  <td style="background-color:#fff5f5; border-left:4px solid #ba1a1a; border-radius:0 6px 6px 0; padding:14px 16px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:top; padding-right:10px; font-size:18px;">🛡️</td>
+                        <td>
+                          <p style="font-size:13px; color:#434651; line-height:1.6; margin:0;">
+                            <strong style="color:#1b1c1c;">Vì lý do bảo mật,</strong>
+                            vui lòng không chia sẻ mã này với bất kỳ ai. Nhân viên JobHub sẽ không bao giờ yêu cầu mã OTP của bạn.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Disclaimer -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #c3c6d3; margin-bottom:28px;">
+                <tr>
+                  <td style="padding-top:16px;">
+                    <p style="font-size:13px; color:#434651; font-style:italic; line-height:1.6; margin:0;">
+                      Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email hoặc liên hệ bộ phận hỗ trợ.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center">
+                    <a href="#"
+                       style="display:inline-block; background-color:#003a8c; color:#ffffff; font-size:15px; font-weight:600;
+                              padding:12px 32px; border-radius:6px; text-decoration:none; font-family:'Inter',Arial,sans-serif;">
+                      Truy cập JobHub
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- ── SUPPORT LINKS ─────────────────────────────── -->
+          <tr>
+            <td align="center" style="padding:20px 0 8px;">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:0 8px;">
+                    <a href="#" style="font-size:13px; color:#434651; text-decoration:none;">❓ Trung tâm hỗ trợ</a>
+                  </td>
+                  <td style="color:#c3c6d3; padding:0 4px;">|</td>
+                  <td style="padding:0 8px;">
+                    <a href="#" style="font-size:13px; color:#434651; text-decoration:none;">✉️ Liên hệ chúng tôi</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── FOOTER ───────────────────────────────────── -->
+          <tr>
+            <td style="border-top:1px solid #c3c6d3; padding:24px 0 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+
+                <!-- Social Icons -->
+                <tr>
+                  <td align="center" style="padding-bottom:16px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding:0 6px;">
+                          <div style="width:36px; height:36px; border-radius:50%; background-color:#e9e8e8; text-align:center; line-height:36px; font-size:16px;">🌐</div>
+                        </td>
+                        <td style="padding:0 6px;">
+                          <div style="width:36px; height:36px; border-radius:50%; background-color:#e9e8e8; text-align:center; line-height:36px; font-size:16px;">📘</div>
+                        </td>
+                        <td style="padding:0 6px;">
+                          <div style="width:36px; height:36px; border-radius:50%; background-color:#e9e8e8; text-align:center; line-height:36px; font-size:16px;">📢</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Copyright -->
+                <tr>
+                  <td align="center" style="padding-bottom:8px;">
+                    <p style="font-size:11px; color:#747783; margin:0; font-family:'Inter',Arial,sans-serif;">
+                      © 2025 JobHub. Precision Recruitment for the Modern Engineer.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom:16px;">
+                    <p style="font-size:12px; color:#747783; margin:0; font-family:'Inter',Arial,sans-serif;">
+                      Toà nhà TechHub, 123 Đường Công Nghệ, Quận 1, TP. Hồ Chí Minh, Việt Nam
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Legal Links -->
+                <tr>
+                  <td align="center" style="padding-bottom:32px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding:0 8px;">
+                          <a href="#" style="font-size:11px; color:#747783; text-decoration:none;">Privacy Policy</a>
+                        </td>
+                        <td style="color:#c3c6d3;">|</td>
+                        <td style="padding:0 8px;">
+                          <a href="#" style="font-size:11px; color:#747783; text-decoration:none;">Terms of Service</a>
+                        </td>
+                        <td style="color:#c3c6d3;">|</td>
+                        <td style="padding:0 8px;">
+                          <a href="#" style="font-size:11px; color:#747783; text-decoration:none;">Unsubscribe</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Inner container -->
+
+      </td>
+    </tr>
+  </table>
+  <!-- /Outer wrapper -->
+
+</body>
+</html>

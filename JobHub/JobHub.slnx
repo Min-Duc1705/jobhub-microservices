@@ -4,6 +4,7 @@
   <Project Path="CommonService/CommonService.csproj" />
   <Project Path="CompanyService/CompanyService.csproj" />
   <Project Path="JobService/JobService.csproj" />
+  <Project Path="NotificationService/NotificationService.csproj" Id="aff22014-477d-4467-ae94-36b88d35c62e" />
   <Project Path="ProfileService/ProfileService.csproj" Id="2ea502a3-a5a9-4600-b784-6a46fd01f596" />
   <Project Path="ResumeService/ResumeService.csproj" />
 </Solution>

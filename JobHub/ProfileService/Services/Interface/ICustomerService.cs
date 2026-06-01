@@ -10,4 +10,6 @@ public interface ICustomerService
     Task<CustomerResponse>                      GetMyProfileAsync(Guid appUserId);
     Task<CustomerResponse>                      UpdateMyProfileAsync(Guid appUserId, UpdateCustomerRequest request);
     Task<CustomerResponse>                      GetProfileByIdAsync(Guid customerId);
+    Task<CustomerResponse>                      AdminUpdateCustomerAsync(Guid customerId, UpdateCustomerRequest request);
+    Task                                        AdminDeleteCustomerAsync(Guid customerId);
 }

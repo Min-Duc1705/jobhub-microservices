@@ -80,4 +80,14 @@ public class UsersController : ControllerBase
         await _userService.ResetPasswordAsync(id, request);
         return Ok(null);
     }
+
+    // POST /api/v1/users/notifications/broadcast
+    [HttpPost("notifications/broadcast")]
+    [ApiMessage("Gửi thông báo broadcast thành công")]
+    [RequiresPermission("POST", "/api/v1/users/notifications/broadcast")]
+    public async Task<IActionResult> Broadcast([FromBody] BroadcastNotificationRequest request)
+    {
+        await _userService.BroadcastNotificationAsync(request);
+        return Ok(new { success = true });
+    }
 }

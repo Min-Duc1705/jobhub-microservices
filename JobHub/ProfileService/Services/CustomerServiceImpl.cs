@@ -63,4 +63,27 @@ public class CustomerServiceImpl : ICustomerService
 
         return _mapper.Map<CustomerResponse>(customer);
     }
+
+    public async Task<CustomerResponse> AdminUpdateCustomerAsync(Guid customerId, UpdateCustomerRequest request)
+    {
+        var customer = await _customerRepository.GetEntityWithSpec(new CustomerByIdSpec(customerId));
+        if (customer == null)
+            throw new NotFoundException("Không tìm thấy hồ sơ cá nhân cần cập nhật.");
+
+        _mapper.Map(request, customer);
+        _customerRepository.Update(customer);
+        await _customerRepository.SaveChangesAsync();
+
+        return _mapper.Map<CustomerResponse>(customer);
+    }
+
+    public async Task AdminDeleteCustomerAsync(Guid customerId)
+    {
+        var customer = await _customerRepository.GetEntityWithSpec(new CustomerByIdSpec(customerId));
+        if (customer == null)
+            throw new NotFoundException("Không tìm thấy hồ sơ cá nhân cần xóa.");
+
+        _customerRepository.Delete(customer);
+        await _customerRepository.SaveChangesAsync();
+    }
 }

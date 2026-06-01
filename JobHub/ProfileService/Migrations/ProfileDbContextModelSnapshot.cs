@@ -261,7 +261,17 @@ namespace ProfileService.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Customers_AppUserId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Customers_IsDeleted");
+
+                    b.HasIndex("JobSearchStatus")
+                        .HasDatabaseName("IX_Customers_JobSearchStatus");
+
+                    b.HasIndex("Phone")
+                        .HasDatabaseName("IX_Customers_Phone");
 
                     b.ToTable("Customers");
                 });
@@ -314,6 +324,12 @@ namespace ProfileService.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Skills_IsDeleted");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Skills_Name");
 
                     b.ToTable("Skills");
                 });
