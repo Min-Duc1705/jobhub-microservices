@@ -6,6 +6,12 @@ import asyncio
 from datetime import datetime
 import numpy as np
 from sklearn.decomposition import TruncatedSVD
+import hashlib
+import time
+
+# Cache cho API recommendations
+_RECOMMENDATIONS_CACHE = {}
+_CACHE_TTL = 300  # 5 phút
 
 from app.core.database import get_resume_analysis_col, get_job_view_history_col
 from app.ml.sbert_scorer import score_cv, batch_score_cvs
@@ -296,6 +302,20 @@ async def recommend_jobs_for_candidate(cv_text: str, customer_id: str = None) ->
     if not cv_text:
         return []
 
+    # ── Check Cache ──
+    if customer_id:
+        cache_key = f"cust:{customer_id}"
+    else:
+        cv_hash = hashlib.md5(cv_text.encode('utf-8', errors='ignore')).hexdigest()
+        cache_key = f"cv:{cv_hash}"
+
+    now = time.time()
+    if cache_key in _RECOMMENDATIONS_CACHE:
+        cache_time, cached_result = _RECOMMENDATIONS_CACHE[cache_key]
+        if now - cache_time < _CACHE_TTL:
+            logger.info(f"[Recommendation] Cache hit for {cache_key}")
+            return cached_result
+
     try:
         url = "http://jobhub_jobservice:8080/api/v1/jobs?pageSize=100"
         
@@ -353,7 +373,9 @@ async def recommend_jobs_for_candidate(cv_text: str, customer_id: str = None) ->
             scored_jobs.append(job_copy)
 
         scored_jobs.sort(key=lambda x: x["matching_score"], reverse=True)
-        return scored_jobs[:6]
+        final_recs = scored_jobs[:6]
+        _RECOMMENDATIONS_CACHE[cache_key] = (now, final_recs)
+        return final_recs
 
     except Exception as e:
         logger.error(f"[Recommendation] Lỗi khi gợi ý việc làm: {e}")
