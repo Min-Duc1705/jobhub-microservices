@@ -13,6 +13,9 @@ import time
 _RECOMMENDATIONS_CACHE = {}
 _CACHE_TTL = 300  # 5 phút
 
+# Cache điểm số SVD được tính toán ngầm
+_PRECOMPUTED_SVD_SCORES = {}
+
 from app.core.database import get_resume_analysis_col, get_job_view_history_col
 from app.ml.sbert_scorer import score_cv, batch_score_cvs
 from app.ml.llm_generator import generate_feedback
@@ -155,17 +158,18 @@ async def _save_analysis(req: CvScoringRequest, result: ScoringResult):
     )
 
 
-async def _train_svd_model(target_customer_id: str) -> dict:
+async def train_and_cache_svd_for_all_users() -> dict:
     """
-    Huấn luyện mô hình Collaborative Filtering bằng Matrix Factorization (TruncatedSVD)
-    dựa trên lịch sử tương tác người dùng (JobViewHistory).
-    Trả về dict {job_id: normalized_svd_score} cho target_customer_id.
+    Huấn luyện SVD cho TOÀN BỘ người dùng cùng lúc từ dữ liệu MongoDB,
+    sau đó lưu vào biến cache toàn cục _PRECOMPUTED_SVD_SCORES.
     """
+    global _PRECOMPUTED_SVD_SCORES
     col = get_job_view_history_col()
     cursor = col.find({}, {"customer_id": 1, "job_id": 1, "interaction_score": 1})
     docs = await cursor.to_list(length=None)
     
     if not docs:
+        _PRECOMPUTED_SVD_SCORES = {}
         return {}
 
     user_item_scores = {}
@@ -185,7 +189,8 @@ async def _train_svd_model(target_customer_id: str) -> dict:
     num_jobs = len(unique_jobs)
     
     if num_users < 3 or num_jobs < 3 or len(user_item_scores) < 5:
-        logger.info("[SVD] Chưa đủ dữ liệu tương tác để huấn luyện SVD. Fallback về pure SBERT.")
+        logger.info("[SVD] Chưa đủ dữ liệu tương tác để huấn luyện SVD. Reset cache về rỗng.")
+        _PRECOMPUTED_SVD_SCORES = {}
         return {}
 
     user_to_idx = {uid: idx for idx, uid in enumerate(unique_users)}
@@ -205,30 +210,42 @@ async def _train_svd_model(target_customer_id: str) -> dict:
         
         R_pred = np.dot(user_embeddings, item_embeddings.T)
         
-        if target_customer_id not in user_to_idx:
-            return {}
+        new_scores = {}
+        for uid in unique_users:
+            u_idx = user_to_idx[uid]
+            pred_ratings = R_pred[u_idx]
             
-        u_idx = user_to_idx[target_customer_id]
-        pred_ratings = R_pred[u_idx]
-        
-        min_r = float(np.min(pred_ratings))
-        max_r = float(np.max(pred_ratings))
-        
-        svd_scores = {}
-        for idx, rating in enumerate(pred_ratings):
-            jid = idx_to_job[idx]
-            if max_r > min_r:
-                norm_score = ((rating - min_r) / (max_r - min_r)) * 100.0
-            else:
-                norm_score = 50.0
-            svd_scores[jid] = round(norm_score, 2)
+            min_r = float(np.min(pred_ratings))
+            max_r = float(np.max(pred_ratings))
             
-        logger.info(f"[SVD] Huấn luyện SVD thành công với {num_users} users, {num_jobs} jobs, latent={n_components}.")
-        return svd_scores
+            user_scores = {}
+            for idx, rating in enumerate(pred_ratings):
+                jid = idx_to_job[idx]
+                if max_r > min_r:
+                    norm_score = ((rating - min_r) / (max_r - min_r)) * 100.0
+                else:
+                    norm_score = 50.0
+                user_scores[jid] = round(norm_score, 2)
+            new_scores[uid] = user_scores
+            
+        _PRECOMPUTED_SVD_SCORES = new_scores
+        logger.info(f"[SVD] Huấn luyện SVD offline thành công cho {num_users} users, {num_jobs} jobs, latent={n_components}.")
+        return _PRECOMPUTED_SVD_SCORES
         
     except Exception as ex:
-        logger.error(f"[SVD] Lỗi khi phân tích nhân tử ma trận SVD: {ex}")
+        logger.error(f"[SVD] Lỗi khi huấn luyện SVD offline: {ex}")
         return {}
+
+
+async def start_periodic_svd_training(interval_seconds: int = 4 * 3600):
+    """Bắt đầu vòng lặp huấn luyện SVD định kỳ chạy ngầm."""
+    logger.info("[SVD Loop] Đã khởi động luồng huấn luyện SVD chạy ngầm.")
+    while True:
+        try:
+            await train_and_cache_svd_for_all_users()
+        except Exception as e:
+            logger.error(f"[SVD Loop] Lỗi khi huấn luyện SVD định kỳ: {e}")
+        await asyncio.sleep(interval_seconds)
 
 
 def _clean_cv_text(text: str) -> str:
@@ -343,8 +360,8 @@ async def recommend_jobs_for_candidate(cv_text: str, customer_id: str = None) ->
         scores = batch_score_cvs(cleaned_cv, job_texts)
 
         svd_scores = {}
-        if customer_id:
-            svd_scores = await _train_svd_model(customer_id)
+        if customer_id and customer_id in _PRECOMPUTED_SVD_SCORES:
+            svd_scores = _PRECOMPUTED_SVD_SCORES[customer_id]
 
         scored_jobs = []
         for job, sbert_score in zip(jobs, scores):

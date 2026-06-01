@@ -33,9 +33,14 @@ app.include_router(cv_router.router, prefix="/api/v1")
 # ── Lifecycle Events ───────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
-    """Khởi động RabbitMQ consumer chạy ngầm khi service bật lên."""
+    """Khởi động các tác vụ chạy ngầm khi service bật lên."""
     from app.consumers.application_consumer import start_consumer
     asyncio.create_task(start_consumer())
+
+    # Khởi chạy vòng lặp huấn luyện SVD định kỳ chạy ngầm (mỗi 4 tiếng)
+    from app.services.cv_service import start_periodic_svd_training
+    asyncio.create_task(start_periodic_svd_training())
+
     logger.info("[Startup] CVIntelligenceService đã sẵn sàng!")
 
 
