@@ -100,6 +100,13 @@ public class FileService : IFileService
         // Build public URL: http(s)://endpoint/bucket/objectName
         var scheme = _settings.Secure ? "https" : "http";
         var endpoint = string.IsNullOrEmpty(_settings.ExternalEndpoint) ? _settings.Endpoint : _settings.ExternalEndpoint;
+        
+        // Tự động nâng cấp lên https nếu dùng tên miền ngrok hoặc cloudflare công khai để tránh lỗi Mixed Content
+        if (endpoint.Contains("ngrok-free.dev") || endpoint.Contains("ngrok-free.app") || endpoint.Contains("trycloudflare.com"))
+        {
+            scheme = "https";
+        }
+        
         var url    = $"{scheme}://{endpoint}/{bucketName}/{objectName}";
 
         return new FileUploadResult

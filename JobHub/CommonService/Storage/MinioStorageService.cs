@@ -100,6 +100,12 @@ public class MinioStorageService : IMinioStorageService
         if (!string.IsNullOrEmpty(_settings.ExternalEndpoint) && _settings.Endpoint != _settings.ExternalEndpoint)
         {
             url = url.Replace(_settings.Endpoint, _settings.ExternalEndpoint);
+            
+            // Tự động nâng cấp lên https cho các tên miền public như ngrok hoặc cloudflare để tránh lỗi Mixed Content
+            if (_settings.ExternalEndpoint.Contains("ngrok-free.dev") || _settings.ExternalEndpoint.Contains("ngrok-free.app") || _settings.ExternalEndpoint.Contains("trycloudflare.com"))
+            {
+                url = url.Replace("http://", "https://");
+            }
         }
         
         return url;
