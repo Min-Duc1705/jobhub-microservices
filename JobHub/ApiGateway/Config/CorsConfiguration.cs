@@ -12,8 +12,8 @@ public static class CorsConfiguration
             {
                 builder
                     .SetIsOriginAllowed(origin => true) // Cho phép tất cả các nguồn (gồm Ngrok, Vercel, Localhost)
-                    .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                    .WithHeaders("Authorization", "Content-Type", "Accept", "x-no-retry")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
                     .AllowCredentials()
                     .SetPreflightMaxAge(TimeSpan.FromSeconds(3600));
             });
