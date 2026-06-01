@@ -305,7 +305,22 @@
       "UpstreamHttpMethod": ["GET", "POST", "OPTIONS"],
       "DownstreamPathTemplate": "/ws/notifications",
       "DownstreamScheme": "ws",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }] }
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }] },
+    { "UpstreamPathTemplate": "/companies/{everything}",
+      "UpstreamHttpMethod": ["GET", "OPTIONS"],
+      "DownstreamPathTemplate": "/companies/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 9000 }] },
+    { "UpstreamPathTemplate": "/resumes/{everything}",
+      "UpstreamHttpMethod": ["GET", "OPTIONS"],
+      "DownstreamPathTemplate": "/resumes/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 9000 }] },
+    { "UpstreamPathTemplate": "/avatars/{everything}",
+      "UpstreamHttpMethod": ["GET", "OPTIONS"],
+      "DownstreamPathTemplate": "/avatars/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 9000 }] }
   ],
 
 
