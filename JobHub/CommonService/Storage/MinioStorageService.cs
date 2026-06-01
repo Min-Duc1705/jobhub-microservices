@@ -94,6 +94,14 @@ public class MinioStorageService : IMinioStorageService
             .WithObject(objectName)
             .WithExpiry(expiryInSeconds);
 
-        return await _minioClient.PresignedGetObjectAsync(args);
+        var url = await _minioClient.PresignedGetObjectAsync(args);
+        
+        // Thay thế endpoint nội bộ bằng endpoint ngoại bộ cho Client truy cập
+        if (!string.IsNullOrEmpty(_settings.ExternalEndpoint) && _settings.Endpoint != _settings.ExternalEndpoint)
+        {
+            url = url.Replace(_settings.Endpoint, _settings.ExternalEndpoint);
+        }
+        
+        return url;
     }
 }

@@ -353,6 +353,11 @@ services:
       - RabbitMQ__Port=5672
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
+      - MinIO__Endpoint=minio:9000
+      - MinIO__ExternalEndpoint=localhost:9000
+      - MinIO__AccessKey=admin
+      - MinIO__SecretKey=AdminPassword123!
+      - MinIO__Secure=false
     depends_on:
       postgres:
         condition: service_healthy
@@ -360,6 +365,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   profileservice:
     image: jobhub-profileservice:latest
@@ -381,6 +388,7 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - MinIO__Endpoint=minio:9000
+      - MinIO__ExternalEndpoint=localhost:9000
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
@@ -414,6 +422,7 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - MinIO__Endpoint=minio:9000
+      - MinIO__ExternalEndpoint=localhost:9000
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false

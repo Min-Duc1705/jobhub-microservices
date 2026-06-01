@@ -99,7 +99,8 @@ public class FileService : IFileService
     {
         // Build public URL: http(s)://endpoint/bucket/objectName
         var scheme = _settings.Secure ? "https" : "http";
-        var url    = $"{scheme}://{_settings.Endpoint}/{bucketName}/{objectName}";
+        var endpoint = string.IsNullOrEmpty(_settings.ExternalEndpoint) ? _settings.Endpoint : _settings.ExternalEndpoint;
+        var url    = $"{scheme}://{endpoint}/{bucketName}/{objectName}";
 
         return new FileUploadResult
         {
