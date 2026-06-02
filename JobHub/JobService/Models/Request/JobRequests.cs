@@ -50,6 +50,7 @@ public class UpdateJobRequest
     public DateTime? StartDate        { get; set; }
     public DateTime? EndDate          { get; set; }
     public string? Category           { get; set; }
+    public JobStatus? Status          { get; set; }
     public List<Guid>? SkillIds       { get; set; }
 }
 

@@ -7,6 +7,9 @@ public interface IJobRepository : IGenericRepository<Job>
 {
     /// <summary>Tăng ViewCount lên 1 (optimistic, không cần load entity).</summary>
     Task IncrementViewCountAsync(Guid jobId);
+
+    /// <summary>Lấy thông tin Job và danh sách JobSkills với cơ chế Tracking của EF Core.</summary>
+    Task<Job?> GetJobWithSkillsTrackedAsync(Guid id);
 }
 
 public interface ISkillRepository : IGenericRepository<Skill>

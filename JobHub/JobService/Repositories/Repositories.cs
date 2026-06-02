@@ -14,6 +14,12 @@ public class JobRepository : GenericRepository<JobDbContext, Job>, IJobRepositor
         => await _dbSet
             .Where(j => j.Id == jobId)
             .ExecuteUpdateAsync(s => s.SetProperty(j => j.ViewCount, j => j.ViewCount + 1));
+
+    public async Task<Job?> GetJobWithSkillsTrackedAsync(Guid id)
+        => await _dbSet
+            .Include(j => j.JobSkills)
+            .ThenInclude(js => js.Skill)
+            .FirstOrDefaultAsync(j => j.Id == id && !j.IsDeleted);
 }
 
 public class SkillRepository : GenericRepository<JobDbContext, Skill>, ISkillRepository

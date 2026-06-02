@@ -25,3 +25,8 @@ def get_salary_cache_col():
 
 def get_job_trend_col():
     return get_db()["job_trend_snapshots"]
+
+
+def get_model_metadata_col():
+    return get_db()["model_metadata"]
+

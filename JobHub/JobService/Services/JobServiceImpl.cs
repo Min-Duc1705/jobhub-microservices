@@ -143,8 +143,7 @@ public class JobServiceImpl : IJobService
 
     public async Task<JobResponse> UpdateAsync(Guid id, UpdateJobRequest request)
     {
-        var spec = new JobByIdSpec(id);
-        var job  = await _jobRepo.GetEntityWithSpec(spec);
+        var job = await _jobRepo.GetJobWithSkillsTrackedAsync(id);
 
         if (job == null)
             throw new NotFoundException($"Không tìm thấy tin tuyển dụng với ID: {id}");
@@ -159,11 +158,28 @@ public class JobServiceImpl : IJobService
             if (skills.Count != distinctIds.Count)
                 throw new BadRequestException("Một hoặc nhiều SkillId không hợp lệ.");
 
-            job.JobSkills = skills.Select(s => new JobSkill
+            // Xóa các kỹ năng cũ không còn được chọn
+            var toRemove = job.JobSkills
+                .Where(js => !distinctIds.Contains(js.SkillId))
+                .ToList();
+            foreach (var js in toRemove)
             {
-                JobId   = job.Id,
-                SkillId = s.Id
-            }).ToList();
+                job.JobSkills.Remove(js);
+            }
+
+            // Thêm các kỹ năng mới chưa tồn tại trong danh sách của job
+            var existingSkillIds = job.JobSkills.Select(js => js.SkillId).ToHashSet();
+            foreach (var skillId in distinctIds)
+            {
+                if (!existingSkillIds.Contains(skillId))
+                {
+                    job.JobSkills.Add(new JobSkill
+                    {
+                        JobId   = job.Id,
+                        SkillId = skillId
+                    });
+                }
+            }
         }
 
         _jobRepo.Update(job);

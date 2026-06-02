@@ -168,3 +168,11 @@ def make_input_hash(
     }
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def reload_model():
+    """Xóa cache mô hình trong bộ nhớ để load lại file .pkl mới từ disk."""
+    global _model
+    _model = None
+    logger.info("[Salary] Đã xóa cache model cũ để chuẩn bị tải model mới.")
+

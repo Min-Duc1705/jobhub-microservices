@@ -1,12 +1,162 @@
 import logging
+import asyncio
 from datetime import datetime
+import pandas as pd
+import numpy as np
+import joblib
+from xgboost import XGBRegressor
+from sklearn.multioutput import MultiOutputRegressor
 
+from app.config import settings
 from app.core.database import (
     get_salary_dataset_col,
     get_salary_cache_col,
     get_job_trend_col,
+    get_model_metadata_col,
 )
-from app.ml.salary_predictor import predict_salary, make_input_hash
+from app.ml.salary_predictor import predict_salary, make_input_hash, reload_model
+
+# Danh sách kỹ năng và map phục vụ tự động train
+KNOWN_SKILLS = [
+    "Python", "Java", "JavaScript", "TypeScript", "C#", "C++", "Go", "Rust",
+    "React", "Vue", "Angular", "Next.js", "Node.js", "FastAPI", "Django", "Spring",
+    ".NET", "ASP.NET", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis",
+    "Docker", "Kubernetes", "AWS", "Azure", "GCP", "CI/CD", "Git",
+    "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "scikit-learn",
+    "Microservices", "REST API", "GraphQL", "gRPC", "RabbitMQ", "Kafka",
+    "Linux", "Agile", "Scrum", "ElasticSearch", "Figma", "Flutter", "React Native",
+]
+LEVEL_MAP = {"INTERN": 0, "FRESHER": 1, "JUNIOR": 2, "MIDDLE": 3, "SENIOR": 4, "LEADER": 5, "MANAGER": 6}
+
+async def _run_background_retrain(current_count: int):
+    """Huấn luyện lại XGBoost model dưới nền và ghi đè file salary_model.pkl."""
+    logger.info("[Auto-Retrain] Bắt đầu tự động huấn luyện lại model lương...")
+    try:
+        col = get_salary_dataset_col()
+        docs = await col.find({}).to_list(length=None)
+        if not docs:
+            logger.warning("[Auto-Retrain] Không có dữ liệu để train.")
+            return
+
+        df = pd.DataFrame(docs)
+        rows = []
+        labels = []
+        df = df[df.get("is_negotiable", False) != True]
+
+        for _, row in df.iterrows():
+            min_salary = float(row.get("salary_min", 0))
+            max_salary = float(row.get("salary_max", 0))
+            
+            if min_salary == 0 and max_salary == 0 and row.get("actual_salary"):
+                min_salary = max_salary = float(row.get("actual_salary"))
+
+            if min_salary == 0 and max_salary == 0:
+                continue
+                
+            if min_salary > max_salary:
+                min_salary, max_salary = max_salary, min_salary
+
+            features = []
+            features.append(int(row.get("years_of_experience", 0)))
+            features.append(LEVEL_MAP.get(str(row.get("level", "JUNIOR")).upper(), 2))
+            
+            # Cắt chuỗi địa lý giống như salary_predictor
+            loc_str = str(row.get("location", "Khác")).lower()
+            loc_val = 4
+            if "hà nội" in loc_str or "ha noi" in loc_str:
+                loc_val = 0
+            elif "hồ chí minh" in loc_str or "hcm" in loc_str or "tp.hcm" in loc_str or "sài gòn" in loc_str or "sai gon" in loc_str:
+                loc_val = 1
+            elif "đà nẵng" in loc_str or "da nang" in loc_str:
+                loc_val = 2
+            elif "hải phòng" in loc_str or "hai phong" in loc_str:
+                loc_val = 3
+            elif "remote" in loc_str:
+                loc_val = 5
+            else:
+                loc_val = 4
+            features.append(loc_val)
+
+            skill_set_lower = {s.lower() for s in row.get("skill_set", [])}
+            for skill in KNOWN_SKILLS:
+                features.append(1 if skill.lower() in skill_set_lower else 0)
+
+            rows.append(features)
+            y_mid = (min_salary + max_salary) / 2.0
+            y_spread = max_salary - min_salary
+            labels.append([y_mid, y_spread])
+
+        if len(rows) < 5:
+            logger.warning("[Auto-Retrain] Quá ít mẫu hợp lệ để train (yêu cầu ít nhất 5 mẫu).")
+            return
+
+        X = np.array(rows)
+        y = np.array(labels)
+
+        # Định nghĩa bộ XGBoost Regressor
+        model = MultiOutputRegressor(
+            XGBRegressor(
+                n_estimators=100,
+                max_depth=5,
+                learning_rate=0.1,
+                random_state=42,
+                n_jobs=-1,
+                tree_method="hist",
+            )
+        )
+        
+        # Fit model bằng thread executor để tránh blocking
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, model.fit, X, y)
+        
+        # Lưu file
+        joblib.dump(model, settings.MODEL_PATH)
+        
+        # Clear model cache trong bộ nhớ
+        reload_model()
+        
+        # Cập nhật metadata trong MongoDB
+        meta_col = get_model_metadata_col()
+        await meta_col.replace_one(
+            {"key": "salary_model_metadata"},
+            {
+                "key": "salary_model_metadata",
+                "last_trained_count": current_count,
+                "last_trained_at": datetime.now(),
+            },
+            upsert=True
+        )
+        logger.info(f"[Auto-Retrain] Đã tự động huấn luyện xong model thành công tại {datetime.now()} với {current_count} mẫu.")
+    except Exception as ex:
+        logger.error(f"[Auto-Retrain] Lỗi trong quá trình train model: {ex}")
+
+async def _check_and_trigger_retrain():
+    """Kiểm tra ngưỡng chênh lệch mẫu mới để tự động chạy train."""
+    try:
+        col = get_salary_dataset_col()
+        current_count = await col.count_documents({})
+        
+        meta_col = get_model_metadata_col()
+        meta = await meta_col.find_one({"key": "salary_model_metadata"})
+        
+        last_trained_count = 0
+        if meta:
+            last_trained_count = meta.get("last_trained_count", 0)
+        else:
+            # Lần đầu khởi tạo, lưu mốc count hiện tại làm mốc huấn luyện gốc
+            await meta_col.insert_one({
+                "key": "salary_model_metadata",
+                "last_trained_count": current_count,
+                "last_trained_at": datetime.now()
+            })
+            return
+
+        # Trigger train nếu có thêm từ 50 mẫu trở lên
+        if current_count - last_trained_count >= 50:
+            await _run_background_retrain(current_count)
+    except Exception as ex:
+        logger.error(f"[Auto-Retrain] Lỗi kiểm tra ngưỡng train: {ex}")
+
 from app.models.documents import (
     SalaryDataset,
     SalaryPredictionCache,
@@ -79,6 +229,10 @@ async def add_salary_data(req: AddSalaryDataRequest) -> dict:
     )
     col = get_salary_dataset_col()
     await col.insert_one(doc.model_dump(exclude={"id"}))
+    
+    # Tạo background task kiểm tra & tự động train lại mô hình
+    asyncio.create_task(_check_and_trigger_retrain())
+    
     return {"message": "Đã thêm dữ liệu lương thành công. Dataset hiện có thêm 1 mẫu."}
 
 
