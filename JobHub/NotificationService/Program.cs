@@ -32,6 +32,7 @@ builder.Services.AddCommonRedisCache(builder.Configuration, "JobHubAuth_");
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IContactRepository, ContactRepository>();
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
@@ -39,6 +40,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationServiceImpl>();
 builder.Services.AddScoped<IAuditLogService, AuditLogServiceImpl>();
 builder.Services.AddScoped<IChatService, ChatServiceImpl>();
+builder.Services.AddScoped<IContactService, ContactServiceImpl>();
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(NotificationService.Mapping.NotificationMappingProfile).Assembly));
@@ -220,6 +222,21 @@ using (var scope = app.Services.CreateScope())
         CREATE INDEX IF NOT EXISTS ""IX_Messages_SenderId"" ON ""Messages"" (""SenderId"");
         CREATE INDEX IF NOT EXISTS ""IX_Messages_CreatedAt"" ON ""Messages"" (""CreatedAt"" DESC);
         CREATE INDEX IF NOT EXISTS ""IX_Messages_IsDeleted"" ON ""Messages"" (""IsDeleted"");
+
+        CREATE TABLE IF NOT EXISTS ""Contacts"" (
+            ""Id""        uuid          NOT NULL,
+            ""FullName""  text          NOT NULL,
+            ""Email""     text          NOT NULL,
+            ""Phone""     text,
+            ""Topic""     text          NOT NULL,
+            ""Message""   text          NOT NULL,
+            ""CreatedAt"" timestamptz   NOT NULL,
+            ""IsDeleted"" boolean       NOT NULL DEFAULT FALSE,
+            ""DeletedAt"" timestamptz,
+            CONSTRAINT ""PK_Contacts"" PRIMARY KEY (""Id"")
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_Contacts_Email"" ON ""Contacts"" (""Email"");
+        CREATE INDEX IF NOT EXISTS ""IX_Contacts_IsDeleted"" ON ""Contacts"" (""IsDeleted"");
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();

@@ -1,348 +1,910 @@
 {
   "Routes": [
-
-    { "UpstreamPathTemplate": "/api/v1/auth/login",
-      "UpstreamHttpMethod": ["POST"],
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/login",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/login",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/register",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/register",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/register",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/refresh",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/refresh",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/refresh",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/verify-email",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/verify-email",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/verify-email",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/resend-otp",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/resend-otp",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/resend-otp",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/send-otp-reset",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/send-otp-reset",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/send-otp-reset",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/reset-password",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/reset-password",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/reset-password",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/auth/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/auth/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/roles",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/roles",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/roles",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/roles/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/roles/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/roles/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/permissions",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/permissions",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/permissions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/permissions/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/permissions/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/permissions/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/users",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/users",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/users",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/users/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/users/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/users/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-
-    { "UpstreamPathTemplate": "/api/v1/admin/jobs",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/admin/jobs",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/admin/jobs",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/jobs",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/jobs",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/jobs",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/jobs",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/jobs",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/jobs",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/jobs/{everything}",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/jobs/{everything}",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/jobs/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/jobs/{everything}",
-      "UpstreamHttpMethod": ["POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/jobs/{everything}",
+      "UpstreamHttpMethod": [
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/jobs/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/saved-jobs",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/saved-jobs",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/saved-jobs",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/saved-jobs/{everything}",
-      "UpstreamHttpMethod": ["POST", "DELETE"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/saved-jobs/{everything}",
+      "UpstreamHttpMethod": [
+        "POST",
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/saved-jobs/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/skills/me",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/skills/me",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/skills/me",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5004 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/skills/me/{everything}",
-      "UpstreamHttpMethod": ["DELETE"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/skills/me/{everything}",
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/skills/me/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5004 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/skills",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/skills",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/skills",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/skills/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/skills/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/skills/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/companies",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/companies",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/companies",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5003 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/companies",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/companies",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/companies",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5003 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/companies/{everything}",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/companies/{everything}",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/companies/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5003 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/companies/{everything}",
-      "UpstreamHttpMethod": ["POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/companies/{everything}",
+      "UpstreamHttpMethod": [
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/companies/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5003 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/customers",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/customers",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT"
+      ],
       "DownstreamPathTemplate": "/api/v1/customers",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5004 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/customers/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/customers/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/customers/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5004 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-
-    { "UpstreamPathTemplate": "/api/v1/cv/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/cv/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/cv/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5006 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
-      "QoSOptions": { "TimeoutValue": 30000 } },
-
-    { "UpstreamPathTemplate": "/api/v1/analytics/salary/predict",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5006
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": {
+        "TimeoutValue": 30000
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/analytics/salary/predict",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/analytics/salary/predict",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5007 }],
-      "QoSOptions": { "TimeoutValue": 30000 } },
-
-    { "UpstreamPathTemplate": "/api/v1/analytics/trend",
-      "UpstreamHttpMethod": ["POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5007
+        }
+      ],
+      "QoSOptions": {
+        "TimeoutValue": 30000
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/analytics/trend",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/analytics/trend",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5007 }],
-      "QoSOptions": { "TimeoutValue": 30000 } },
-
-    { "UpstreamPathTemplate": "/api/v1/analytics/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5007
+        }
+      ],
+      "QoSOptions": {
+        "TimeoutValue": 30000
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/analytics/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/analytics/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5007 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
-      "QoSOptions": { "TimeoutValue": 30000 } },
-
-    { "UpstreamPathTemplate": "/api/v1/resumes",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5007
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": {
+        "TimeoutValue": 30000
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/resumes",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/resumes",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5005 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/resumes/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5005
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/resumes/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/resumes/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5005 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/applications",
-      "UpstreamHttpMethod": ["GET", "POST"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5005
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/applications",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/applications",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5005 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/applications/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5005
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/applications/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/applications/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5005 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/notifications",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5005
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/notifications",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/notifications",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/notifications/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/notifications/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/notifications/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/audit-logs",
-      "UpstreamHttpMethod": ["GET"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/audit-logs",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/v1/audit-logs",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/api/v1/audit-logs/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/audit-logs/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/audit-logs/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/ws/notifications/negotiate",
-      "UpstreamHttpMethod": ["POST", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/ws/notifications/negotiate",
+      "UpstreamHttpMethod": [
+        "POST",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/ws/notifications/negotiate",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }] },
-
-    { "UpstreamPathTemplate": "/ws/notifications",
-      "UpstreamHttpMethod": ["GET", "POST", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/ws/notifications",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/ws/notifications",
       "DownstreamScheme": "ws",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }] },
-
-    { "UpstreamPathTemplate": "/api/v1/chat/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/chat/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
       "DownstreamPathTemplate": "/api/v1/chat/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" } },
-
-    { "UpstreamPathTemplate": "/ws/chat/negotiate",
-      "UpstreamHttpMethod": ["POST", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/ws/chat/negotiate",
+      "UpstreamHttpMethod": [
+        "POST",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/ws/chat/negotiate",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }] },
-
-    { "UpstreamPathTemplate": "/ws/chat",
-      "UpstreamHttpMethod": ["GET", "POST", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/ws/chat",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/ws/chat",
       "DownstreamScheme": "ws",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5008 }] },
-    { "UpstreamPathTemplate": "/companies/{everything}",
-      "UpstreamHttpMethod": ["GET", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/companies/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/companies/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 9000 }] },
-    { "UpstreamPathTemplate": "/resumes/{everything}",
-      "UpstreamHttpMethod": ["GET", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 9000
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/resumes/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/resumes/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 9000 }] },
-    { "UpstreamPathTemplate": "/avatars/{everything}",
-      "UpstreamHttpMethod": ["GET", "OPTIONS"],
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 9000
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/avatars/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "OPTIONS"
+      ],
       "DownstreamPathTemplate": "/avatars/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 9000 }] }
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 9000
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/contacts",
+      "UpstreamHttpMethod": [
+        "POST",
+        "OPTIONS"
+      ],
+      "DownstreamPathTemplate": "/api/v1/contacts",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    }
   ],
-
-
   "GlobalConfiguration": {
     "BaseUrl": "http://localhost:5000"
   }
