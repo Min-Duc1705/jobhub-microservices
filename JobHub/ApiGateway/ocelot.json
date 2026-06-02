@@ -892,8 +892,7 @@
     {
       "UpstreamPathTemplate": "/api/v1/contacts",
       "UpstreamHttpMethod": [
-        "POST",
-        "OPTIONS"
+        "POST"
       ],
       "DownstreamPathTemplate": "/api/v1/contacts",
       "DownstreamScheme": "http",
@@ -903,6 +902,23 @@
           "Port": 5008
         }
       ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/contacts",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/api/v1/contacts",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
     }
   ],
   "GlobalConfiguration": {

@@ -3,6 +3,7 @@ using NotificationService.Models;
 using NotificationService.Models.Request;
 using NotificationService.Repositories.Interface;
 using NotificationService.Services.Interface;
+using CommonService.Common;
 using System;
 using System.Threading.Tasks;
 
@@ -42,5 +43,14 @@ public class ContactServiceImpl : IContactService
         await _contactRepo.SaveChangesAsync();
 
         return contact;
+    }
+
+    public async Task<ResultPaginationDto<Contact>> GetContactsAsync(
+        string? searchTerm,
+        string? topic,
+        int page,
+        int pageSize)
+    {
+        return await _contactRepo.GetContactsAsync(searchTerm, topic, page, pageSize);
     }
 }
