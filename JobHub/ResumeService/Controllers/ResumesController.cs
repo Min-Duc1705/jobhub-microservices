@@ -145,6 +145,7 @@ public class ResumesController : ControllerBase
         return Ok(new
         {
             Url = result.ObjectName,
+            FullUrl = result.Url,
             OriginalFileName = result.OriginalFileName,
             ExtractedText = extractedText
         });
