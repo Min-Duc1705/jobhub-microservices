@@ -34,6 +34,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IJobService,      JobServiceImpl>();
 builder.Services.AddScoped<ISkillService,    SkillServiceImpl>();
 builder.Services.AddScoped<ISavedJobService, SavedJobServiceImpl>();
+builder.Services.AddMinioStorage(builder.Configuration);
+
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg =>

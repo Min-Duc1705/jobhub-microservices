@@ -2,6 +2,7 @@ using AutoMapper;
 using CommonService.Common;
 using CommonService.Exceptions;
 using CommonService.Events;
+using CommonService.Storage;
 using MassTransit;
 using JobService.Models;
 using JobService.Models.Enums;
@@ -10,6 +11,7 @@ using JobService.Models.Response;
 using JobService.Repositories.Interface;
 using JobService.Services.Interface;
 using JobService.Specifications;
+using Microsoft.Extensions.Options;
 
 namespace JobService.Services;
 
@@ -19,17 +21,37 @@ public class JobServiceImpl : IJobService
     private readonly ISkillRepository _skillRepo;
     private readonly IMapper          _mapper;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly MinioSettings      _minioSettings;
 
     public JobServiceImpl(
         IJobRepository jobRepo, 
         ISkillRepository skillRepo, 
         IMapper mapper,
-        IPublishEndpoint publishEndpoint)
+        IPublishEndpoint publishEndpoint,
+        IOptions<MinioSettings> minioSettings)
     {
         _jobRepo         = jobRepo;
         _skillRepo       = skillRepo;
         _mapper          = mapper;
         _publishEndpoint = publishEndpoint;
+        _minioSettings   = minioSettings.Value;
+    }
+
+    private JobResponse FormatUrls(JobResponse response)
+    {
+        if (response == null) return null!;
+        response.CompanyLogo = MinioUrlHelper.ToAbsoluteUrl(response.CompanyLogo, _minioSettings, "companies");
+        return response;
+    }
+
+    private List<JobResponse> FormatUrls(List<JobResponse> responses)
+    {
+        if (responses == null) return null!;
+        foreach (var r in responses)
+        {
+            FormatUrls(r);
+        }
+        return responses;
     }
 
     public async Task<ResultPaginationDto<JobResponse>> GetAllAsync(JobFilterRequest filter)
@@ -49,7 +71,7 @@ public class JobServiceImpl : IJobService
         var total = await _jobRepo.CountAsync(countSpec);
 
         return new ResultPaginationDto<JobResponse>(
-            _mapper.Map<List<JobResponse>>(items),
+            FormatUrls(_mapper.Map<List<JobResponse>>(items)),
             filter.PageNumber, filter.PageSize, total);
     }
 
@@ -68,7 +90,7 @@ public class JobServiceImpl : IJobService
         var total = await _jobRepo.CountAsync(countSpec);
 
         return new ResultPaginationDto<JobResponse>(
-            _mapper.Map<List<JobResponse>>(items),
+            FormatUrls(_mapper.Map<List<JobResponse>>(items)),
             filter.PageNumber, filter.PageSize, total);
     }
 
@@ -83,7 +105,7 @@ public class JobServiceImpl : IJobService
         if (incrementView)
             await _jobRepo.IncrementViewCountAsync(id);
 
-        return _mapper.Map<JobResponse>(job);
+        return FormatUrls(_mapper.Map<JobResponse>(job));
     }
 
     public async Task<List<JobCategoryStatResponse>> GetJobCategoryStatsAsync()
@@ -215,7 +237,7 @@ public class JobServiceImpl : IJobService
 
         await PublishJobPublishedEventAsync(id);
 
-        return _mapper.Map<JobResponse>(job);
+        return FormatUrls(_mapper.Map<JobResponse>(job));
     }
 
     private int ParseYearsOfExperience(string? exp)

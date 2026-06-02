@@ -1,12 +1,14 @@
 using AutoMapper;
 using CommonService.Common;
 using CommonService.Exceptions;
+using CommonService.Storage;
 using CompanyService.Models;
 using CompanyService.Models.Request;
 using CompanyService.Models.Response;
 using CompanyService.Repositories.Interface;
 using CompanyService.Services.Interface;
 using CompanyService.Specifications;
+using Microsoft.Extensions.Options;
 
 namespace CompanyService.Services;
 
@@ -14,11 +16,32 @@ public class CompanyServiceImpl : ICompanyService
 {
     private readonly ICompanyRepository _companyRepo;
     private readonly IMapper            _mapper;
+    private readonly MinioSettings      _minioSettings;
 
-    public CompanyServiceImpl(ICompanyRepository companyRepo, IMapper mapper)
+    public CompanyServiceImpl(ICompanyRepository companyRepo, IMapper mapper, IOptions<MinioSettings> minioSettings)
     {
         _companyRepo = companyRepo;
         _mapper      = mapper;
+        _minioSettings = minioSettings.Value;
+    }
+
+    private CompanyResponse FormatUrls(CompanyResponse response)
+    {
+        if (response == null) return null!;
+        response.Logo = MinioUrlHelper.ToAbsoluteUrl(response.Logo, _minioSettings, "companies");
+        response.CoverImage = MinioUrlHelper.ToAbsoluteUrl(response.CoverImage, _minioSettings, "companies");
+        response.ActivityImages = MinioUrlHelper.ToAbsoluteUrls(response.ActivityImages, _minioSettings, "companies");
+        return response;
+    }
+
+    private List<CompanyResponse> FormatUrls(List<CompanyResponse> responses)
+    {
+        if (responses == null) return null!;
+        foreach (var r in responses)
+        {
+            FormatUrls(r);
+        }
+        return responses;
     }
 
     // ── GET danh sách có phân trang ─────────────────────────────────────────
@@ -37,7 +60,7 @@ public class CompanyServiceImpl : ICompanyService
         var totalCount = await _companyRepo.CountAsync(countSpec);
 
         return new ResultPaginationDto<CompanyResponse>(
-            _mapper.Map<List<CompanyResponse>>(items),
+            FormatUrls(_mapper.Map<List<CompanyResponse>>(items)),
             filter.PageNumber, filter.PageSize, totalCount);
     }
 
@@ -48,12 +71,16 @@ public class CompanyServiceImpl : ICompanyService
         if (company == null || company.IsDeleted)
             throw new NotFoundException($"Không tìm thấy công ty với ID: {id}");
 
-        return _mapper.Map<CompanyResponse>(company);
+        return FormatUrls(_mapper.Map<CompanyResponse>(company));
     }
 
     // ── Tạo mới ─────────────────────────────────────────────────────────────
     public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request)
     {
+        request.Logo = MinioUrlHelper.ToRelativePath(request.Logo);
+        request.CoverImage = MinioUrlHelper.ToRelativePath(request.CoverImage);
+        request.ActivityImages = MinioUrlHelper.ToRelativePaths(request.ActivityImages);
+
         if (!string.IsNullOrWhiteSpace(request.TaxCode))
         {
             var existing = await _companyRepo.GetByTaxCodeAsync(request.TaxCode);
@@ -67,12 +94,16 @@ public class CompanyServiceImpl : ICompanyService
         await _companyRepo.AddAsync(company);
         await _companyRepo.SaveChangesAsync();
 
-        return _mapper.Map<CompanyResponse>(company);
+        return FormatUrls(_mapper.Map<CompanyResponse>(company));
     }
 
     // ── Cập nhật ────────────────────────────────────────────────────────────
     public async Task<CompanyResponse> UpdateAsync(Guid id, UpdateCompanyRequest request)
     {
+        request.Logo = MinioUrlHelper.ToRelativePath(request.Logo);
+        request.CoverImage = MinioUrlHelper.ToRelativePath(request.CoverImage);
+        request.ActivityImages = MinioUrlHelper.ToRelativePaths(request.ActivityImages);
+
         var company = await _companyRepo.GetByIdAsync(id);
         if (company == null || company.IsDeleted)
             throw new NotFoundException($"Không tìm thấy công ty với ID: {id}");
@@ -88,7 +119,7 @@ public class CompanyServiceImpl : ICompanyService
         _companyRepo.Update(company);
         await _companyRepo.SaveChangesAsync();
 
-        return _mapper.Map<CompanyResponse>(company);
+        return FormatUrls(_mapper.Map<CompanyResponse>(company));
     }
 
     // ── Xóa mềm ────────────────────────────────────────────────────────────
@@ -116,6 +147,6 @@ public class CompanyServiceImpl : ICompanyService
         _companyRepo.Update(company);
         await _companyRepo.SaveChangesAsync();
 
-        return _mapper.Map<CompanyResponse>(company);
+        return FormatUrls(_mapper.Map<CompanyResponse>(company));
     }
 }

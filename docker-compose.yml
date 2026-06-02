@@ -326,6 +326,11 @@ services:
       - RabbitMQ__Port=5672
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
+      - MinIO__Endpoint=minio:9000
+      - MinIO__ExternalEndpoint=norm-sky-pharmaceutical-marketplace.trycloudflare.com
+      - MinIO__AccessKey=admin
+      - MinIO__SecretKey=AdminPassword123!
+      - MinIO__Secure=false
     depends_on:
       postgres:
         condition: service_healthy
@@ -354,7 +359,7 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - MinIO__Endpoint=minio:9000
-      - MinIO__ExternalEndpoint=controlling-bacteria-percentage-franchise.trycloudflare.com
+      - MinIO__ExternalEndpoint=norm-sky-pharmaceutical-marketplace.trycloudflare.com
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
@@ -388,7 +393,7 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - MinIO__Endpoint=minio:9000
-      - MinIO__ExternalEndpoint=controlling-bacteria-percentage-franchise.trycloudflare.com
+      - MinIO__ExternalEndpoint=norm-sky-pharmaceutical-marketplace.trycloudflare.com
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
@@ -422,7 +427,7 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - MinIO__Endpoint=minio:9000
-      - MinIO__ExternalEndpoint=controlling-bacteria-percentage-franchise.trycloudflare.com
+      - MinIO__ExternalEndpoint=norm-sky-pharmaceutical-marketplace.trycloudflare.com
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
