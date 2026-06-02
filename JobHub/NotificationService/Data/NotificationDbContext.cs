@@ -17,6 +17,8 @@ public class NotificationDbContext : DbContext
 
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<Conversation> Conversations { get; set; } = null!;
+    public DbSet<Message> Messages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,30 @@ public class NotificationDbContext : DbContext
             entity.HasIndex(a => a.Timestamp).HasDatabaseName("IX_AuditLogs_Timestamp");
             entity.HasIndex(a => a.IsDeleted).HasDatabaseName("IX_AuditLogs_IsDeleted");
             entity.HasQueryFilter(a => !a.IsDeleted);
+        });
+
+        modelBuilder.Entity<Conversation>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.HasIndex(c => c.ParticipantA).HasDatabaseName("IX_Conversations_ParticipantA");
+            entity.HasIndex(c => c.ParticipantB).HasDatabaseName("IX_Conversations_ParticipantB");
+            entity.HasIndex(c => c.IsDeleted).HasDatabaseName("IX_Conversations_IsDeleted");
+            entity.HasQueryFilter(c => !c.IsDeleted);
+        });
+
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.HasIndex(m => m.ConversationId).HasDatabaseName("IX_Messages_ConversationId");
+            entity.HasIndex(m => m.SenderId).HasDatabaseName("IX_Messages_SenderId");
+            entity.HasIndex(m => m.CreatedAt).HasDatabaseName("IX_Messages_CreatedAt");
+            entity.HasIndex(m => m.IsDeleted).HasDatabaseName("IX_Messages_IsDeleted");
+            entity.HasQueryFilter(m => !m.IsDeleted);
+
+            entity.HasOne(m => m.Conversation)
+                  .WithMany()
+                  .HasForeignKey(m => m.ConversationId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 

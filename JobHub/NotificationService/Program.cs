@@ -31,12 +31,14 @@ builder.Services.AddCommonRedisCache(builder.Configuration, "JobHubAuth_");
 // ── Repositories ──────────────────────────────────────────────────────────────
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationServiceImpl>();
 builder.Services.AddScoped<IAuditLogService, AuditLogServiceImpl>();
+builder.Services.AddScoped<IChatService, ChatServiceImpl>();
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(NotificationService.Mapping.NotificationMappingProfile).Assembly));
@@ -117,7 +119,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) &&
-                    path.StartsWithSegments("/ws/notifications"))
+                    (path.StartsWithSegments("/ws/notifications") || path.StartsWithSegments("/ws/chat")))
                 {
                     context.Token = accessToken;
                 }
@@ -147,6 +149,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/ws/notifications");
+app.MapHub<ChatHub>("/ws/chat");
 
 // ── Database Migration ────────────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
@@ -184,6 +187,39 @@ using (var scope = app.Services.CreateScope())
         CREATE INDEX IF NOT EXISTS ""IX_AuditLogs_EntityName"" ON ""AuditLogs"" (""EntityName"");
         CREATE INDEX IF NOT EXISTS ""IX_AuditLogs_Timestamp"" ON ""AuditLogs"" (""Timestamp"" DESC);
         CREATE INDEX IF NOT EXISTS ""IX_AuditLogs_IsDeleted"" ON ""AuditLogs"" (""IsDeleted"");
+
+        CREATE TABLE IF NOT EXISTS ""Conversations"" (
+            ""Id""                   uuid          NOT NULL,
+            ""ParticipantA""         text          NOT NULL,
+            ""ParticipantB""         text          NOT NULL,
+            ""LastMessageContent""   text,
+            ""LastMessageAt""        timestamptz,
+            ""CreatedAt""            timestamptz   NOT NULL,
+            ""IsDeleted""            boolean       NOT NULL DEFAULT FALSE,
+            ""DeletedAt""            timestamptz,
+            CONSTRAINT ""PK_Conversations"" PRIMARY KEY (""Id"")
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_Conversations_ParticipantA"" ON ""Conversations"" (""ParticipantA"");
+        CREATE INDEX IF NOT EXISTS ""IX_Conversations_ParticipantB"" ON ""Conversations"" (""ParticipantB"");
+        CREATE INDEX IF NOT EXISTS ""IX_Conversations_IsDeleted"" ON ""Conversations"" (""IsDeleted"");
+
+        CREATE TABLE IF NOT EXISTS ""Messages"" (
+            ""Id""             uuid          NOT NULL,
+            ""ConversationId"" uuid          NOT NULL,
+            ""SenderId""       text          NOT NULL,
+            ""Content""        text          NOT NULL,
+            ""Type""           text          NOT NULL DEFAULT 'text',
+            ""IsRead""         boolean       NOT NULL DEFAULT FALSE,
+            ""CreatedAt""      timestamptz   NOT NULL,
+            ""IsDeleted""      boolean       NOT NULL DEFAULT FALSE,
+            ""DeletedAt""      timestamptz,
+            CONSTRAINT ""PK_Messages"" PRIMARY KEY (""Id""),
+            CONSTRAINT ""FK_Messages_Conversations_ConversationId"" FOREIGN KEY (""ConversationId"") REFERENCES ""Conversations"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_Messages_ConversationId"" ON ""Messages"" (""ConversationId"");
+        CREATE INDEX IF NOT EXISTS ""IX_Messages_SenderId"" ON ""Messages"" (""SenderId"");
+        CREATE INDEX IF NOT EXISTS ""IX_Messages_CreatedAt"" ON ""Messages"" (""CreatedAt"" DESC);
+        CREATE INDEX IF NOT EXISTS ""IX_Messages_IsDeleted"" ON ""Messages"" (""IsDeleted"");
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();

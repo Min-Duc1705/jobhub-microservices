@@ -9,5 +9,7 @@ public class NotificationMappingProfile : Profile
     public NotificationMappingProfile()
     {
         CreateMap<Notification, NotificationResponse>();
+        CreateMap<Conversation, ConversationResponse>();
+        CreateMap<Message, MessageResponse>();
     }
 }
