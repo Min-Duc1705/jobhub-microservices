@@ -265,7 +265,12 @@ namespace AuthService.Services
             _userRepo.Update(user);
             await _userRepo.SaveChangesAsync();
 
-            _httpContextAccessor.HttpContext?.Response.Cookies.Delete("refresh_token");
+            _httpContextAccessor.HttpContext?.Response.Cookies.Delete("refresh_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure   = true,
+                SameSite = SameSiteMode.None
+            });
             await _cache.RemoveAsync($"perm:{email}");
         }
 
@@ -458,11 +463,13 @@ namespace AuthService.Services
         private void SetRefreshTokenCookie(string refreshToken)
         {
             var expireSeconds = int.Parse(_configuration["Jwt:RefreshTokenExpireSeconds"] ?? "604800");
+            // SameSite=None + Secure=true cho phép cookie hoạt động cross-site
+            // (cần thiết khi Frontend chạy trên Vercel và Backend chạy qua Cloudflare Tunnel)
             _httpContextAccessor.HttpContext!.Response.Cookies.Append("refresh_token", refreshToken, new CookieOptions
             {
                 HttpOnly  = true,
-                Secure    = false,
-                SameSite  = SameSiteMode.Lax,
+                Secure    = true,
+                SameSite  = SameSiteMode.None,
                 MaxAge    = TimeSpan.FromSeconds(expireSeconds)
             });
         }

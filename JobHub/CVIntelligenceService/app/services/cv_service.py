@@ -39,12 +39,88 @@ _INTERACTION_SCORES = {
 }
 
 
+# Danh sách công nghệ cụ thể để phát hiện kỹ năng cứng từ JD
+_TECH_SKILL_PATTERNS = [
+    # Backend languages/frameworks
+    r"\bjava\b", r"\bpython\b", r"\bc#\b", r"\b\.net\b", r"\bgo\b", r"\brust\b",
+    r"\bkotlin\b", r"\bscala\b", r"\bphp\b", r"\bruby\b",
+    # Frontend
+    r"\breact\b", r"\bvue\b", r"\bangular\b", r"\bsvelte\b", r"\bnext\.?js\b",
+    r"\btypescript\b", r"\bjavascript\b", r"\bhtml\b", r"\bcss\b",
+    # Mobile
+    r"\bswift\b", r"\bswiftui\b", r"\buikit\b", r"\bflutter\b", r"\breact native\b",
+    r"\bandroid\b", r"\bios\b", r"\bxcode\b",
+    # Databases
+    r"\bsql\b", r"\bpostgresql\b", r"\bmysql\b", r"\bmongodb\b", r"\boracle\b",
+    r"\bredis\b", r"\belasticsearch\b", r"\bcassandra\b",
+    # Cloud/DevOps
+    r"\baws\b", r"\bazure\b", r"\bgcp\b", r"\bdocker\b", r"\bkubernetes\b",
+    r"\bterraform\b", r"\bjenkins\b", r"\bgithub actions\b",
+    # Architecture
+    r"\bmicroservices\b", r"\bgraphql\b", r"\bgrpc\b", r"\bkafka\b", r"\brabbitmq\b",
+    # Data/ML
+    r"\bmachine learning\b", r"\bdeep learning\b", r"\btensorflow\b",
+    r"\bpytorch\b", r"\bpandas\b", r"\bspark\b",
+    # Storage
+    r"\bs3\b", r"\bminio\b",
+    # Spring
+    r"\bspring\b", r"\bspring boot\b", r"\bhibernate\b",
+]
+
+def _extract_tech_skills(text: str) -> list[str]:
+    """Trích xuất danh sách kỹ năng công nghệ cụ thể từ văn bản."""
+    text_lower = text.lower()
+    found = []
+    for pattern in _TECH_SKILL_PATTERNS:
+        if re.search(pattern, text_lower):
+            found.append(pattern)
+    return found
+
+def _compute_skill_penalty(jd_skills: list[str], cv_text: str) -> float:
+    """
+    Tính hệ số phạt dựa trên tỉ lệ kỹ năng JD xuất hiện trong CV.
+    - match_ratio >= 0.5  → không phạt (×1.0)
+    - match_ratio >= 0.25 → phạt nhẹ (×0.7)
+    - match_ratio > 0     → phạt vừa (×0.5)
+    - match_ratio = 0     → phạt nặng (×0.2) — hoàn toàn khác domain
+    """
+    if not jd_skills:
+        return 1.0  # Không có kỹ năng nào xác định được → không phạt
+
+    cv_lower = cv_text.lower()
+    matched = [s for s in jd_skills if re.search(s, cv_lower)]
+    ratio = len(matched) / len(jd_skills)
+
+    if ratio >= 0.5:
+        return 1.0
+    elif ratio >= 0.25:
+        return 0.7
+    elif ratio > 0:
+        return 0.5
+    else:
+        return 0.2
+
+
 async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     """
     Bước 1: SBERT chấm điểm 1 CV với JD.
+    Bước 1.5: Áp dụng Hard Skill Penalty — nếu kỹ năng công nghệ trong JD
+              không xuất hiện trong CV thì giảm mạnh điểm (tránh match ngữ nghĩa chung).
     Bước 2 (tuỳ chọn): Nếu có application_id → sinh feedback bằng LLM và lưu vào MongoDB.
     """
-    score = score_cv(req.job_description, req.cv_text)
+    raw_score = score_cv(req.job_description, req.cv_text)
+
+    # Hard Skill Penalty
+    jd_skills = _extract_tech_skills(req.job_description)
+    penalty = _compute_skill_penalty(jd_skills, req.cv_text)
+    score = round(raw_score * penalty, 2)
+
+    if penalty < 1.0:
+        logger.info(
+            f"[HireAgent-Score] SBERT={raw_score:.1f} → "
+            f"penalty={penalty} (skills matched {len([s for s in jd_skills if re.search(s, req.cv_text.lower())])}/{len(jd_skills)}) "
+            f"→ final={score:.1f}"
+        )
 
     feedback_data = {"extracted_skills": [], "strengths": [], "weaknesses": [], "ai_feedback": None}
 

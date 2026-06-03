@@ -494,13 +494,12 @@ SPECIALTIES = {
 }
 
 ADDRESSES = [
-    "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Cần Thơ", "Hải Phòng",
-    "Bình Dương", "Đồng Nai", "Bà Rịa - Vũng Tàu", "Khánh Hòa", "Lâm Đồng",
-    "Quảng Nam", "Thừa Thiên Huế", "Nghệ An", "Thanh Hóa", "Nam Định",
-    "Thái Bình", "Hải Dương", "Quảng Ninh", "Bắc Ninh", "Vĩnh Phúc",
-    "Thái Nguyên", "Đắk Lắk", "Gia Lai", "Bình Định", "Phú Yên",
-    "Long An", "Tiền Giang", "An Giang", "Kiên Giang", "Tây Ninh",
-    "Bến Tre", "Vĩnh Long", "Đồng Tháp", "Cà Mau", "Bạc Liêu"
+    "Hà Nội", "TP. Hồ Chí Minh", "Hải Phòng", "Đà Nẵng", "Cần Thơ", "Huế",
+    "Lai Châu", "Điện Biên", "Sơn La", "Lạng Sơn", "Quảng Ninh", "Thanh Hóa",
+    "Nghệ An", "Hà Tĩnh", "Cao Bằng", "Tuyên Quang", "Lào Cai", "Thái Nguyên",
+    "Phú Thọ", "Bắc Ninh", "Hưng Yên", "Ninh Bình", "Quảng Trị", "Quảng Ngãi",
+    "Gia Lai", "Khánh Hòa", "Lâm Đồng", "Đắk Lắk", "Đồng Nai", "Tây Ninh",
+    "Vĩnh Long", "Đồng Tháp", "Cà Mau", "An Giang"
 ]
 
 SUMMARIES = {
@@ -2393,29 +2392,29 @@ def generate_pdf_cv_template_5(output_path, profile):
     # Page 1 Left
     left_flowables_p1 = [
         create_t5_sidebar_header("THÔNG TIN CÁ NHÂN"),
-        Spacer(1, 6),
+        Spacer(1, 3),
         Paragraph(f"✉ {profile['email']}", style_sb_text),
-        Spacer(1, 4),
+        Spacer(1, 2),
         Paragraph(f"📞 {profile['phone']}", style_sb_text),
-        Spacer(1, 4),
+        Spacer(1, 2),
         Paragraph(f"📍 {profile['address']}", style_sb_text),
-        Spacer(1, 4),
+        Spacer(1, 2),
         Paragraph(f"🌐 {profile['github']}", style_sb_text),
-        Spacer(1, 15),
+        Spacer(1, 10),
         create_t5_sidebar_header("KỸ NĂNG"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ]
     for g in profile["skills"][:2]:
         left_flowables_p1.append(Paragraph(f"<b>{g['category']}</b>", style_sb_text))
         left_flowables_p1.append(Spacer(1, 2))
         for item in g["items"]:
             left_flowables_p1.append(Paragraph(f"• {item}", style_sb_bullet))
-        left_flowables_p1.append(Spacer(1, 6))
+        left_flowables_p1.append(Spacer(1, 4))
         
     left_flowables_p1.extend([
-        Spacer(1, 10),
+        Spacer(1, 6),
         create_t5_sidebar_header("HỌC VẤN"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ])
     edu = profile["education"]
     edu_table = Table([[
@@ -2478,9 +2477,9 @@ def generate_pdf_cv_template_5(output_path, profile):
     
     right_flowables_p1 = [
         header_table,
-        Spacer(1, 15),
+        Spacer(1, 10),
         create_t5_section_header("KINH NGHIỆM LÀM VIỆC"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ]
     for job in profile["experiences"]:
         job_table = Table([[
@@ -2500,12 +2499,12 @@ def generate_pdf_cv_template_5(output_path, profile):
         ])
         for bullet in job["bullets"]:
             right_flowables_p1.append(Paragraph(f"• {bullet}", style_bullet))
-        right_flowables_p1.append(Spacer(1, 10))
+        right_flowables_p1.append(Spacer(1, 6))
         
     right_flowables_p1.extend([
-        Spacer(1, 5),
+        Spacer(1, 4),
         create_t5_section_header("DỰ ÁN"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ])
     proj1 = profile["projects"][0]
     p_table1 = Table([[
@@ -2534,19 +2533,19 @@ def generate_pdf_cv_template_5(output_path, profile):
     if len(profile["skills"]) > 2:
         left_flowables_p2.extend([
             create_t5_sidebar_header("KỸ NĂNG (TIẾP)"),
-            Spacer(1, 6)
+            Spacer(1, 3)
         ])
         for g in profile["skills"][2:]:
             left_flowables_p2.append(Paragraph(f"<b>{g['category']}</b>", style_sb_text))
             left_flowables_p2.append(Spacer(1, 2))
             for item in g["items"]:
                 left_flowables_p2.append(Paragraph(f"• {item}", style_sb_bullet))
-            left_flowables_p2.append(Spacer(1, 6))
+            left_flowables_p2.append(Spacer(1, 4))
             
     left_flowables_p2.extend([
-        Spacer(1, 10),
+        Spacer(1, 6),
         create_t5_sidebar_header("CHỨNG CHỈ"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ])
     for c in profile["certificates"]:
         c_table = Table([[
@@ -2561,13 +2560,13 @@ def generate_pdf_cv_template_5(output_path, profile):
         ]))
         left_flowables_p2.extend([
             c_table,
-            Spacer(1, 6)
+            Spacer(1, 4)
         ])
         
     left_flowables_p2.extend([
-        Spacer(1, 10),
+        Spacer(1, 6),
         create_t5_sidebar_header("DANH HIỆU VÀ GIẢI THƯỞNG"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ])
     for a in profile["awards"]:
         a_table = Table([[
@@ -2582,17 +2581,17 @@ def generate_pdf_cv_template_5(output_path, profile):
         ]))
         left_flowables_p2.extend([
             a_table,
-            Spacer(1, 4)
+            Spacer(1, 2)
         ])
         
     left_flowables_p2.extend([
-        Spacer(1, 10),
-        create_t5_sidebar_header("NGƯỜI GIỚI THIỆU"),
         Spacer(1, 6),
+        create_t5_sidebar_header("NGƯỜI GIỚI THIỆU"),
+        Spacer(1, 3),
         Paragraph(profile["reference"], style_sb_text),
-        Spacer(1, 10),
+        Spacer(1, 6),
         create_t5_sidebar_header("SỞ THÍCH"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ])
     for interest_item in profile["interests"].split(", "):
         left_flowables_p2.append(Paragraph(f"• {interest_item}", style_sb_bullet))
@@ -2600,7 +2599,7 @@ def generate_pdf_cv_template_5(output_path, profile):
     # Page 2 Right
     right_flowables_p2 = [
         create_t5_section_header("DỰ ÁN (TIẾP)"),
-        Spacer(1, 6)
+        Spacer(1, 3)
     ]
     if len(profile["projects"]) > 1:
         proj2 = profile["projects"][1]

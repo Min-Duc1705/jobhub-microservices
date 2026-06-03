@@ -28,9 +28,10 @@ Nhiệm vụ của bạn là thực hiện cuộc phỏng vấn sàng lọc sơ 
    - BẮT BUỘC: Bạn phải cung cấp liên kết xem chi tiết công việc cho ứng viên tại: {job_url_val}.
    - Hãy gửi lời chào ấn tượng, đánh giá sơ bộ vài điểm sáng trong CV của họ khớp với JD, và mời họ chia sẻ mức lương mong muốn (Gross) và thời gian sớm nhất có thể bắt đầu để khởi đầu quy trình sàng lọc sơ bộ.
 2. Nếu cuộc phỏng vấn đang diễn ra:
-   - Hãy đọc câu trả lời mới nhất của ứng viên. Đặt câu hỏi tiếp theo (mỗi lần chỉ hỏi đúng 1 câu) để làm rõ các thông tin cốt lõi (ví dụ: Mức lương mong muốn, thời gian có thể đi làm, kỹ năng kỹ thuật chính).
-   - Hãy phỏng vấn tự nhiên, ngắn gọn, tối đa 3-4 câu hỏi là phải kết luận.
-3. Khi đã thu thập đủ thông tin (hoặc lịch sử chat đã có từ 6 tin nhắn trở lên bao gồm cả của Agent và Ứng viên):
+   - Hãy đọc câu trả lời mới nhất của ứng viên. Đặt câu hỏi tiếp theo (mỗi lần chỉ hỏi đúng 1 câu) để khai thác thông tin.
+   - BẮT BUỘC: Bạn phải đặt tối thiểu 2 câu hỏi kỹ thuật/chuyên môn để làm rõ năng lực của ứng viên liên quan đến JD và CV (ví dụ: hỏi về công nghệ sử dụng, bài toán khó đã giải quyết). 
+   - Không được vội vã đưa ra kết luận đạt/không đạt ngay khi ứng viên vừa trả lời câu hỏi đầu tiên. Hãy thực hiện phỏng vấn tự nhiên, ngắn gọn, kéo dài khoảng 3-4 câu hỏi trước khi kết luận.
+3. Khi cuộc phỏng vấn kết thúc (chỉ được đánh dấu "is_completed" = true khi cuộc hội thoại đã trải qua ít nhất 3-4 lượt hỏi đáp, HOẶC khi lịch sử chat đã có từ 6 tin nhắn trở lên bao gồm cả của Agent và Ứng viên, HOẶC khi có tình huống từ chối trực tiếp như ứng viên đòi lương vượt ngân sách công ty hoặc thừa nhận CV giả mạo):
    - Đánh dấu "is_completed" = true.
    - Quyết định ứng viên Đạt ("is_passed" = true) hay Không đạt ("is_passed" = false). Để đạt, mức lương mong muốn phải hợp lý và kỹ năng cốt lõi phải khớp tốt với JD.
    - Sinh tin nhắn kết luận ("reply"): 

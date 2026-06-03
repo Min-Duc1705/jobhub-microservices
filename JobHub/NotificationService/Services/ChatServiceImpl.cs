@@ -1,5 +1,6 @@
 using AutoMapper;
 using CommonService.Exceptions;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using NotificationService.Models;
 using NotificationService.Models.Response;
@@ -96,6 +97,79 @@ public class ChatServiceImpl : IChatService
                 {
                     var hireAgentRepo = scope.ServiceProvider.GetRequiredService<IHireAgentRepository>();
                     var hireAgentService = scope.ServiceProvider.GetRequiredService<IHireAgentService>();
+                    var chatService = scope.ServiceProvider.GetRequiredService<IChatService>();
+                    var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<NotificationService.Hubs.ChatHub>>();
+                    var config = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+
+                    // Kiểm tra yêu cầu đổi lịch / hủy phỏng vấn
+                    var lowerContent = content.ToLower().Trim();
+                    bool isRescheduleRequest = lowerContent.Contains("đổi lịch") || 
+                                               lowerContent.Contains("hẹn lại") || 
+                                               lowerContent.Contains("đổi giờ") || 
+                                               lowerContent.Contains("chuyển lịch") || 
+                                               lowerContent.Contains("reschedule");
+
+                    bool isCancelRequest = lowerContent.Contains("không nhận job") || 
+                                           lowerContent.Contains("không phỏng vấn") || 
+                                           lowerContent.Contains("hủy phỏng vấn") || 
+                                           lowerContent.Contains("hủy lịch") || 
+                                           lowerContent.Contains("hủy hẹn") || 
+                                           lowerContent.Contains("không tham gia") || 
+                                           lowerContent.Contains("từ chối") || 
+                                           lowerContent.Contains("rút hồ sơ") || 
+                                           (lowerContent.Contains("đổi ý") && (lowerContent.Contains("không") || lowerContent.Contains("hủy")));
+
+                    if (isRescheduleRequest || isCancelRequest)
+                    {
+                        var candidateConversations = await hireAgentRepo.GetConversationsByCandidateAsync(senderId);
+                        var targetConv = candidateConversations
+                            .Where(c => c.ConversationId == conv.Id)
+                            .OrderByDescending(c => c.CreatedAt)
+                            .FirstOrDefault();
+
+                        if (targetConv != null && (targetConv.Status == "Scheduled" || targetConv.Status == "Passed" || targetConv.Status == "Screening"))
+                        {
+                            var campaign = await hireAgentRepo.GetCampaignAsync(targetConv.CampaignId);
+                            if (campaign != null)
+                            {
+                                if (isCancelRequest)
+                                {
+                                    // Chuyển trạng thái sang Failed (Không đạt)
+                                    targetConv.Status = "Failed";
+                                    targetConv.InterviewDate = null;
+                                    await hireAgentRepo.UpdateConversationAsync(targetConv);
+
+                                    var cancelMsg = "[HỆ THỐNG] Đã ghi nhận yêu cầu hủy phỏng vấn và rút hồ sơ của bạn cho vị trí này. Trạng thái ứng tuyển đã chuyển sang Không đạt. Cảm ơn bạn và chúc bạn may mắn!";
+                                    var sysMsgResponse = await chatService.SendMessageAsync(campaign.RecruiterId, targetConv.CandidateId, cancelMsg, "text");
+                                    await hubContext.Clients.Group(targetConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                                    await hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+
+                                    // Gửi thông báo AI đã rời cuộc trò chuyện
+                                    var leaveMsg = "[HỆ THỐNG] Trợ lý AI đã rời khỏi cuộc trò chuyện.";
+                                    var leaveMsgResponse = await chatService.SendMessageAsync(campaign.RecruiterId, targetConv.CandidateId, leaveMsg, "text");
+                                    await hubContext.Clients.Group(targetConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                                    await hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                                    
+                                    return; // Kết thúc sớm
+                                }
+                                else if (isRescheduleRequest && (targetConv.Status == "Scheduled" || targetConv.Status == "Passed"))
+                                {
+                                    // Reset trạng thái về Passed để có thể đặt lịch lại
+                                    targetConv.Status = "Passed";
+                                    targetConv.InterviewDate = null;
+                                    await hireAgentRepo.UpdateConversationAsync(targetConv);
+
+                                    var frontendUrl = config["FrontendUrl"] ?? "http://localhost:5173";
+                                    var scheduleMsg = $"[HỆ THỐNG] Nhận được yêu cầu đổi lịch phỏng vấn. Bạn vui lòng chọn lại thời gian phỏng vấn mới tại đây: {frontendUrl.TrimEnd('/')}/schedule/{campaign.Id}";
+                                    
+                                    var sysMsgResponse = await chatService.SendMessageAsync(campaign.RecruiterId, targetConv.CandidateId, scheduleMsg, "text");
+                                    await hubContext.Clients.Group(targetConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                                    await hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                                    return; // Kết thúc sớm
+                                }
+                            }
+                        }
+                    }
 
                     var agentConv = await hireAgentRepo.GetActiveConversationByChatIdAsync(conv.Id);
                     if (agentConv != null && senderId.ToLower() == agentConv.CandidateId.ToLower())

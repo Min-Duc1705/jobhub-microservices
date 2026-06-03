@@ -11,7 +11,7 @@ public class UpdateCustomerRequest
     // --- Candidate
     public DateTime? DateOfBirth { get; set; }
     public Gender? Gender { get; set; }
-    public string? Address { get; set; }
+    public string? Address { get; set; }  // VD: "Phường Bến Nghé, Quận 1, Hồ Chí Minh"
     public string? Summary { get; set; }
     public int? YearsOfExperience { get; set; }
     public double? ExpectedSalary { get; set; }

@@ -38,7 +38,9 @@ public class HireAgentController : ControllerBase
             request.JobName,
             request.JobDescription,
             recruiterId,
-            request.TargetCount
+            request.TargetCount,
+            request.JobLocation,
+            request.JobType
         );
         return Ok(campaign);
     }
@@ -78,6 +80,19 @@ public class HireAgentController : ControllerBase
     {
         var candidateId = GetCurrentUserId();
         var conversation = await _hireAgentService.ScheduleInterviewAsync(campaignId, candidateId, request.InterviewDate);
+        return Ok(conversation);
+    }
+
+    [HttpGet("campaigns/{campaignId:guid}/my-conversation")]
+    [ApiMessage("Lấy thông tin hội thoại phỏng vấn của ứng viên thành công")]
+    public async Task<IActionResult> GetMyConversation(Guid campaignId)
+    {
+        var candidateId = GetCurrentUserId();
+        var conversation = await _hireAgentService.GetConversationByCandidateAndCampaignAsync(campaignId, candidateId);
+        if (conversation == null)
+        {
+            return NotFound("Không tìm thấy cuộc hội thoại tuyển dụng AI.");
+        }
         return Ok(conversation);
     }
 }

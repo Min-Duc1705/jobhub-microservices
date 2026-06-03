@@ -43,7 +43,7 @@ public class HireAgentServiceImpl : IHireAgentService
         _scopeFactory = scopeFactory;
     }
 
-    public async Task<HireAgentCampaign> CreateCampaignAsync(Guid jobId, string jobName, string jobDescription, string recruiterId, int targetCount)
+    public async Task<HireAgentCampaign> CreateCampaignAsync(Guid jobId, string jobName, string jobDescription, string recruiterId, int targetCount, string? jobLocation = null, string? jobType = null)
     {
         if (jobId == Guid.Empty || string.IsNullOrWhiteSpace(jobName) || string.IsNullOrWhiteSpace(jobDescription) || string.IsNullOrWhiteSpace(recruiterId))
         {
@@ -59,6 +59,8 @@ public class HireAgentServiceImpl : IHireAgentService
             RecruiterId = recruiterId,
             TargetCount = targetCount,
             Status = "Active",
+            JobLocation = jobLocation?.Trim(),
+            JobType = jobType?.Trim().ToUpper(),
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -136,7 +138,8 @@ public class HireAgentServiceImpl : IHireAgentService
                 // Nếu ứng viên đã có trong campaign này rồi thì bỏ qua
                 if (currentConversations.Any(c => c.CandidateId == candidateId)) continue;
 
-                // Kiểm tra trạng thái tìm việc (Quyền riêng tư)
+                // Kiểm tra trạng thái tìm việc + lấy Province (Quyền riêng tư & Location)
+                string? candidateProvince = null;
                 try
                 {
                     var profileReq = new HttpRequestMessage(HttpMethod.Get, $"http://profileservice:8080/api/v1/customers/{candidateId}");
@@ -147,23 +150,32 @@ public class HireAgentServiceImpl : IHireAgentService
                         var profileStr = await profileRes.Content.ReadAsStringAsync();
                         var profileDoc = JsonDocument.Parse(profileStr);
                         var dataElement = profileDoc.RootElement.GetProperty("data");
+
+                        // Check JobSearchStatus
                         if (dataElement.TryGetProperty("jobSearchStatus", out var statusProp) && statusProp.ValueKind != JsonValueKind.Null)
                         {
                             var statusVal = statusProp.ValueKind == JsonValueKind.Number 
                                 ? statusProp.GetInt32().ToString() 
                                 : statusProp.GetString();
-
                             if (statusVal == "NOT_LOOKING" || statusVal == "2")
                             {
                                 Console.WriteLine($"[HireAgent-Outreach] Bỏ qua ứng viên {candidateId} do trạng thái tìm việc là NOT_LOOKING.");
                                 continue;
                             }
                         }
+
+                        // Lấy Address từ profile (bao gồm cả Tỉnh/Thành + Phường/Xã)
+                        if (dataElement.TryGetProperty("address", out var addrProp) && addrProp.ValueKind != JsonValueKind.Null)
+                        {
+                            var fullAddress = addrProp.GetString() ?? "";
+                            // Extract tỉnh/thành từ address string
+                            candidateProvince = _ExtractLocationFromCvText(fullAddress);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[HireAgent-Outreach] Lỗi khi kiểm tra trạng thái tìm việc của ứng viên {candidateId}: {ex.Message}");
+                    Console.WriteLine($"[HireAgent-Outreach] Lỗi khi kiểm tra profile ứng viên {candidateId}: {ex.Message}");
                 }
 
                 string? cvText = null;
@@ -176,6 +188,23 @@ public class HireAgentServiceImpl : IHireAgentService
                     cvText = jsonVal.GetString();
                 }
                 if (string.IsNullOrWhiteSpace(cvText)) continue;
+
+                // ── Chặn cứng theo Province từ Profile ───────────────────────────
+                // Dùng profile.Province (người dùng nhập khi đăng ký) — chính xác nhất
+                var isRemoteJob = campaign.JobType == "REMOTE" || campaign.JobType == "HYBRID";
+                if (!isRemoteJob && !string.IsNullOrWhiteSpace(campaign.JobLocation))
+                {
+                    if (!string.IsNullOrWhiteSpace(candidateProvince))
+                    {
+                        if (!_IsLocationMatch(campaign.JobLocation, candidateProvince))
+                        {
+                            Console.WriteLine($"[HireAgent-Location] Loại ứng viên {candidateId}: tỉnh '{candidateProvince}' không khớp job tại '{campaign.JobLocation}'");
+                            continue;
+                        }
+                        Console.WriteLine($"[HireAgent-Location] ✓ Ứng viên {candidateId}: '{candidateProvince}' khớp '{campaign.JobLocation}'");
+                    }
+                    // Nếu profile chưa có Province → không chặn (benefit of doubt)
+                }
 
                 // Gọi CVIntelligenceService để chấm điểm CV
                 var scorePayload = new
@@ -195,9 +224,18 @@ public class HireAgentServiceImpl : IHireAgentService
                     var scoreDoc = JsonDocument.Parse(scoreStr);
                     double matchingScore = scoreDoc.RootElement.GetProperty("data").GetProperty("matching_score").GetDouble();
 
-                    if (matchingScore >= 40.0)
+                    Console.WriteLine($"[HireAgent-Score] Ứng viên {candidateId}: {matchingScore:F1} điểm");
+
+                    // Ngưỡng tối thiểu 30 điểm (sau khi đã áp Hard Skill Penalty từ CVIntelligenceService)
+                    // Ứng viên sai domain hoàn toàn sẽ bị penalty ×0.2 → score ~8-15 → bị loại
+                    // Ứng viên đúng domain sẽ có score >= 35-40 sau penalty → lọt vào pool
+                    if (matchingScore >= 30.0)
                     {
                         candidateScores.Add((resume, matchingScore));
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[HireAgent-Score] Loại ứng viên {candidateId}: điểm {matchingScore:F1} < 30 (không đủ tiêu chuẩn)");
                     }
                 }
                 catch (Exception ex)
@@ -206,8 +244,13 @@ public class HireAgentServiceImpl : IHireAgentService
                 }
             }
 
-            // 4. Sắp xếp giảm dần theo điểm số để lấy những người tốt nhất
-            var sortedCandidates = candidateScores.OrderByDescending(x => x.Score).ToList();
+            // 4. Sort giảm dần theo điểm — chỉ lấy top targetCount ứng viên phù hợp nhất
+            var sortedCandidates = candidateScores
+                .OrderByDescending(x => x.Score)
+                .Take(campaign.TargetCount)
+                .ToList();
+
+            Console.WriteLine($"[HireAgent] Tổng pool đạt chuẩn: {candidateScores.Count} ứng viên → tiếp cận top {sortedCandidates.Count}");
             int invitedCount = 0;
 
             foreach (var item in sortedCandidates)
@@ -314,7 +357,7 @@ public class HireAgentServiceImpl : IHireAgentService
             {
                 chatHistory.Add(new
                 {
-                    sender = msg.SenderId == agentConv.CandidateId ? "candidate" : "agent",
+                    sender = msg.SenderId.Equals(agentConv.CandidateId, StringComparison.OrdinalIgnoreCase) ? "candidate" : "agent",
                     content = msg.Content
                 });
             }
@@ -367,6 +410,14 @@ public class HireAgentServiceImpl : IHireAgentService
                     var scheduleMsg = $"[HỆ THỐNG] Chúc mừng bạn đã vượt qua vòng sàng lọc sơ bộ! Hãy bấm vào liên kết sau để đặt lịch phỏng vấn chính thức với tôi: {frontendUrl.TrimEnd('/')}/schedule/{campaign.Id}";
                     var scheduleMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, scheduleMsg, "text");
                     await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", scheduleMessageResponse);
+                }
+                else
+                {
+                    // Tự động thông báo AI đã rời cuộc trò chuyện khi không đạt
+                    var leaveMsg = "[HỆ THỐNG] Trợ lý AI đã kết thúc buổi đánh giá và rời khỏi cuộc trò chuyện.";
+                    var leaveMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, leaveMsg, "text");
+                    await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", leaveMessageResponse);
+                    await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", leaveMessageResponse);
                 }
             }
             else
@@ -449,12 +500,12 @@ public class HireAgentServiceImpl : IHireAgentService
                         {
                             var recruiterDashboardUrl = $"{frontendUrl.TrimEnd('/')}/admin/hire-agent";
                             // Gửi email thông báo cho Nhà tuyển dụng
-                            await emailSvc.SendInterviewEmailAsync(
+                            await emailSvc.SendInterviewEmailToRecruiterAsync(
                                 recruiterMeta.Email,
-                                recruiterMeta.RecruiterName ?? "Nhà tuyển dụng",
+                                candidateInfo.FullName ?? "Ứng viên",
                                 campaign.JobName,
-                                formattedDateStr + $" (Với ứng viên: {candidateInfo.FullName ?? "Chưa rõ"})",
-                                "Hệ thống JobHub",
+                                formattedDateStr,
+                                recruiterMeta.RecruiterName ?? "Nhà tuyển dụng",
                                 recruiterDashboardUrl
                             );
                             Console.WriteLine($"[HireAgent-Email] Đã gửi email thông báo lịch phỏng vấn đến nhà tuyển dụng {recruiterMeta.Email}");
@@ -617,5 +668,90 @@ public class HireAgentServiceImpl : IHireAgentService
             Console.WriteLine($"[HireAgent-Outreach] Lỗi lấy thông tin chi tiết Recruiter/Company: {ex.Message}");
             return (null, null, null);
         }
+    }
+
+    public async Task<HireAgentConversation?> GetConversationByCandidateAndCampaignAsync(Guid campaignId, string candidateId)
+    {
+        return await _hireAgentRepo.GetConversationByCandidateAndCampaignAsync(candidateId, campaignId);
+    }
+
+    /// <summary>
+    /// Extract tên tỉnh/thành phố từ CV text.
+    /// Scan toàn bộ CV, trả về tỉnh/thành đầu tiên tìm thấy.
+    /// </summary>
+    private static string _ExtractLocationFromCvText(string cvText)
+    {
+        if (string.IsNullOrWhiteSpace(cvText)) return "";
+
+        var cvNorm = _NormalizeLocation(cvText);
+
+        // Danh sách 63 tỉnh/thành + alias phổ biến (đã normalize không dấu)
+        var provinces = new[]
+        {
+            "ho chi minh", "ha noi", "da nang", "can tho", "hai phong",
+            "binh duong", "dong nai", "ba ria vung tau", "vung tau",
+            "long an", "tien giang", "ben tre", "tra vinh", "vinh long",
+            "dong thap", "an giang", "kien giang", "hau giang", "soc trang",
+            "bac lieu", "ca mau", "tay ninh", "binh phuoc", "binh thuan",
+            "ninh thuan", "khanh hoa", "nha trang", "phu yen", "binh dinh",
+            "quang ngai", "quang nam", "hoi an", "thua thien hue", "hue",
+            "quang tri", "quang binh", "ha tinh", "nghe an", "vinh",
+            "thanh hoa", "ninh binh", "nam dinh", "thai binh", "ha nam",
+            "hung yen", "hai duong", "bac ninh", "vinh phuc", "phu tho",
+            "tuyen quang", "yen bai", "lao cai", "ha giang", "cao bang",
+            "bac kan", "lang son", "thai nguyen", "bac giang", "quang ninh",
+            "ha long", "dien bien", "lai chau", "son la", "hoa binh",
+            "dak lak", "buon ma thuot", "dak nong", "gia lai", "pleiku",
+            "kon tum", "lam dong", "da lat", "binh long", "thu duc",
+        };
+
+        foreach (var province in provinces)
+        {
+            if (cvNorm.Contains(province))
+                return province;
+        }
+
+        return "";
+    }
+
+    /// <summary>
+    /// So khớp địa chỉ ứng viên với vị trí job.
+    /// Normalize: bỏ dấu, lowercase, alias (hcm=hồ chí minh, hn=hà nội...).
+    /// Return true nếu match (hoặc không đủ thông tin để chặn).
+    /// </summary>
+    private static bool _IsLocationMatch(string jobLocation, string candidateLocation)
+    {
+        if (string.IsNullOrWhiteSpace(jobLocation) || string.IsNullOrWhiteSpace(candidateLocation))
+            return true;
+
+        var jobNorm = _NormalizeLocation(jobLocation);
+        var candNorm = _NormalizeLocation(candidateLocation);
+
+        return candNorm.Contains(jobNorm) || jobNorm.Contains(candNorm);
+    }
+
+    private static string _NormalizeLocation(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        var s = text.ToLowerInvariant().Trim();
+        s = s.Replace("à","a").Replace("á","a").Replace("ả","a").Replace("ã","a").Replace("ạ","a")
+             .Replace("ă","a").Replace("ắ","a").Replace("ặ","a").Replace("ằ","a").Replace("ẵ","a").Replace("ẳ","a")
+             .Replace("â","a").Replace("ấ","a").Replace("ầ","a").Replace("ẩ","a").Replace("ẫ","a").Replace("ậ","a")
+             .Replace("đ","d")
+             .Replace("è","e").Replace("é","e").Replace("ẻ","e").Replace("ẽ","e").Replace("ẹ","e")
+             .Replace("ê","e").Replace("ế","e").Replace("ề","e").Replace("ể","e").Replace("ễ","e").Replace("ệ","e")
+             .Replace("ì","i").Replace("í","i").Replace("ỉ","i").Replace("ĩ","i").Replace("ị","i")
+             .Replace("ò","o").Replace("ó","o").Replace("ỏ","o").Replace("õ","o").Replace("ọ","o")
+             .Replace("ô","o").Replace("ố","o").Replace("ồ","o").Replace("ổ","o").Replace("ỗ","o").Replace("ộ","o")
+             .Replace("ơ","o").Replace("ớ","o").Replace("ờ","o").Replace("ở","o").Replace("ỡ","o").Replace("ợ","o")
+             .Replace("ù","u").Replace("ú","u").Replace("ủ","u").Replace("ũ","u").Replace("ụ","u")
+             .Replace("ư","u").Replace("ứ","u").Replace("ừ","u").Replace("ử","u").Replace("ữ","u").Replace("ự","u")
+             .Replace("ỳ","y").Replace("ý","y").Replace("ỷ","y").Replace("ỹ","y").Replace("ỵ","y");
+        s = s.Replace("tp. ho chi minh","ho chi minh").Replace("tp.ho chi minh","ho chi minh")
+             .Replace("tp ho chi minh","ho chi minh").Replace("thanh pho ho chi minh","ho chi minh")
+             .Replace("sai gon","ho chi minh").Replace("tphcm","ho chi minh").Replace("hcm","ho chi minh")
+             .Replace("thu do ha noi","ha noi").Replace("thanh pho da nang","da nang")
+             .Replace("bien hoa","dong nai").Replace("thu duc","ho chi minh");
+        return s.Trim();
     }
 }
