@@ -77,6 +77,78 @@ namespace AuthService.Services
             return BuildLoginResponse(accessToken, user);
         }
 
+        public async Task<LoginResponseDTO> ProcessSocialLoginAsync(string email, string fullName, string avatarUrl, string provider)
+        {
+            var emailLower = email.Trim().ToLowerInvariant();
+            var user = await _userRepo.GetByEmailAsync(emailLower);
+
+            if (user == null)
+            {
+                var defaultRole = await _roleRepo.GetByNameAsync("CANDIDATE")
+                    ?? throw new BadRequestException("Role 'CANDIDATE' chưa tồn tại trong hệ thống.");
+
+                var randomPassword = Guid.NewGuid().ToString("N");
+
+                user = new AppUser
+                {
+                    Id           = Guid.NewGuid(),
+                    Email        = emailLower,
+                    Username     = fullName.Trim(),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(randomPassword),
+                    Status       = UserStatus.Active,
+                    RoleId       = defaultRole.Id,
+                    CreatedDate  = DateTimeOffset.UtcNow,
+                };
+
+                await _userRepo.AddAsync(user);
+
+                await _publishEndpoint.Publish(new UserRegisteredEvent
+                {
+                    UserId       = user.Id,
+                    Email        = user.Email,
+                    Username     = user.Username,
+                    Role         = "CANDIDATE",
+                    RegisteredAt = user.CreatedDate.UtcDateTime,
+                    Avatar       = avatarUrl
+                });
+
+                await _userRepo.SaveChangesAsync();
+
+                // Gán Role sau khi SaveChanges để GenerateAccessToken sử dụng,
+                // tránh việc EF Core hiểu nhầm là Role mới và lưu trùng khóa chính (PK_Roles).
+                user.Role = defaultRole;
+            }
+            else
+            {
+                if (user.Status == UserStatus.Suspended)
+                    throw new BadRequestException("Tài khoản đã bị khóa bởi Admin.");
+
+                if (user.Status == UserStatus.Deactivated)
+                    throw new BadRequestException("Tài khoản đã bị vô hiệu hoá.");
+
+                if (user.Status == UserStatus.Pending)
+                {
+                    user.Status = UserStatus.Active;
+                    user.LastModifiedDate = DateTimeOffset.UtcNow;
+                    _userRepo.Update(user);
+                    await _userRepo.SaveChangesAsync();
+                }
+            }
+
+            var accessToken  = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken(user);
+
+            user.RefreshToken     = refreshToken;
+            user.LastModifiedDate = DateTimeOffset.UtcNow;
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
+
+            SetRefreshTokenCookie(refreshToken);
+            await PushPermissionsToCacheAsync(user);
+
+            return BuildLoginResponse(accessToken, user);
+        }
+
         // ── Register ─────────────────────────────────────────────────────────────
 
         public async Task<RegisterResponseDTO> RegisterAsync(RegisterRequestDTO request)

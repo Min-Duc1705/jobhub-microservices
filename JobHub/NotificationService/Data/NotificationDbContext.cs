@@ -20,6 +20,8 @@ public class NotificationDbContext : DbContext
     public DbSet<Conversation> Conversations { get; set; } = null!;
     public DbSet<Message> Messages { get; set; } = null!;
     public DbSet<Contact> Contacts { get; set; } = null!;
+    public DbSet<HireAgentCampaign> HireAgentCampaigns { get; set; } = null!;
+    public DbSet<HireAgentConversation> HireAgentConversations { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

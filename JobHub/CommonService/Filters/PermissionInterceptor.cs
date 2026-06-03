@@ -44,6 +44,12 @@ public class PermissionInterceptor : IAsyncAuthorizationFilter
             return;
         }
 
+        // 2.5 Bypass for Admin role
+        if (user.IsInRole("Admin") || user.HasClaim(ClaimTypes.Role, "Admin") || user.HasClaim("role", "Admin"))
+        {
+            return;
+        }
+
         // 3. Lấy email từ Claims
         var email = user.FindFirst(ClaimTypes.Email)?.Value
                  ?? user.FindFirst("email")?.Value;

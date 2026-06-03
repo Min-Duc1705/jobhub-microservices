@@ -11,4 +11,5 @@ public class UserRegisteredEvent
     public string   Username     { get; set; } = string.Empty;   // dùng làm FullName ban đầu
     public string   Role         { get; set; } = "CANDIDATE";    // CANDIDATE | HR → mạp sang CustomerType
     public DateTime RegisteredAt { get; set; }
+    public string?  Avatar       { get; set; }
 }

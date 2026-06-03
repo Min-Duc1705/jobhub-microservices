@@ -13,6 +13,7 @@ namespace AuthService.Repositories
         public async Task<Role?> GetByNameAsync(string name)
         {
             return await _context.Roles
+                .Include(r => r.Permissions)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Name.ToLower() == name.ToLower());
         }

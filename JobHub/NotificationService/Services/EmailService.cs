@@ -52,6 +52,55 @@ public class EmailService : IEmailService
         _logger.LogInformation("OTP email ({Type}) sent to {Email}", otpType, toEmail);
     }
 
+    public async Task SendInterviewEmailAsync(string toEmail, string candidateName, string jobName, string dateStr, string recruiterName, string chatUrl)
+    {
+        var subject = "🗓️ Xác nhận lịch hẹn phỏng vấn - JobHub";
+        var body = await BuildInterviewEmailHtmlAsync(candidateName, jobName, dateStr, recruiterName, chatUrl);
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(
+            _config["Smtp:FromName"] ?? "JobHub Support",
+            _config["Smtp:FromEmail"]));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = subject;
+
+        var bodyBuilder = new BodyBuilder { HtmlBody = body };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync(
+            _config["Smtp:Host"],
+            int.Parse(_config["Smtp:Port"] ?? "587"),
+            SecureSocketOptions.StartTls);
+
+        await smtp.AuthenticateAsync(
+            _config["Smtp:Username"],
+            _config["Smtp:Password"]);
+
+        await smtp.SendAsync(message);
+        await smtp.DisconnectAsync(true);
+
+        _logger.LogInformation("Interview confirmation email sent to {Email}", toEmail);
+    }
+
+    private async Task<string> BuildInterviewEmailHtmlAsync(string candidateName, string jobName, string dateStr, string recruiterName, string chatUrl)
+    {
+        var templatePath = Path.Combine(_env.ContentRootPath, "Templates", "interview_email.html");
+
+        if (!File.Exists(templatePath))
+            throw new FileNotFoundException($"Email template not found at: {templatePath}");
+
+        var html = await File.ReadAllTextAsync(templatePath);
+        html = html.Replace("{{TITLE}}", "Xác nhận Lịch phỏng vấn thành công");
+        html = html.Replace("{{CANDIDATE_NAME}}", candidateName);
+        html = html.Replace("{{JOB_NAME}}", jobName);
+        html = html.Replace("{{INTERVIEW_DATE}}", dateStr);
+        html = html.Replace("{{RECRUITER_NAME}}", recruiterName);
+        html = html.Replace("{{CHAT_URL}}", chatUrl);
+
+        return html;
+    }
+
     private async Task<string> BuildEmailHtmlAsync(string otpCode, string otpType)
     {
         var templatePath = Path.Combine(_env.ContentRootPath, "Templates", "otp_email.html");

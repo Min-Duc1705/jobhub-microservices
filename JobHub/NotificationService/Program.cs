@@ -33,6 +33,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
+builder.Services.AddScoped<IHireAgentRepository, HireAgentRepository>();
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
@@ -41,6 +42,8 @@ builder.Services.AddScoped<INotificationService, NotificationServiceImpl>();
 builder.Services.AddScoped<IAuditLogService, AuditLogServiceImpl>();
 builder.Services.AddScoped<IChatService, ChatServiceImpl>();
 builder.Services.AddScoped<IContactService, ContactServiceImpl>();
+builder.Services.AddScoped<IHireAgentService, HireAgentServiceImpl>();
+builder.Services.AddHostedService<HireAgentWorker>();
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(NotificationService.Mapping.NotificationMappingProfile).Assembly));
@@ -237,6 +240,46 @@ using (var scope = app.Services.CreateScope())
         );
         CREATE INDEX IF NOT EXISTS ""IX_Contacts_Email"" ON ""Contacts"" (""Email"");
         CREATE INDEX IF NOT EXISTS ""IX_Contacts_IsDeleted"" ON ""Contacts"" (""IsDeleted"");
+
+        CREATE TABLE IF NOT EXISTS ""HireAgentCampaigns"" (
+            ""Id""             uuid          NOT NULL,
+            ""JobId""          uuid          NOT NULL,
+            ""JobName""        text          NOT NULL,
+            ""JobDescription"" text          NOT NULL,
+            ""RecruiterId""    text          NOT NULL,
+            ""TargetCount""    integer       NOT NULL,
+            ""Status""         text          NOT NULL,
+            ""CreatedAt""      timestamptz   NOT NULL,
+            ""IsDeleted""      boolean       NOT NULL DEFAULT FALSE,
+            ""DeletedAt""      timestamptz,
+            CONSTRAINT ""PK_HireAgentCampaigns"" PRIMARY KEY (""Id"")
+        );
+        ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
+        ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamptz;
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentCampaigns_JobId"" ON ""HireAgentCampaigns"" (""JobId"");
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentCampaigns_Status"" ON ""HireAgentCampaigns"" (""Status"");
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentCampaigns_IsDeleted"" ON ""HireAgentCampaigns"" (""IsDeleted"");
+
+        CREATE TABLE IF NOT EXISTS ""HireAgentConversations"" (
+            ""Id""             uuid          NOT NULL,
+            ""CampaignId""     uuid          NOT NULL,
+            ""ConversationId"" uuid          NOT NULL,
+            ""CandidateId""    text          NOT NULL,
+            ""CvText""         text          NOT NULL,
+            ""Status""         text          NOT NULL,
+            ""LastQuestionAt"" timestamptz   NOT NULL,
+            ""CreatedAt""      timestamptz   NOT NULL,
+            ""IsDeleted""      boolean       NOT NULL DEFAULT FALSE,
+            ""DeletedAt""      timestamptz,
+            CONSTRAINT ""PK_HireAgentConversations"" PRIMARY KEY (""Id"")
+        );
+        ALTER TABLE ""HireAgentConversations"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
+        ALTER TABLE ""HireAgentConversations"" ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamptz;
+        ALTER TABLE ""HireAgentConversations"" ADD COLUMN IF NOT EXISTS ""InterviewDate"" timestamptz;
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_CampaignId"" ON ""HireAgentConversations"" (""CampaignId"");
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_ConversationId"" ON ""HireAgentConversations"" (""ConversationId"");
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_Status"" ON ""HireAgentConversations"" (""Status"");
+        CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_IsDeleted"" ON ""HireAgentConversations"" (""IsDeleted"");
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();

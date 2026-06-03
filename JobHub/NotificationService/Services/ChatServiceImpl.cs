@@ -1,5 +1,6 @@
 using AutoMapper;
 using CommonService.Exceptions;
+using Microsoft.Extensions.DependencyInjection;
 using NotificationService.Models;
 using NotificationService.Models.Response;
 using NotificationService.Repositories.Interface;
@@ -15,11 +16,13 @@ public class ChatServiceImpl : IChatService
 {
     private readonly IChatRepository _chatRepo;
     private readonly IMapper _mapper;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public ChatServiceImpl(IChatRepository chatRepo, IMapper mapper)
+    public ChatServiceImpl(IChatRepository chatRepo, IMapper mapper, IServiceScopeFactory scopeFactory)
     {
         _chatRepo = chatRepo;
         _mapper = mapper;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<ConversationResponse> GetOrCreateConversationAsync(string participantA, string participantB)
@@ -83,6 +86,29 @@ public class ChatServiceImpl : IChatService
         conv.LastMessageContent = content;
         conv.LastMessageAt = message.CreatedAt;
         await _chatRepo.UpdateConversationAsync(conv);
+
+        // 4. Nếu đây là cuộc trò chuyện sàng lọc đang kích hoạt của HireAgent, kích hoạt AI xử lý trả lời không đồng bộ
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var hireAgentRepo = scope.ServiceProvider.GetRequiredService<IHireAgentRepository>();
+                    var hireAgentService = scope.ServiceProvider.GetRequiredService<IHireAgentService>();
+
+                    var agentConv = await hireAgentRepo.GetActiveConversationByChatIdAsync(conv.Id);
+                    if (agentConv != null && senderId.ToLower() == agentConv.CandidateId.ToLower())
+                    {
+                        await hireAgentService.ProcessCandidateReplyAsync(conv.Id, content);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[HireAgent-Intercept] Lỗi xử lý chặn tin nhắn: {ex.Message}");
+            }
+        });
 
         return _mapper.Map<MessageResponse>(message);
     }

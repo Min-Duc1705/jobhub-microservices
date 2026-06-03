@@ -17,6 +17,7 @@ public class CustomerFilterSpec : BaseSpecification<Customer>
         int           pageSize)
     {
         AddCriteria(c => !c.IsDeleted);
+        AddCriteria(c => c.Type != CustomerType.CANDIDATE || c.JobSearchStatus != JobSearchStatus.NOT_LOOKING);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -57,6 +58,7 @@ public class CustomerFilterCountSpec : BaseSpecification<Customer>
     public CustomerFilterCountSpec(string? searchTerm, CustomerType? type)
     {
         AddCriteria(c => !c.IsDeleted);
+        AddCriteria(c => c.Type != CustomerType.CANDIDATE || c.JobSearchStatus != JobSearchStatus.NOT_LOOKING);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {

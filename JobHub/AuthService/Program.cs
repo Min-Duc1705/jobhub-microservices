@@ -34,6 +34,7 @@ builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ITokenService,      TokenServiceImpl>();
 builder.Services.AddScoped<IAuthService,       AuthServiceImpl>();
 builder.Services.AddScoped<IRoleService,       RoleServiceImpl>();

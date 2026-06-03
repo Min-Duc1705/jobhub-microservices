@@ -10,6 +10,7 @@ namespace AuthService.Services.Interface
         Task<LoginResponseDTO>    GetAccountAsync(string email);
         Task<LoginResponseDTO>    RefreshTokenAsync(string refreshToken);
         Task                      LogoutAsync(string email);
+        Task<LoginResponseDTO>    ProcessSocialLoginAsync(string email, string fullName, string avatarUrl, string provider);
 
         Task UpdateEmailAsync(Guid userId, UpdateEmailRequestDTO request);
         Task UpdateUsernameAsync(Guid userId, UpdateUsernameRequest request);

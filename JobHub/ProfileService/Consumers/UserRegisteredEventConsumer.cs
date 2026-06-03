@@ -48,6 +48,7 @@ public class UserRegisteredEventConsumer : IConsumer<UserRegisteredEvent>
             AppUserId   = message.UserId,
             Type        = customerType,
             FullName    = message.Username,   // dùng Username làm tên ban đầu
+            Avatar      = message.Avatar,
             CreatedDate = DateTimeOffset.UtcNow,
             CreatedBy   = "System"
         };

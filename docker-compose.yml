@@ -299,6 +299,10 @@ services:
       - RabbitMQ__Port=5672
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
+      - Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - GitHub__ClientId=${GITHUB_CLIENT_ID}
+      - GitHub__ClientSecret=${GITHUB_CLIENT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

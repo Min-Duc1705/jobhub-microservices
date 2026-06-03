@@ -1,0 +1,66 @@
+
+==================================================
+ANALYZING: t:\TryHard_IT_Project\Final\Backend\CV\template-6.pdf
+==================================================
+Total pages: 2
+
+--- PAGE 1 (Width: 595.0, Height: 841.9) ---
+--- TEXT ---
+Lê Minh Đức
+Lập trình viên
+ 
+ 0369554785 ✉ ducktpmtlu@gmail.com
+ Phường Chương Mỹ, Hà Nội 
+Mục tiêu nghề nghiệp
+Định hướng trở thành Fullstack Developer vững vàng với Angular và Asp Net Core, đồng thời tham gia các dự án lớn
+nâng cao trình độ chuyên môn. Tôi mong muốn đóng góp vào việc phát triển sản phẩm công nghệ chất lượng cao cho
+công ty. viết mục tiêu như này được không
+Học vấn
+Kỹ thuật phần mềm Đại học Thuỷ Lợi
+2022 - 2026 •Tốt nghiệp loại Giỏi
+•GPA: 3.38
+Kinh nghiệm làm việc
+Intern Front End Developer Trung tâm giải pháp Đất đai và Tài nguyên môi trường (VNPT GeoIT) – Công
+ty Công nghệ thông tin VNPT
+01/2026 - nay
+•Tham gia phát triển nhiều cho dự án nội bộ sử dụng Angular 18 và NgRx..
+•Xây dựng giao diện dựa trên thiết kế Figma, đảm bảo tính Responsive và
+độ chính xác .
+•Tích hợp RESTful APIs vào Service, xử lý các luồng dữ liệu phức tạp bằng
+RxJS.
+•Sử dụng Angular Router để xử lý phân quyền người dùng (Guards) và tối ưu
+tốc độ tải trang bằng Lazy Loading.
+•Quản lý trạng thái ứng dụng (State management) hiệu quả thông qua
+Services ,RxJS , hoặc thư viện NGRX.
+•Phối hợp chặt chẽ với team Backend để thống nhất cấu trúc dữ liệu JSON
+và giải quyết các vấn đề về Integration.
+•Thực hiện Code Review cùng Mentor để cải thiện tư duy lập trình và đảm
+bảo tiêu chuẩn Clean Code.
+Kỹ năng Chứng chỉ
+Linux Unhatched
+04/2026
+Introduction to Containers, Kubernetes, and OpenShift
+04/2026
+Người giới thiệu
+Người giới thiệu sẽ được cung cấp khi có yêu cầu. Danh hiệu và giải thưởng
+Học bổng cho sinh viên giỏi
+2025
+Họcbổngchosinhviêngiỏi
+Total rects: 14, lines: 0, images: 1
+--- COLORS FOUND ---
+  rect_stroke: (0.8, 0.8, 0.8)
+  rect_fill: (0.8, 0.8, 0.8)
+  rect_stroke: (0.6627, 0.2902, 0.2941)
+  rect_fill: (0.6627, 0.2902, 0.2941)
+  rect_stroke: (1.0, 1.0, 1.0)
+  rect_fill: (1.0, 1.0, 1.0)
+
+--- PAGE 2 (Width: 595.0, Height: 841.9) ---
+--- TEXT ---
+Học bổng cho sinh viên giỏi
+2023
+© topcv.vn
+Total rects: 6, lines: 0, images: 0
+--- COLORS FOUND ---
+  rect_stroke: (1.0, 1.0, 1.0)
+  rect_fill: (1.0, 1.0, 1.0)

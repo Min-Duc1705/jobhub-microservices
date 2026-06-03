@@ -99,6 +99,34 @@
       ]
     },
     {
+      "UpstreamPathTemplate": "/api/v1/auth/google",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/api/v1/auth/google",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "authservice",
+          "Port": 8080
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/auth/github",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/api/v1/auth/github",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "authservice",
+          "Port": 8080
+        }
+      ]
+    },
+    {
       "UpstreamPathTemplate": "/api/v1/auth/{everything}",
       "UpstreamHttpMethod": [
         "GET",
@@ -909,6 +937,27 @@
         "GET"
       ],
       "DownstreamPathTemplate": "/api/v1/contacts",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "notificationservice",
+          "Port": 8080
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/hire-agent/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "DownstreamPathTemplate": "/api/v1/hire-agent/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {

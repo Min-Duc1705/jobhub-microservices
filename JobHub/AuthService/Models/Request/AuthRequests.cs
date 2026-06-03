@@ -52,4 +52,14 @@ namespace AuthService.Models.Request
     {
         public string Username { get; set; } = string.Empty;
     }
+
+    public class GoogleLoginRequestDTO
+    {
+        public string AccessToken { get; set; } = string.Empty;
+    }
+
+    public class GithubLoginRequestDTO
+    {
+        public string Code { get; set; } = string.Empty;
+    }
 }
