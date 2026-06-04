@@ -101,24 +101,62 @@ def _compute_skill_penalty(jd_skills: list[str], cv_text: str) -> float:
         return 0.2
 
 
+def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
+    """
+    Áp dụng hình phạt nếu có sự lệch lớn về cấp bậc (Seniority Mismatch).
+    Đặc biệt là khi Job yêu cầu Senior/Leader/Manager mà CV chỉ ở mức Intern/Fresher.
+    """
+    jd_lower = jd_text.lower()
+    cv_lower = cv_text.lower()
+
+    # 1. Xác định mức độ Seniority của Job
+    # Từ khóa thể hiện cấp bậc cao (Senior/Leader/Manager) trong JD
+    high_level_patterns = [
+        r"\bsenior\b", r"\blead\b", r"\btrưởng nhóm\b", r"\btrưởng phòng\b", 
+        r"\bquản lý\b", r"\bmanager\b", r"\btech lead\b", r"\bchủ chốt\b",
+        r"\barchitect\b", r"\bchuyên gia\b", r"\b3\s*năm kinh nghiệm\b",
+        r"\b5\s*năm kinh nghiệm\b", r"\b6\s*năm kinh nghiệm\b"
+    ]
+    is_job_high_level = any(re.search(pat, jd_lower) for pat in high_level_patterns)
+
+    # 2. Xác định nếu CV của ứng viên chỉ ở mức Intern/Fresher
+    # Từ khóa thể hiện Fresher/Intern trong CV
+    fresher_patterns = [
+        r"\bintern\b", r"\bfresher\b", r"\bthực tập sinh\b", r"\bthực tập\b",
+        r"\bsinh viên năm\b", r"\bchưa có kinh nghiệm\b", r"\bmới ra trường\b",
+        r"\bhọc việc\b", r"\b0\s*-\s*1\s*năm kinh nghiệm\b", r"\bchưa có kinh nghiệm thực tế\b"
+    ]
+    is_candidate_fresher = any(re.search(pat, cv_lower) for pat in fresher_patterns)
+
+    # 3. Phạt nặng (nhân 0.3) nếu Job yêu cầu Senior/Leader mà ứng viên chỉ là Intern/Fresher
+    if is_job_high_level and is_candidate_fresher:
+        logger.info("[SeniorityPenalty] Lệch cấp bậc: Job yêu cầu Senior/Leader nhưng CV là Intern/Fresher. Phạt x0.3")
+        return 0.3
+
+    return 1.0
+
+
 async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     """
     Bước 1: SBERT chấm điểm 1 CV với JD.
-    Bước 1.5: Áp dụng Hard Skill Penalty — nếu kỹ năng công nghệ trong JD
-              không xuất hiện trong CV thì giảm mạnh điểm (tránh match ngữ nghĩa chung).
+    Bước 1.5: Áp dụng Hard Skill Penalty & Seniority Penalty.
     Bước 2 (tuỳ chọn): Nếu có application_id → sinh feedback bằng LLM và lưu vào MongoDB.
     """
     raw_score = score_cv(req.job_description, req.cv_text)
 
     # Hard Skill Penalty
     jd_skills = _extract_tech_skills(req.job_description)
-    penalty = _compute_skill_penalty(jd_skills, req.cv_text)
-    score = round(raw_score * penalty, 2)
+    skill_penalty = _compute_skill_penalty(jd_skills, req.cv_text)
+    
+    # Seniority Penalty
+    seniority_penalty = _compute_seniority_penalty(req.job_description, req.cv_text)
+    
+    score = round(raw_score * skill_penalty * seniority_penalty, 2)
 
-    if penalty < 1.0:
+    if skill_penalty < 1.0 or seniority_penalty < 1.0:
         logger.info(
             f"[HireAgent-Score] SBERT={raw_score:.1f} → "
-            f"penalty={penalty} (skills matched {len([s for s in jd_skills if re.search(s, req.cv_text.lower())])}/{len(jd_skills)}) "
+            f"skill_penalty={skill_penalty}, seniority_penalty={seniority_penalty} "
             f"→ final={score:.1f}"
         )
 
@@ -148,11 +186,20 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
     Bước 2: Chỉ top_n CV điểm cao nhất mới gọi LLM sinh nhận xét chi tiết.
     """
     cv_texts = [item["cv_text"] for item in req.cv_list]
-    scores = batch_score_cvs(req.job_description, cv_texts)
+    raw_scores = batch_score_cvs(req.job_description, cv_texts)
+
+    # Tính điểm cuối cùng sau khi áp dụng penalties
+    jd_skills = _extract_tech_skills(req.job_description)
+    final_scores = []
+    for cv_text, raw_score in zip(cv_texts, raw_scores):
+        skill_penalty = _compute_skill_penalty(jd_skills, cv_text)
+        seniority_penalty = _compute_seniority_penalty(req.job_description, cv_text)
+        final_score = round(raw_score * skill_penalty * seniority_penalty, 2)
+        final_scores.append(final_score)
 
     # Gắn điểm vào từng CV và sắp xếp giảm dần
     scored = sorted(
-        zip(req.cv_list, scores),
+        zip(req.cv_list, final_scores),
         key=lambda x: x[1],
         reverse=True,
     )
