@@ -128,10 +128,11 @@ def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
     ]
     is_candidate_fresher = any(re.search(pat, cv_lower) for pat in fresher_patterns)
 
-    # 3. Phạt nặng (nhân 0.3) nếu Job yêu cầu Senior/Leader mà ứng viên chỉ là Intern/Fresher
+    # 3. Phạt lệch cấp bậc (nhân 0.35) nếu Job yêu cầu Senior/Leader mà ứng viên chỉ là Intern/Fresher
+    # Khi đi qua hàm scale sqrt(x)*10, hệ số 0.35 này tương đương với mức phạt thực tế nhân với sqrt(0.35) ≈ 0.59 (~phạt 40% điểm)
     if is_job_high_level and is_candidate_fresher:
-        logger.info("[SeniorityPenalty] Lệch cấp bậc: Job yêu cầu Senior/Leader nhưng CV là Intern/Fresher. Phạt x0.3")
-        return 0.3
+        logger.info("[SeniorityPenalty] Lệch cấp bậc: Job yêu cầu Senior/Leader nhưng CV là Intern/Fresher. Phạt x0.35")
+        return 0.35
 
     return 1.0
 
@@ -153,10 +154,9 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     
     # Boost scores to keep them higher on average for HR (using square root scaling: sqrt(x)*10)
     # This maps 0->0, 100->100, 50->70.7, 60->77.5, preserving relative order 100% perfectly.
-    base_score = raw_score * skill_penalty
-    boosted_base = (max(0.0, base_score) ** 0.5) * 10
-    
-    score = round(boosted_base * seniority_penalty, 2)
+    # Apply all penalties BEFORE the square root scaling to be mathematically consistent.
+    final_raw_score = raw_score * skill_penalty * seniority_penalty
+    score = round((max(0.0, final_raw_score) ** 0.5) * 10, 2)
 
     if skill_penalty < 1.0 or seniority_penalty < 1.0:
         logger.info(
@@ -201,10 +201,9 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
         seniority_penalty = _compute_seniority_penalty(req.job_description, cv_text)
         
         # Boost scores to keep them higher on average for HR (using square root scaling: sqrt(x)*10)
-        base_score = raw_score * skill_penalty
-        boosted_base = (max(0.0, base_score) ** 0.5) * 10
-        
-        final_score = round(boosted_base * seniority_penalty, 2)
+        # Apply all penalties BEFORE the square root scaling to be mathematically consistent.
+        final_raw_score = raw_score * skill_penalty * seniority_penalty
+        final_score = round((max(0.0, final_raw_score) ** 0.5) * 10, 2)
         final_scores.append(final_score)
 
     # Gắn điểm vào từng CV và sắp xếp giảm dần

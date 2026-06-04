@@ -238,16 +238,16 @@ public class HireAgentServiceImpl : IHireAgentService
 
                     Console.WriteLine($"[HireAgent-Score] Ứng viên {candidateId}: {matchingScore:F1} điểm");
 
-                    // Ngưỡng tối thiểu 30 điểm (sau khi đã áp Hard Skill Penalty từ CVIntelligenceService)
-                    // Ứng viên sai domain hoàn toàn sẽ bị penalty ×0.2 → score ~8-15 → bị loại
-                    // Ứng viên đúng domain sẽ có score >= 35-40 sau penalty → lọt vào pool
-                    if (matchingScore >= 30.0)
+                    // Ngưỡng tối thiểu 50 điểm sau khi đã áp dụng bộ lọc và scale căn bậc hai (sqrt(x) * 10) từ CVIntelligenceService
+                    // Hệ số matchingScore được scale lên khiến ứng viên đúng domain có score >= 50-80,
+                    // trong khi ứng viên sai domain hoặc lệch cấp bậc sẽ có score < 50.
+                    if (matchingScore >= 50.0)
                     {
                         candidateScores.Add((resume, matchingScore));
                     }
                     else
                     {
-                        Console.WriteLine($"[HireAgent-Score] Loại ứng viên {candidateId}: điểm {matchingScore:F1} < 30 (không đủ tiêu chuẩn)");
+                        Console.WriteLine($"[HireAgent-Score] Loại ứng viên {candidateId}: điểm {matchingScore:F1} < 50 (không đủ tiêu chuẩn)");
                     }
                 }
                 catch (Exception ex)
