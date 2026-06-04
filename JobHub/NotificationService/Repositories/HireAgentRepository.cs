@@ -36,7 +36,11 @@ public class HireAgentRepository : GenericRepository<NotificationDbContext, Hire
 
     public async Task<List<HireAgentConversation>> GetConversationsByCampaignAsync(Guid campaignId)
     {
-        return await _dbContext.HireAgentConversations.Where(c => c.CampaignId == campaignId).OrderByDescending(c => c.CreatedAt).ToListAsync();
+        return await _dbContext.HireAgentConversations
+            .Where(c => c.CampaignId == campaignId)
+            .OrderByDescending(c => c.MatchingScore)
+            .ThenByDescending(c => c.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task<HireAgentConversation?> GetConversationByCandidateAndCampaignAsync(string candidateId, Guid campaignId)
