@@ -272,7 +272,8 @@ public class JobServiceImpl : IJobService
                     Level = job.Level.ToString(),
                     SalaryMin = job.SalaryMin ?? 0.0,
                     SalaryMax = job.SalaryMax ?? 0.0,
-                    IsNegotiable = job.IsSalaryNegotiable
+                    IsNegotiable = job.IsSalaryNegotiable,
+                    SalaryCurrency = job.SalaryCurrency ?? "USD"
                 };
                 await _publishEndpoint.Publish(evt);
             }

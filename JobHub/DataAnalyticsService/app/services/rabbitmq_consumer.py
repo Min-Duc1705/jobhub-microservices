@@ -24,15 +24,34 @@ async def process_job_published_event(msg_body: bytes):
         skill_set = msg.get("skillSet", [])
         location = msg.get("location", "Khác")
         level = msg.get("level", "JUNIOR")
-        salary_min = float(msg.get("salaryMin", 0.0))
-        salary_max = float(msg.get("salaryMax", 0.0))
+        salary_min_raw = float(msg.get("salaryMin", 0.0))
+        salary_max_raw = float(msg.get("salaryMax", 0.0))
         is_negotiable = bool(msg.get("isNegotiable", False))
+        salary_currency = str(msg.get("salaryCurrency", "USD")).upper().strip()
 
         if not job_title:
             logger.warning("[RabbitMQ] Job title is missing, skipping")
             return
 
-        logger.info(f"[RabbitMQ] Processing sync for Job: {job_title}")
+        # Normalize salary về đơn vị TRIỆU VND
+        USD_TO_VND = 25_000
+        VND_UNIT = 1_000_000
+
+        def normalize(val: float, currency: str) -> float:
+            if currency == "USD":
+                return round((val * USD_TO_VND) / VND_UNIT, 2)
+            elif currency == "VND":
+                return round(val / VND_UNIT, 2)
+            else:
+                # Auto-detect: USD thường < 5000, VND thường hàng chục triệu
+                if val > 0 and val < 5000:
+                    return round((val * USD_TO_VND) / VND_UNIT, 2)
+                return round(val / VND_UNIT, 2)
+
+        salary_min = normalize(salary_min_raw, salary_currency) if not is_negotiable else 0.0
+        salary_max = normalize(salary_max_raw, salary_currency) if not is_negotiable else 0.0
+
+        logger.info(f"[RabbitMQ] Processing sync for Job: {job_title} | {salary_currency} {salary_min_raw}-{salary_max_raw} -> {salary_min}-{salary_max} tr.VND")
 
         # 1. Lưu vào salary_datasets để làm dữ liệu train XGBoost
         dataset_col = get_salary_dataset_col()

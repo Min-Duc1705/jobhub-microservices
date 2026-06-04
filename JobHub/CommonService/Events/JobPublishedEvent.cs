@@ -14,4 +14,5 @@ public class JobPublishedEvent
     public double SalaryMin { get; set; }
     public double SalaryMax { get; set; }
     public bool IsNegotiable { get; set; }
+    public string SalaryCurrency { get; set; } = "USD";
 }

@@ -22,6 +22,10 @@ import os
 import sys
 from pathlib import Path
 
+# Fix UnicodeEncodeError tren Windows (cp1252 khong ho tro emoji)
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # Thêm thư mục gốc vào path để import app modules
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -59,11 +63,11 @@ async def load_data_from_mongo() -> pd.DataFrame:
     docs = await col.find({}).to_list(length=None)
 
     if not docs:
-        print("[Train] ❌ Không có dữ liệu trong MongoDB 'salary_datasets'.")
-        print("[Train] Hãy thêm dữ liệu trước qua API POST /api/v1/salary/dataset")
+        print("[Train] FAILED: Khong co du lieu trong MongoDB 'salary_datasets'.")
+        print("[Train] Hay them du lieu truoc qua API POST /api/v1/salary/dataset")
         sys.exit(1)
 
-    print(f"[Train] ✅ Đã tải {len(docs)} bản ghi từ MongoDB.")
+    print(f"[Train] OK: Da tai {len(docs)} ban ghi tu MongoDB.")
     return pd.DataFrame(docs)
 
 
@@ -144,8 +148,7 @@ async def train():
         )
     )
 
-    print("[Train] ⏳ Đang huấn luyện Multi-Output XGBoost Regressor...")
-    # Vì XGBRegressor native không support verbose cho MultiOutputRegressor dễ dàng nên tắt verbose
+    print("[Train] Training Multi-Output XGBoost Regressor...")
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
@@ -153,15 +156,15 @@ async def train():
     mae_spread = mean_absolute_error(y_test[:, 1], y_pred[:, 1])
     r2_mid     = r2_score(y_test[:, 0], y_pred[:, 0])
     
-    print(f"\n[Train] ✅ Kết quả Evaluation:")
-    print(f"  MAE Midpoint: {mae_mid:.2f} triệu VND")
-    print(f"  MAE Spread  : {mae_spread:.2f} triệu VND")
-    print(f"  R² Midpoint : {r2_mid:.4f} (Gần 1 là tốt nhất)")
+    print(f"\n[Train] === KET QUA EVALUATION ===")
+    print(f"  MAE Midpoint: {mae_mid:.2f} trieu VND")
+    print(f"  MAE Spread  : {mae_spread:.2f} trieu VND")
+    print(f"  R2 Midpoint : {r2_mid:.4f} (gan 1 la tot nhat)")
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     joblib.dump(model, OUTPUT_PATH)
-    print(f"\n[Train] 💾 Model đã lưu tại: {OUTPUT_PATH}")
-    print("[Train] Restart DataAnalyticsService để load model mới.")
+    print(f"\n[Train] DONE: Model da luu tai: {OUTPUT_PATH}")
+    print("[Train] Restart DataAnalyticsService de load model moi.")
 
 
 if __name__ == "__main__":
