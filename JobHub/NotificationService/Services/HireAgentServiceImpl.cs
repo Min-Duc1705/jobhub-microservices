@@ -255,7 +255,7 @@ public class HireAgentServiceImpl : IHireAgentService
 
             foreach (var item in sortedCandidates)
             {
-                if (invitedCount >= campaign.TargetCount) break;
+                if (currentConversations.Count + invitedCount >= campaign.TargetCount) break;
 
                 var resume = item.Resume;
                 var candidateId = resume.GetProperty("customerId").GetString()!;
@@ -316,8 +316,9 @@ public class HireAgentServiceImpl : IHireAgentService
                     };
                     await _hireAgentRepo.CreateConversationAsync(agentConv);
 
-                    // Gửi tin nhắn real-time thông qua SignalR
+                    // Gửi tin nhắn real-time thông qua SignalR tới cả ứng viên và nhà tuyển dụng
                     await _hubContext.Clients.Group(candidateId.ToLower()).SendAsync("ReceiveMessage", chatMessageResponse);
+                    await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", chatMessageResponse);
 
                     invitedCount++;
                 }
@@ -327,10 +328,29 @@ public class HireAgentServiceImpl : IHireAgentService
                 }
             }
 
-            if (invitedCount >= campaign.TargetCount)
+            bool hasNewInvites = invitedCount > 0;
+
+            // Cập nhật trạng thái chiến dịch
+            if (currentConversations.Count + invitedCount >= campaign.TargetCount)
             {
                 campaign.Status = "Completed";
-                await _hireAgentRepo.UpdateCampaignAsync(campaign);
+            }
+            await _hireAgentRepo.UpdateCampaignAsync(campaign);
+
+            // Báo SignalR cho Recruiter biết tiến trình chạy ngầm đã xong và gửi status mới
+            await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("CampaignStatusChanged", new
+            {
+                CampaignId = campaignId,
+                Status = campaign.Status
+            });
+
+            // Nếu có ứng viên mới được mời, báo cho Recruiter biết để reload danh sách ứng viên
+            if (hasNewInvites)
+            {
+                await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("CampaignConversationsUpdated", new
+                {
+                    CampaignId = campaignId
+                });
             }
         }
         catch (Exception ex)
