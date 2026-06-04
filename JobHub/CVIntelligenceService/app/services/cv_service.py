@@ -167,8 +167,8 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
 
     feedback_data = {"extracted_skills": [], "strengths": [], "weaknesses": [], "ai_feedback": None}
 
-    # Chỉ gọi LLM khi score > 50% để tiết kiệm chi phí
-    if score >= 50.0:
+    # Chỉ gọi LLM khi score > 50% và generate_feedback = True để tiết kiệm chi phí
+    if req.generate_feedback and score >= 50.0:
         feedback_data = await generate_feedback(req.job_description, req.cv_text)
 
     result = ScoringResult(

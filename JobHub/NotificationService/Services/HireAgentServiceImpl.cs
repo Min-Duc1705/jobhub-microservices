@@ -142,13 +142,15 @@ public class HireAgentServiceImpl : IHireAgentService
                 }
             }
 
-            foreach (var resume in uniqueResumes)
+            // Sử dụng SemaphoreSlim để giới hạn số lượng request gọi song song lên tối đa 15 task cùng lúc
+            var semaphore = new System.Threading.SemaphoreSlim(15);
+            var tasks = uniqueResumes.Select(async resume =>
             {
                 var candidateId = resume.GetProperty("customerId").GetString();
-                if (string.IsNullOrEmpty(candidateId)) continue;
+                if (string.IsNullOrEmpty(candidateId)) return;
 
                 // Nếu ứng viên đã có trong campaign này rồi thì bỏ qua
-                if (currentConversations.Any(c => c.CandidateId == candidateId)) continue;
+                if (currentConversations.Any(c => c.CandidateId == candidateId)) return;
 
                 // Kiểm tra trạng thái tìm việc + lấy Province (Quyền riêng tư & Location)
                 string? candidateProvince = null;
@@ -156,38 +158,61 @@ public class HireAgentServiceImpl : IHireAgentService
                 {
                     var profileReq = new HttpRequestMessage(HttpMethod.Get, $"http://profileservice:8080/api/v1/customers/{candidateId}");
                     profileReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    var profileRes = await _httpClient.SendAsync(profileReq);
-                    if (profileRes.IsSuccessStatusCode)
+                    
+                    await semaphore.WaitAsync();
+                    try
                     {
-                        var profileStr = await profileRes.Content.ReadAsStringAsync();
-                        var profileDoc = JsonDocument.Parse(profileStr);
-                        var dataElement = profileDoc.RootElement.GetProperty("data");
-
-                        // Check JobSearchStatus
-                        if (dataElement.TryGetProperty("jobSearchStatus", out var statusProp) && statusProp.ValueKind != JsonValueKind.Null)
+                        var profileRes = await _httpClient.SendAsync(profileReq);
+                        if (profileRes.IsSuccessStatusCode)
                         {
-                            var statusVal = statusProp.ValueKind == JsonValueKind.Number 
-                                ? statusProp.GetInt32().ToString() 
-                                : statusProp.GetString();
-                            if (statusVal == "NOT_LOOKING" || statusVal == "2")
+                            var profileStr = await profileRes.Content.ReadAsStringAsync();
+                            var profileDoc = JsonDocument.Parse(profileStr);
+                            var dataElement = profileDoc.RootElement.GetProperty("data");
+
+                            // Check JobSearchStatus
+                            if (dataElement.TryGetProperty("jobSearchStatus", out var statusProp) && statusProp.ValueKind != JsonValueKind.Null)
                             {
-                                Console.WriteLine($"[HireAgent-Outreach] Bỏ qua ứng viên {candidateId} do trạng thái tìm việc là NOT_LOOKING.");
-                                continue;
+                                var statusVal = statusProp.ValueKind == JsonValueKind.Number 
+                                    ? statusProp.GetInt32().ToString() 
+                                    : statusProp.GetString();
+                                if (statusVal == "NOT_LOOKING" || statusVal == "2")
+                                {
+                                    Console.WriteLine($"[HireAgent-Outreach] Bỏ qua ứng viên {candidateId} do trạng thái tìm việc là NOT_LOOKING.");
+                                    return;
+                                }
+                            }
+
+                            // Lấy Address từ profile
+                            if (dataElement.TryGetProperty("address", out var addrProp) && addrProp.ValueKind != JsonValueKind.Null)
+                            {
+                                var fullAddress = addrProp.GetString() ?? "";
+                                candidateProvince = _ExtractLocationFromCvText(fullAddress);
                             }
                         }
-
-                        // Lấy Address từ profile (bao gồm cả Tỉnh/Thành + Phường/Xã)
-                        if (dataElement.TryGetProperty("address", out var addrProp) && addrProp.ValueKind != JsonValueKind.Null)
-                        {
-                            var fullAddress = addrProp.GetString() ?? "";
-                            // Extract tỉnh/thành từ address string
-                            candidateProvince = _ExtractLocationFromCvText(fullAddress);
-                        }
+                    }
+                    finally
+                    {
+                        semaphore.Release();
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[HireAgent-Outreach] Lỗi khi kiểm tra profile ứng viên {candidateId}: {ex.Message}");
+                }
+
+                // ── Chặn cứng theo Province từ Profile ───────────────────────────
+                var isRemoteJob = campaign.JobType == "REMOTE" || campaign.JobType == "HYBRID";
+                if (!isRemoteJob && !string.IsNullOrWhiteSpace(campaign.JobLocation))
+                {
+                    if (!string.IsNullOrWhiteSpace(candidateProvince))
+                    {
+                        if (!_IsLocationMatch(campaign.JobLocation, candidateProvince))
+                        {
+                            Console.WriteLine($"[HireAgent-Location] Loại ứng viên {candidateId}: tỉnh '{candidateProvince}' không khớp job tại '{campaign.JobLocation}'");
+                            return;
+                        }
+                        Console.WriteLine($"[HireAgent-Location] ✓ Ứng viên {candidateId}: '{candidateProvince}' khớp '{campaign.JobLocation}'");
+                    }
                 }
 
                 string? cvText = null;
@@ -199,38 +224,23 @@ public class HireAgentServiceImpl : IHireAgentService
                 {
                     cvText = jsonVal.GetString();
                 }
-                if (string.IsNullOrWhiteSpace(cvText)) continue;
+                if (string.IsNullOrWhiteSpace(cvText)) return;
 
-                // ── Chặn cứng theo Province từ Profile ───────────────────────────
-                // Dùng profile.Province (người dùng nhập khi đăng ký) — chính xác nhất
-                var isRemoteJob = campaign.JobType == "REMOTE" || campaign.JobType == "HYBRID";
-                if (!isRemoteJob && !string.IsNullOrWhiteSpace(campaign.JobLocation))
-                {
-                    if (!string.IsNullOrWhiteSpace(candidateProvince))
-                    {
-                        if (!_IsLocationMatch(campaign.JobLocation, candidateProvince))
-                        {
-                            Console.WriteLine($"[HireAgent-Location] Loại ứng viên {candidateId}: tỉnh '{candidateProvince}' không khớp job tại '{campaign.JobLocation}'");
-                            continue;
-                        }
-                        Console.WriteLine($"[HireAgent-Location] ✓ Ứng viên {candidateId}: '{candidateProvince}' khớp '{campaign.JobLocation}'");
-                    }
-                    // Nếu profile chưa có Province → không chặn (benefit of doubt)
-                }
-
-                // Gọi CVIntelligenceService để chấm điểm CV
+                // Gọi CVIntelligenceService để chấm điểm CV (tắt generate_feedback để giảm tải LLM và tăng tốc quét)
                 var scorePayload = new
                 {
                     job_description = campaign.JobDescription,
-                    cv_text = cvText
+                    cv_text = cvText,
+                    generate_feedback = false
                 };
                 var scoreReq = new HttpRequestMessage(HttpMethod.Post, "http://cvintelligenceservice:5006/api/v1/cv/score");
                 scoreReq.Content = new StringContent(JsonSerializer.Serialize(scorePayload), Encoding.UTF8, "application/json");
 
+                await semaphore.WaitAsync();
                 try
                 {
                     var scoreRes = await _httpClient.SendAsync(scoreReq);
-                    if (!scoreRes.IsSuccessStatusCode) continue;
+                    if (!scoreRes.IsSuccessStatusCode) return;
 
                     var scoreStr = await scoreRes.Content.ReadAsStringAsync();
                     var scoreDoc = JsonDocument.Parse(scoreStr);
@@ -238,12 +248,12 @@ public class HireAgentServiceImpl : IHireAgentService
 
                     Console.WriteLine($"[HireAgent-Score] Ứng viên {candidateId}: {matchingScore:F1} điểm");
 
-                    // Ngưỡng tối thiểu 50 điểm sau khi đã áp dụng bộ lọc và scale căn bậc hai (sqrt(x) * 10) từ CVIntelligenceService
-                    // Hệ số matchingScore được scale lên khiến ứng viên đúng domain có score >= 50-80,
-                    // trong khi ứng viên sai domain hoặc lệch cấp bậc sẽ có score < 50.
                     if (matchingScore >= 50.0)
                     {
-                        candidateScores.Add((resume, matchingScore));
+                        lock (candidateScores)
+                        {
+                            candidateScores.Add((resume, matchingScore));
+                        }
                     }
                     else
                     {
@@ -254,7 +264,13 @@ public class HireAgentServiceImpl : IHireAgentService
                 {
                     Console.WriteLine($"[HireAgent-Score] Lỗi khi chấm điểm ứng viên {candidateId}: {ex.Message}");
                 }
-            }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
 
             // 4. Sort giảm dần theo điểm — chỉ lấy top targetCount ứng viên phù hợp nhất
             var sortedCandidates = candidateScores

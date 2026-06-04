@@ -5,11 +5,12 @@ from pydantic import BaseModel
 # ── CV Scoring Schemas ─────────────────────────────────────────────────────────
 class CvScoringRequest(BaseModel):
     """HTTP request thủ công: NTD gửi JD + CV text để chấm điểm ngay."""
-    job_description: str
-    cv_text:         str
-    application_id:  Optional[str] = None
-    job_id:          Optional[str] = None
-    customer_id:     Optional[str] = None
+    job_description:   str
+    cv_text:           str
+    application_id:    Optional[str] = None
+    job_id:            Optional[str] = None
+    customer_id:       Optional[str] = None
+    generate_feedback: Optional[bool] = True
 
 
 class SkillScoringRequest(BaseModel):
