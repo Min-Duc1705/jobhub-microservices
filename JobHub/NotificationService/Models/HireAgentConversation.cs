@@ -11,6 +11,7 @@ public class HireAgentConversation : EntityBase<Guid>, ISoftDelete
     public string CandidateId { get; set; } = string.Empty;
     public string CvText { get; set; } = string.Empty;
     public string Status { get; set; } = "Screening"; // Screening, Passed, Failed, Scheduled
+    public double MatchingScore { get; set; } = 0.0;
     public DateTimeOffset LastQuestionAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? InterviewDate { get; set; }

@@ -110,7 +110,7 @@ public class HireAgentServiceImpl : IHireAgentService
             var token = InternalTokenGenerator.GenerateInternalToken(secretKey, issuer, audience);
 
             // 2. Lấy danh sách CV từ ResumeService
-            var request = new HttpRequestMessage(HttpMethod.Get, "http://resumeservice:8080/api/v1/resumes?pageSize=100");
+            var request = new HttpRequestMessage(HttpMethod.Get, "http://resumeservice:8080/api/v1/resumes?pageSize=1000");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var response = await _httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
@@ -310,6 +310,7 @@ public class HireAgentServiceImpl : IHireAgentService
                         CandidateId = candidateId,
                         CvText = cvText,
                         Status = "Screening",
+                        MatchingScore = item.Score,
                         LastQuestionAt = DateTimeOffset.UtcNow,
                         CreatedAt = DateTimeOffset.UtcNow
                     };
