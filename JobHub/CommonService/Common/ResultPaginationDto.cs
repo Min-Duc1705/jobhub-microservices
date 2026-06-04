@@ -16,7 +16,7 @@ public class ResultPaginationDto<T>
             Page     = page,
             PageSize = pageSize,
             Total    = totalRecords,
-            Pages    = (int)Math.Ceiling(totalRecords / (double)pageSize)
+            Pages    = pageSize > 0 ? (int)Math.Ceiling(totalRecords / (double)pageSize) : 1
         };
         Result = items;
     }

@@ -431,7 +431,34 @@ SPECIALTIES = {
                 "Thiết kế và phát triển kiến trúc dịch vụ microservices sử dụng RabbitMQ làm message broker kết nối các ứng dụng Python.",
                 "Tối ưu hóa các truy vấn cơ sở dữ liệu lớn trên PostgreSQL thông qua lập index nâng cao và phân vùng bảng, giảm 50% thời gian phản hồi.",
                 "Thiết lập quy trình CI/CD tích hợp Docker giúp tự động hóa quá trình đóng gói và triển khai ứng dụng lên AWS ECS.",
-                "Đóng vai trò Tech Lead, hướng dẫn và định hướng chuyên môn Python cho 4 lập trình viên trong nhóm."
+            ]}
+        ]
+    },
+    "Backend Node.js": {
+        "title": "Node.js Developer",
+        "skills": [
+            {"category": "Ngôn ngữ & Runtime", "items": ["JavaScript / TypeScript", "Node.js Runtime (Event Loop, V8)", "Asynchronous Programming (Promises, Async/Await)", "ES6+ Standards"]},
+            {"category": "Frameworks & API", "items": ["Express.js (Minimalist framework)", "NestJS (Enterprise-grade, MVC)", "Fastify / Koa", "RESTful API / GraphQL (Apollo)"]},
+            {"category": "Database & DevOps", "items": ["MongoDB (Mongoose ODM)", "PostgreSQL / MySQL (TypeORM, Prisma)", "Redis (Caching & Session)", "Docker & CI/CD (GitHub Actions)"]}
+        ],
+        "projects": [
+            {"name": "E-commerce Microservices Backend", "description": "Thiết kế và xây dựng hệ thống quản lý giao dịch mua sắm trực tuyến sử dụng NestJS và TypeScript. Giao tiếp giữa các dịch vụ thông qua RabbitMQ, quản lý phân quyền bằng JWT/Passport, lưu dữ liệu vào MongoDB và Redis cache.", "tags": ["NestJS", "TypeScript", "MongoDB", "Redis", "RabbitMQ"]},
+            {"name": "Real-time Messaging Platform API", "description": "Phát triển ứng dụng chat trực tuyến thời gian thực sử dụng Express.js, WebSockets (Socket.io) và Redis Pub/Sub để đồng bộ hóa tin nhắn giữa các cụm server. Triển khai trên Docker và AWS ECS.", "tags": ["Express.js", "Socket.io", "Redis", "TypeScript", "Docker"]}
+        ],
+        "experiences": [
+            {"position": "Node.js Developer", "bullets": [
+                "Thiết kế và phát triển RESTful API hiệu năng cao bằng Express.js kết hợp TypeScript, tích hợp Sequelize/Prisma ORM kết nối PostgreSQL.",
+                "Triển khai cơ chế xác thực bảo mật OAuth2 và JSON Web Token (JWT) cho các API truy cập của ứng dụng di động.",
+                "Tối ưu hóa các tác vụ I/O nặng bằng cách tận dụng cơ chế Event Loop bất đồng bộ của Node.js, giúp giảm 25% thời gian phản hồi.",
+                "Viết integration tests sử dụng framework Jest và thư viện Supertest, tăng độ phủ mã nguồn lên hơn 85%.",
+                "Docker hóa ứng dụng Node.js và thiết lập pipeline tự động kiểm tra code qua GitHub Actions."
+            ]},
+            {"position": "Senior Node.js Architect", "bullets": [
+                "Xây dựng khung kiến trúc doanh nghiệp bằng NestJS theo mô hình Modules và Dependency Injection, giúp mã nguồn dễ mở rộng và bảo trì.",
+                "Tích hợp và tối ưu hóa hệ thống lưu trữ cache Redis giúp giảm 50% số lượng truy vấn trực tiếp vào cơ sở dữ liệu chính.",
+                "Triển khai kiến trúc Event-Driven sử dụng Kafka để liên lạc bất đồng bộ và đồng bộ dữ liệu giữa các dịch vụ Node.js.",
+                "Cấu hình cluster mode của PM2 và tối ưu hóa cơ chế dọn rác (GC) của V8 engine giúp hệ thống xử lý ổn định trên cụm máy chủ đa lõi.",
+                "Dẫn dắt, đào tạo kỹ thuật Node.js cho 5 lập trình viên trong đội ngũ phát triển backend."
             ]}
         ]
     },
@@ -503,6 +530,10 @@ ADDRESSES = [
 ]
 
 SUMMARIES = {
+    "Backend Node.js": [
+        "Kỹ sư Backend Node.js với hơn 5 năm kinh nghiệm chuyên sâu thiết kế và vận hành các hệ thống web quy mô lớn sử dụng TypeScript, NestJS và Express. Đam mê xây dựng kiến trúc microservices hiệu năng cao, tối ưu hóa cơ chế concurrency và xử lý bất đồng bộ trong Node.js. Luôn chú trọng viết code sạch, dễ mở rộng và có khả năng giải quyết các vấn đề kỹ thuật phức tạp một cách tối ưu nhất.",
+        "Lập trình viên backend Node.js năng động có tư duy logic vững vàng và am hiểu sâu sắc về JavaScript/TypeScript. Có kinh nghiệm xây dựng RESTful API bằng Express, sử dụng cơ sở dữ liệu MongoDB và PostgreSQL qua Prisma ORM. Mong muốn được học hỏi và cống hiến khả năng lập trình để cùng đội ngũ phát triển các giải pháp backend ổn định và chất lượng."
+    ],
     "Backend .NET": [
         "Tôi là một Kỹ sư phần mềm chuyên về Backend .NET với hơn 5 năm kinh nghiệm thiết kế và phát triển các hệ thống phân tán quy mô lớn. Đam mê xây dựng kiến trúc Microservices hiệu năng cao, tối ưu hóa cơ sở dữ liệu lớn và áp dụng các nguyên lý Clean Code. Luôn hướng tới việc giải quyết các bài toán kỹ thuật phức tạp và nâng cao trải nghiệm người dùng thông qua các giải pháp backend ổn định, bảo mật và dễ mở rộng.",
         "Lập trình viên .NET nhiệt huyết với tư duy logic tốt và thế mạnh phát triển hệ thống RESTful API. Có kinh nghiệm thực chiến với .NET Core, SQL Server, và kiến trúc Clean Architecture. Luôn chủ động cập nhật các xu hướng công nghệ mới, mong muốn đóng góp kỹ năng kỹ thuật để cùng đội ngũ phát triển nên các sản phẩm phần mềm chất lượng cao."
@@ -577,6 +608,12 @@ AWARDS_POOL = {
 }
 
 CERTIFICATES_POOL = {
+    "Backend Node.js": [
+        {"date": "08/2025", "title": "OpenJS Node.js Application Developer (LFW211)"},
+        {"date": "02/2025", "title": "AWS Certified Developer - Associate"},
+        {"date": "04/2026", "title": "TOEIC 840 - Chứng chỉ tiếng Anh giao tiếp quốc tế"},
+        {"date": "10/2024", "title": "NestJS Enterprise Certification - NestJS Academy"}
+    ],
     "Backend .NET": [
         {"date": "05/2025", "title": "AWS Certified Solutions Architect - Associate"},
         {"date": "11/2024", "title": "Microsoft Certified: Azure Developer Associate (AZ-204)"},
@@ -671,6 +708,10 @@ INTERESTS_POOL = [
 ]
 
 REFERENCES_POOL = {
+    "Backend Node.js": [
+        "Nguyễn Văn Bình - Technical Architect tại VNG Corporation - SĐT: 0981234567 - Email: binhnv@vng.com.vn",
+        "Phạm Thành Long - Engineering Manager tại KMS Technology - SĐT: 0907654321 - Email: longpt@kms-technology.com"
+    ],
     "Backend .NET": [
         "Lê Hoàng Nam - Technical Architect tại FPT Software - SĐT: 0987654321 - Email: namlh@fsoft.com.vn",
         "Trần Văn Hùng - Engineering Manager tại CMC Global - SĐT: 0912345678 - Email: hungtv@cmc.com.vn"

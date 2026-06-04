@@ -34,7 +34,10 @@ public class SkillFilterSpec : BaseSpecification<Skill>
         if (isDescending) AddOrderByDescending(sortExpr);
         else              AddOrderBy(sortExpr);
 
-        ApplyPaging((pageNumber - 1) * pageSize, pageSize);
+        if (pageSize > 0)
+        {
+            ApplyPaging((pageNumber - 1) * pageSize, pageSize);
+        }
     }
 }
 

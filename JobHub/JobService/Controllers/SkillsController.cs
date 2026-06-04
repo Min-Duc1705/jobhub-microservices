@@ -35,7 +35,7 @@ public class SkillsController : ControllerBase
     [ApiMessage("Lấy danh sách kỹ năng (dropdown) thành công")]
     public async Task<ActionResult<List<SkillResponse>>> GetDropdown()
     {
-        var result = await _skillService.GetAllAsync(null, "name", false, 1, 1000);
+        var result = await _skillService.GetAllAsync(null, "name", false, 1, 0);
         return Ok(result.Result);
     }
 
