@@ -130,7 +130,19 @@ public class HireAgentServiceImpl : IHireAgentService
             var candidateScores = new List<(JsonElement Resume, double Score)>();
             var currentConversations = await _hireAgentRepo.GetConversationsByCampaignAsync(campaignId);
 
+            // Lọc trùng lặp candidates trong danh sách resumes trước khi xử lý
+            var uniqueResumes = new List<JsonElement>();
+            var seenCandidates = new HashSet<string>();
             foreach (var resume in resumes.EnumerateArray())
+            {
+                var cid = resume.GetProperty("customerId").GetString();
+                if (!string.IsNullOrEmpty(cid) && seenCandidates.Add(cid))
+                {
+                    uniqueResumes.Add(resume);
+                }
+            }
+
+            foreach (var resume in uniqueResumes)
             {
                 var candidateId = resume.GetProperty("customerId").GetString();
                 if (string.IsNullOrEmpty(candidateId)) continue;

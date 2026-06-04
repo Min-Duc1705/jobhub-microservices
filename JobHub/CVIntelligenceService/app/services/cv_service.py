@@ -151,7 +151,12 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     # Seniority Penalty
     seniority_penalty = _compute_seniority_penalty(req.job_description, req.cv_text)
     
-    score = round(raw_score * skill_penalty * seniority_penalty, 2)
+    # Boost scores to keep them higher on average for HR (using square root scaling: sqrt(x)*10)
+    # This maps 0->0, 100->100, 50->70.7, 60->77.5, preserving relative order 100% perfectly.
+    base_score = raw_score * skill_penalty
+    boosted_base = (max(0.0, base_score) ** 0.5) * 10
+    
+    score = round(boosted_base * seniority_penalty, 2)
 
     if skill_penalty < 1.0 or seniority_penalty < 1.0:
         logger.info(
@@ -194,7 +199,12 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
     for cv_text, raw_score in zip(cv_texts, raw_scores):
         skill_penalty = _compute_skill_penalty(jd_skills, cv_text)
         seniority_penalty = _compute_seniority_penalty(req.job_description, cv_text)
-        final_score = round(raw_score * skill_penalty * seniority_penalty, 2)
+        
+        # Boost scores to keep them higher on average for HR (using square root scaling: sqrt(x)*10)
+        base_score = raw_score * skill_penalty
+        boosted_base = (max(0.0, base_score) ** 0.5) * 10
+        
+        final_score = round(boosted_base * seniority_penalty, 2)
         final_scores.append(final_score)
 
     # Gắn điểm vào từng CV và sắp xếp giảm dần
@@ -494,6 +504,9 @@ async def recommend_jobs_for_candidate(cv_text: str, customer_id: str = None) ->
             if jid in svd_scores:
                 svd_score = svd_scores[jid]
                 hybrid_score = 0.6 * sbert_score + 0.4 * svd_score
+            
+            # Boost hybrid score to match the new scoring standards (sqrt(x)*10)
+            hybrid_score = (max(0.0, hybrid_score) ** 0.5) * 10
             
             # Áp dụng bộ phạt/thưởng đối sánh kỹ năng cứng (Skill Overlap Heuristic)
             job_skills = [s.get("name") for s in job.get("skills", []) if s.get("name")]
