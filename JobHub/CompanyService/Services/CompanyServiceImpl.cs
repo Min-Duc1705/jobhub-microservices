@@ -10,19 +10,27 @@ using CompanyService.Services.Interface;
 using CompanyService.Specifications;
 using Microsoft.Extensions.Options;
 
+using CommonService.Import;
+
 namespace CompanyService.Services;
 
 public class CompanyServiceImpl : ICompanyService
 {
-    private readonly ICompanyRepository _companyRepo;
-    private readonly IMapper            _mapper;
-    private readonly MinioSettings      _minioSettings;
+    private readonly ICompanyRepository     _companyRepo;
+    private readonly IMapper                _mapper;
+    private readonly MinioSettings          _minioSettings;
+    private readonly IExcelCsvImportService _importService;
 
-    public CompanyServiceImpl(ICompanyRepository companyRepo, IMapper mapper, IOptions<MinioSettings> minioSettings)
+    public CompanyServiceImpl(
+        ICompanyRepository companyRepo, 
+        IMapper mapper, 
+        IOptions<MinioSettings> minioSettings,
+        IExcelCsvImportService importService)
     {
         _companyRepo = companyRepo;
         _mapper      = mapper;
         _minioSettings = minioSettings.Value;
+        _importService = importService;
     }
 
     private CompanyResponse FormatUrls(CompanyResponse response)
@@ -148,5 +156,102 @@ public class CompanyServiceImpl : ICompanyService
         await _companyRepo.SaveChangesAsync();
 
         return FormatUrls(_mapper.Map<CompanyResponse>(company));
+    }
+
+    public async Task<ImportResult<ImportCompanyDto>> ImportAsync(Microsoft.AspNetCore.Http.IFormFile file)
+    {
+        var importResult = await _importService.ImportAsync<ImportCompanyDto>(file);
+        if (!importResult.IsSuccess)
+        {
+            return importResult;
+        }
+
+        var validatedList = new List<ImportCompanyDto>();
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenTaxCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i < importResult.Data.Count; i++)
+        {
+            var req = importResult.Data[i];
+            var rowIndex = i + 2;
+
+            if (req == null) continue;
+
+            if (string.IsNullOrWhiteSpace(req.Name))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Name", ErrorMessage = "Tên công ty không được để trống." });
+                continue;
+            }
+
+            var name = req.Name.Trim();
+            if (seenNames.Contains(name))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Name", ErrorMessage = $"Tên công ty '{req.Name}' bị trùng lặp trong file." });
+                continue;
+            }
+            seenNames.Add(name);
+
+            if (!string.IsNullOrWhiteSpace(req.TaxCode))
+            {
+                var taxCode = req.TaxCode.Trim();
+                if (seenTaxCodes.Contains(taxCode))
+                {
+                    importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "TaxCode", ErrorMessage = $"Mã số thuế '{req.TaxCode}' bị trùng lặp trong file." });
+                    continue;
+                }
+                seenTaxCodes.Add(taxCode);
+
+                var existing = await _companyRepo.GetByTaxCodeAsync(taxCode);
+                if (existing != null)
+                {
+                    importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "TaxCode", ErrorMessage = $"Mã số thuế '{req.TaxCode}' đã tồn tại trong hệ thống." });
+                    continue;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(req.CompanySize))
+            {
+                if (!Enum.TryParse<CompanyService.Models.Enums.CompanySize>(req.CompanySize.Trim(), true, out _))
+                {
+                    importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "CompanySize", ErrorMessage = $"Quy mô '{req.CompanySize}' không hợp lệ. Cho phép: STARTUP, SME, ENTERPRISE." });
+                    continue;
+                }
+            }
+
+            validatedList.Add(req);
+        }
+
+        if (!importResult.IsSuccess)
+        {
+            importResult.Data.Clear();
+            return importResult;
+        }
+
+        foreach (var req in validatedList)
+        {
+            CompanyService.Models.Enums.CompanySize? size = null;
+            if (!string.IsNullOrWhiteSpace(req.CompanySize) && Enum.TryParse<CompanyService.Models.Enums.CompanySize>(req.CompanySize.Trim(), true, out var parsedSize))
+            {
+                size = parsedSize;
+            }
+
+            var company = new Company
+            {
+                Name         = req.Name.Trim(),
+                Description  = req.Description,
+                Address      = req.Address,
+                Industry     = req.Industry,
+                CompanySize  = size,
+                Website      = req.Website,
+                ContactEmail = req.ContactEmail,
+                TaxCode      = req.TaxCode?.Trim(),
+                IsVerified   = true
+            };
+            await _companyRepo.AddAsync(company);
+        }
+        await _companyRepo.SaveChangesAsync();
+
+        importResult.Data = validatedList;
+        return importResult;
     }
 }

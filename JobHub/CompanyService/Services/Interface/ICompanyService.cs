@@ -12,4 +12,5 @@ public interface ICompanyService
     Task<CompanyResponse> UpdateAsync(Guid id, UpdateCompanyRequest request);
     Task DeleteAsync(Guid id);
     Task<CompanyResponse> VerifyAsync(Guid id);
+    Task<CommonService.Import.ImportResult<ImportCompanyDto>> ImportAsync(Microsoft.AspNetCore.Http.IFormFile file);
 }

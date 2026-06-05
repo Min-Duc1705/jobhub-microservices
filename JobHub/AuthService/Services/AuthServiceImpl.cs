@@ -9,7 +9,8 @@ using CommonService.Events;
 using CommonService.Exceptions;
 using CommonService.Models;
 using MassTransit;
-
+using AuthService.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace AuthService.Services
 {
@@ -23,6 +24,7 @@ namespace AuthService.Services
         private readonly IPublishEndpoint        _publishEndpoint;
         private readonly ICacheService           _cache;
         private readonly IMapper                 _mapper;
+        private readonly AuthDbContext           _context;
 
         public AuthServiceImpl(
             IAppUserRepository   userRepo,
@@ -32,7 +34,8 @@ namespace AuthService.Services
             IHttpContextAccessor httpContextAccessor,
             IPublishEndpoint     publishEndpoint,
             ICacheService        cache,
-            IMapper              mapper)
+            IMapper              mapper,
+            AuthDbContext        context)
         {
             _userRepo            = userRepo;
             _roleRepo            = roleRepo;
@@ -42,6 +45,7 @@ namespace AuthService.Services
             _publishEndpoint     = publishEndpoint;
             _cache               = cache;
             _mapper              = mapper;
+            _context             = context;
         }
 
         // ── Login ────────────────────────────────────────────────────────────────
@@ -491,15 +495,18 @@ namespace AuthService.Services
                 TimeSpan.FromSeconds(expireSeconds));
         }
 
-
-        private LoginResponseDTO BuildLoginResponse(string? accessToken, AppUser user) => new()
+        private LoginResponseDTO BuildLoginResponse(string? accessToken, AppUser user)
         {
-            AccessToken = accessToken,
-            User        = _mapper.Map<UserLoginDto>(user),
-        };
+            var userDto = _mapper.Map<UserLoginDto>(user);
+
+            return new LoginResponseDTO
+            {
+                AccessToken = accessToken,
+                User        = userDto,
+            };
+        }
 
         private static string GenerateOtp()
             => Random.Shared.Next(100000, 999999).ToString();
     }
 }
-

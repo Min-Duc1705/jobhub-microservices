@@ -13,6 +13,9 @@ using JobService.Services.Interface;
 using JobService.Specifications;
 using Microsoft.Extensions.Options;
 
+using Microsoft.AspNetCore.Http;
+using CommonService.Import;
+
 namespace JobService.Services;
 
 public class JobServiceImpl : IJobService
@@ -22,19 +25,25 @@ public class JobServiceImpl : IJobService
     private readonly IMapper          _mapper;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly MinioSettings      _minioSettings;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IExcelCsvImportService _importService;
 
     public JobServiceImpl(
         IJobRepository jobRepo, 
         ISkillRepository skillRepo, 
         IMapper mapper,
         IPublishEndpoint publishEndpoint,
-        IOptions<MinioSettings> minioSettings)
+        IOptions<MinioSettings> minioSettings,
+        IHttpContextAccessor httpContextAccessor,
+        IExcelCsvImportService importService)
     {
         _jobRepo         = jobRepo;
         _skillRepo       = skillRepo;
         _mapper          = mapper;
         _publishEndpoint = publishEndpoint;
         _minioSettings   = minioSettings.Value;
+        _httpContextAccessor = httpContextAccessor;
+        _importService   = importService;
     }
 
     private JobResponse FormatUrls(JobResponse response)
@@ -288,4 +297,277 @@ public class JobServiceImpl : IJobService
             System.Console.WriteLine($"Error publishing JobPublishedEvent: {ex.Message}");
         }
     }
+
+    public async Task<ImportResult<ImportJobDto>> ImportAsync(IFormFile file)
+    {
+        var importResult = await _importService.ImportAsync<ImportJobDto>(file);
+        if (!importResult.IsSuccess)
+        {
+            return importResult;
+        }
+
+        var validatedList = new List<ImportJobDto>();
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Environment URLs
+        var inDocker = Environment.GetEnvironmentVariable("RUNNING_IN_DOCKER") == "true";
+        var authUrl = inDocker ? "http://authservice:8080" : "http://localhost:5001";
+        var companyUrl = inDocker ? "http://companyservice:8080" : "http://localhost:5003";
+
+        // Get auth token from request to forward to authservice
+        var authHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+
+        using var client = new HttpClient();
+        if (!string.IsNullOrEmpty(authHeader))
+        {
+            client.DefaultRequestHeaders.Add("Authorization", authHeader);
+        }
+
+        // Preload skills catalog to avoid N+1 DB calls
+        var allSkills = await _skillRepo.GetAllAsync();
+        var skillDict = allSkills
+            .Where(s => !s.IsDeleted)
+            .ToDictionary(s => s.Name.Trim().ToLower(), s => s);
+
+        // Mapped entity objects
+        var mappedJobs = new List<(Job Job, List<Skill> Skills)>();
+
+        for (int i = 0; i < importResult.Data.Count; i++)
+        {
+            var req = importResult.Data[i];
+            var rowIndex = i + 2;
+
+            if (req == null) continue;
+
+            // 1. Basic validation
+            if (string.IsNullOrWhiteSpace(req.Name))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Name", ErrorMessage = "Tên tin tuyển dụng không được để trống." });
+                continue;
+            }
+
+            var name = req.Name.Trim();
+            if (seenNames.Contains(name))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Name", ErrorMessage = $"Tên tin tuyển dụng '{req.Name}' bị trùng lặp trong file." });
+                continue;
+            }
+            seenNames.Add(name);
+
+            if (string.IsNullOrWhiteSpace(req.CompanyName))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "CompanyName", ErrorMessage = "Tên công ty không được để trống." });
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(req.HREmail))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "HREmail", ErrorMessage = "Email nhà tuyển dụng không được để trống." });
+                continue;
+            }
+
+            // 2. Validate salary
+            if (req.SalaryMin.HasValue && req.SalaryMin.Value < 0)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "SalaryMin", ErrorMessage = "Lương tối thiểu không được âm." });
+                continue;
+            }
+            if (req.SalaryMax.HasValue && req.SalaryMax.Value < 0)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "SalaryMax", ErrorMessage = "Lương tối đa không được âm." });
+                continue;
+            }
+            if (req.SalaryMin.HasValue && req.SalaryMax.HasValue && req.SalaryMax.Value < req.SalaryMin.Value)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "SalaryMax", ErrorMessage = "Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu." });
+                continue;
+            }
+
+            // 3. Validate Quantity
+            if (req.Quantity <= 0)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Quantity", ErrorMessage = "Số lượng tuyển dụng phải lớn hơn 0." });
+                continue;
+            }
+
+            // 4. Validate Level and JobType
+            if (!Enum.TryParse<JobLevel>(req.Level.Trim(), true, out var parsedLevel))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Level", ErrorMessage = $"Cấp độ '{req.Level}' không hợp lệ. Cho phép: INTERN, FRESHER, JUNIOR, MIDDLE, SENIOR, LEADER, MANAGER." });
+                continue;
+            }
+
+            if (!Enum.TryParse<JobType>(req.JobType.Trim(), true, out var parsedJobType))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "JobType", ErrorMessage = $"Loại hình '{req.JobType}' không hợp lệ. Cho phép: FULL_TIME, PART_TIME, REMOTE, HYBRID, INTERNSHIP." });
+                continue;
+            }
+
+            // 5. Query Company from CompanyService
+            Guid companyId = Guid.Empty;
+            string? companyLogoUrl = null;
+            try
+            {
+                var searchCompUrl = $"{companyUrl}/api/v1/companies?searchTerm={Uri.EscapeDataString(req.CompanyName.Trim())}&pageSize=20";
+                var compRes = await client.GetFromJsonAsync<ApiResponseHelper<CompanySearchResponse>>(searchCompUrl);
+                var matchedCompany = compRes?.Data?.Result?
+                    .FirstOrDefault(c => c.Name.Trim().Equals(req.CompanyName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (matchedCompany == null)
+                {
+                    importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "CompanyName", ErrorMessage = $"Không tìm thấy công ty '{req.CompanyName}' trong hệ thống." });
+                    continue;
+                }
+                companyId = matchedCompany.Id;
+                companyLogoUrl = matchedCompany.Logo;
+            }
+            catch (Exception ex)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "CompanyName", ErrorMessage = $"Lỗi khi xác thực công ty: {ex.Message}" });
+                continue;
+            }
+
+            // 6. Query HR from AuthService
+            Guid hrCustomerId = Guid.Empty;
+            try
+            {
+                var searchUserUrl = $"{authUrl}/api/v1/users?searchTerm={Uri.EscapeDataString(req.HREmail.Trim())}&pageSize=20";
+                var userRes = await client.GetFromJsonAsync<ApiResponseHelper<UserSearchResponse>>(searchUserUrl);
+                var matchedUser = userRes?.Data?.Result?
+                    .FirstOrDefault(u => u.Email.Trim().Equals(req.HREmail.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (matchedUser == null)
+                {
+                    importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "HREmail", ErrorMessage = $"Không tìm thấy tài khoản với email '{req.HREmail}' trong hệ thống." });
+                    continue;
+                }
+                if (matchedUser.Role == null || !matchedUser.Role.Name.Equals("HR", StringComparison.OrdinalIgnoreCase))
+                {
+                    importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "HREmail", ErrorMessage = $"Tài khoản '{req.HREmail}' không phải là nhà tuyển dụng (HR)." });
+                    continue;
+                }
+                hrCustomerId = matchedUser.Id;
+            }
+            catch (Exception ex)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "HREmail", ErrorMessage = $"Lỗi khi xác thực tài khoản nhà tuyển dụng: {ex.Message}" });
+                continue;
+            }
+
+            // 7. Validate skills
+            var jobSkillsList = new List<Skill>();
+            var skillsFailed = false;
+            if (!string.IsNullOrWhiteSpace(req.Skills))
+            {
+                var skillsToParse = req.Skills.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var skName in skillsToParse)
+                {
+                    if (skillDict.TryGetValue(skName.ToLower(), out var skillObj))
+                    {
+                        jobSkillsList.Add(skillObj);
+                    }
+                    else
+                    {
+                        importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Skills", ErrorMessage = $"Kỹ năng '{skName}' không tồn tại trong hệ thống." });
+                        skillsFailed = true;
+                    }
+                }
+            }
+            if (skillsFailed) continue;
+
+            // Row is valid! Map it
+            var newJob = new Job
+            {
+                CustomerId = hrCustomerId,
+                CompanyId = companyId,
+                Name = req.Name.Trim(),
+                CompanyName = req.CompanyName.Trim(),
+                CompanyLogo = companyLogoUrl,
+                Location = req.Location,
+                SalaryMin = req.SalaryMin,
+                SalaryMax = req.SalaryMax,
+                SalaryCurrency = req.SalaryCurrency,
+                IsSalaryNegotiable = req.IsSalaryNegotiable,
+                Quantity = req.Quantity,
+                Level = parsedLevel,
+                JobType = parsedJobType,
+                ExperienceRequired = req.ExperienceRequired,
+                Description = req.Description,
+                Requirements = req.Requirements,
+                Benefits = req.Benefits,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(30), // Default 30 days
+                Status = JobStatus.PUBLISHED, // Import directly to published
+                Category = req.Category
+            };
+
+            mappedJobs.Add((newJob, jobSkillsList));
+            validatedList.Add(req);
+        }
+
+        if (!importResult.IsSuccess)
+        {
+            importResult.Data.Clear();
+            return importResult;
+        }
+
+        // Atomic transaction import
+        foreach (var (job, skills) in mappedJobs)
+        {
+            await _jobRepo.AddAsync(job);
+            
+            // Assign JobSkills
+            if (skills.Any())
+            {
+                job.JobSkills = skills.Select(s => new JobSkill
+                {
+                    JobId = job.Id,
+                    SkillId = s.Id
+                }).ToList();
+            }
+        }
+        await _jobRepo.SaveChangesAsync();
+
+        // Trigger events for search indexing
+        foreach (var (job, _) in mappedJobs)
+        {
+            await PublishJobPublishedEventAsync(job.Id);
+        }
+
+        importResult.Data = validatedList;
+        return importResult;
+    }
+}
+
+public class ApiResponseHelper<T>
+{
+    public int StatusCode { get; set; }
+    public string? Error { get; set; }
+    public string? Message { get; set; }
+    public DataHelper<T>? Data { get; set; }
+}
+
+public class DataHelper<T>
+{
+    public List<T> Result { get; set; } = new();
+}
+
+public class CompanySearchResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Logo { get; set; }
+}
+
+public class UserSearchResponse
+{
+    public Guid Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public RoleHelper? Role { get; set; }
+}
+
+public class RoleHelper
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }

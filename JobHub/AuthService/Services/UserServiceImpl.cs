@@ -10,21 +10,30 @@ using CommonService.Exceptions;
 using CommonService.Events;
 using MassTransit;
 
+using CommonService.Import;
+
 namespace AuthService.Services;
 
 public class UserServiceImpl : IUserService
 {
-    private readonly IAppUserRepository _userRepo;
-    private readonly IRoleRepository    _roleRepo;
-    private readonly IMapper            _mapper;
-    private readonly IPublishEndpoint   _publishEndpoint;
+    private readonly IAppUserRepository     _userRepo;
+    private readonly IRoleRepository        _roleRepo;
+    private readonly IMapper                _mapper;
+    private readonly IPublishEndpoint       _publishEndpoint;
+    private readonly IExcelCsvImportService _importService;
 
-    public UserServiceImpl(IAppUserRepository userRepo, IRoleRepository roleRepo, IMapper mapper, IPublishEndpoint publishEndpoint)
+    public UserServiceImpl(
+        IAppUserRepository userRepo, 
+        IRoleRepository roleRepo, 
+        IMapper mapper, 
+        IPublishEndpoint publishEndpoint,
+        IExcelCsvImportService importService)
     {
         _userRepo = userRepo;
         _roleRepo = roleRepo;
         _mapper   = mapper;
         _publishEndpoint = publishEndpoint;
+        _importService = importService;
     }
 
     public async Task<ResultPaginationDto<UserResponse>> GetAllUsersAsync(UserFilterRequest filter)
@@ -143,5 +152,80 @@ public class UserServiceImpl : IUserService
 
         _userRepo.Update(user);
         await _userRepo.SaveChangesAsync();
+    }
+
+    public async Task<ImportResult<ImportUserDto>> ImportAsync(Microsoft.AspNetCore.Http.IFormFile file)
+    {
+        var importResult = await _importService.ImportAsync<ImportUserDto>(file);
+        if (!importResult.IsSuccess)
+        {
+            return importResult;
+        }
+
+        var validatedList = new List<ImportUserDto>();
+        var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var roles = await _roleRepo.GetAllAsync();
+
+        for (int i = 0; i < importResult.Data.Count; i++)
+        {
+            var req = importResult.Data[i];
+            var rowIndex = i + 2;
+
+            if (req == null) continue;
+
+            if (string.IsNullOrWhiteSpace(req.Email))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Email", ErrorMessage = "Email không được để trống." });
+                continue;
+            }
+
+            var email = req.Email.Trim();
+            if (seenEmails.Contains(email))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Email", ErrorMessage = $"Email '{req.Email}' bị trùng lặp trong file." });
+                continue;
+            }
+            seenEmails.Add(email);
+
+            if (await _userRepo.EmailExistsAsync(email))
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "Email", ErrorMessage = $"Email '{req.Email}' đã tồn tại trong hệ thống." });
+                continue;
+            }
+
+            var role = roles.FirstOrDefault(r => r.Name.Equals(req.RoleName, StringComparison.OrdinalIgnoreCase));
+            if (role == null)
+            {
+                importResult.Errors.Add(new ValidationError { RowIndex = rowIndex, ColumnName = "RoleName", ErrorMessage = $"Vai trò '{req.RoleName}' không tồn tại. Cho phép: ADMIN, HR, CANDIDATE." });
+                continue;
+            }
+
+            validatedList.Add(req);
+        }
+
+        if (!importResult.IsSuccess)
+        {
+            importResult.Data.Clear();
+            return importResult;
+        }
+
+        foreach (var req in validatedList)
+        {
+            var role = roles.First(r => r.Name.Equals(req.RoleName, StringComparison.OrdinalIgnoreCase));
+            var user = new AppUser
+            {
+                Username     = req.Username,
+                Email        = req.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+                Status       = UserStatus.Active,
+                RoleId       = role.Id,
+                CreatedDate  = DateTimeOffset.UtcNow,
+            };
+            await _userRepo.AddAsync(user);
+        }
+        await _userRepo.SaveChangesAsync();
+
+        importResult.Data = validatedList;
+        return importResult;
     }
 }

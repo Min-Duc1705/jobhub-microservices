@@ -34,4 +34,21 @@ namespace AuthService.Models.Request
         public string Type { get; set; } = "default";
         public string TargetGroup { get; set; } = "ALL";
     }
+
+    public class ImportUserDto
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Username không được để trống")]
+        public string Username { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email không được để trống")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Mật khẩu không được để trống")]
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "Mật khẩu phải từ 6 ký tự trở lên")]
+        public string Password { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vai trò không được để trống")]
+        public string RoleName { get; set; } = string.Empty;
+    }
 }

@@ -13,5 +13,6 @@ namespace AuthService.Services.Interface
         Task DeleteUserAsync(Guid id);
         Task ResetPasswordAsync(Guid id, ResetPasswordRequest request);
         Task BroadcastNotificationAsync(BroadcastNotificationRequest request);
+        Task<CommonService.Import.ImportResult<ImportUserDto>> ImportAsync(Microsoft.AspNetCore.Http.IFormFile file);
     }
 }

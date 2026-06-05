@@ -16,6 +16,7 @@ public interface IJobService
     Task DeleteAsync(Guid id);
     Task<JobResponse> ChangeStatusAsync(Guid id, string status);
     Task<List<JobCategoryStatResponse>> GetJobCategoryStatsAsync();
+    Task<ImportResult<ImportJobDto>> ImportAsync(IFormFile file);
 }
 
 public interface ISkillService

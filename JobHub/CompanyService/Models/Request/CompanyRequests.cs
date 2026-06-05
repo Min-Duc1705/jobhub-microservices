@@ -46,3 +46,16 @@ public class CompanyFilterRequest
     public int     PageNumber   { get; set; } = 1;
     public int     PageSize     { get; set; } = 10;
 }
+
+public class ImportCompanyDto
+{
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Tên công ty không được để trống")]
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Address { get; set; }
+    public string? Industry { get; set; }
+    public string? CompanySize { get; set; } // "STARTUP", "SME", "ENTERPRISE"
+    public string? Website { get; set; }
+    public string? ContactEmail { get; set; }
+    public string? TaxCode { get; set; }
+}

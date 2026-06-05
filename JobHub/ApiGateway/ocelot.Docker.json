@@ -224,6 +224,44 @@
       }
     },
     {
+      "UpstreamPathTemplate": "/api/v1/admin/ai-tools",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/api/v1/admin/ai-tools",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "authservice",
+          "Port": 8080
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/admin/ai-tools/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
+      "DownstreamPathTemplate": "/api/v1/admin/ai-tools/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "authservice",
+          "Port": 8080
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
       "UpstreamPathTemplate": "/api/v1/users",
       "UpstreamHttpMethod": [
         "GET",
@@ -414,6 +452,20 @@
       }
     },
     {
+      "UpstreamPathTemplate": "/api/v1/skills/dropdown",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/api/v1/skills/dropdown",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "jobservice",
+          "Port": 8080
+        }
+      ]
+    },
+    {
       "UpstreamPathTemplate": "/api/v1/skills",
       "UpstreamHttpMethod": [
         "GET",
@@ -579,53 +631,119 @@
     },
     {
       "UpstreamPathTemplate": "/api/v1/assistant/chat",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/assistant/chat",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "cvintelligenceservice", "Port": 5006 }
+        {
+          "Host": "cvintelligenceservice",
+          "Port": 5006
+        }
       ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
       },
-      "QoSOptions": { "TimeoutValue": 60000 }
+      "QoSOptions": {
+        "TimeoutValue": 60000
+      }
     },
     {
       "UpstreamPathTemplate": "/api/v1/assistant/upload",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/assistant/upload",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "cvintelligenceservice", "Port": 5006 }
+        {
+          "Host": "cvintelligenceservice",
+          "Port": 5006
+        }
       ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
       },
-      "QoSOptions": { "TimeoutValue": 60000 }
+      "QoSOptions": {
+        "TimeoutValue": 60000
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/assistant/import",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/api/v1/assistant/import",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "cvintelligenceservice",
+          "Port": 5006
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": {
+        "TimeoutValue": 120000
+      }
     },
     {
       "UpstreamPathTemplate": "/api/v1/assistant/confirm-action",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "DownstreamPathTemplate": "/api/v1/assistant/confirm-action",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "cvintelligenceservice", "Port": 5006 }
+        {
+          "Host": "cvintelligenceservice",
+          "Port": 5006
+        }
       ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
       },
-      "QoSOptions": { "TimeoutValue": 30000 }
+      "QoSOptions": {
+        "TimeoutValue": 30000
+      }
     },
     {
       "UpstreamPathTemplate": "/api/v1/assistant/session",
-      "UpstreamHttpMethod": [ "DELETE" ],
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "DownstreamPathTemplate": "/api/v1/assistant/session",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "cvintelligenceservice", "Port": 5006 }
+        {
+          "Host": "cvintelligenceservice",
+          "Port": 5006
+        }
       ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/assistant/tools/definitions",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/api/v1/assistant/tools/definitions",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "cvintelligenceservice",
+          "Port": 5006
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": {
+        "TimeoutValue": 10000
       }
     },
     {

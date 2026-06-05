@@ -97,4 +97,31 @@ public class CompaniesController : ControllerBase
 
         return Ok(new { url = result.Url });
     }
+
+    // POST /api/v1/companies/import (Admin)
+    [HttpPost("import")]
+    [ApiMessage("Import danh sách công ty thành công")]
+    [RequiresPermission("POST", "/api/v1/companies/import")]
+    public async Task<IActionResult> Import(IFormFile file)
+    {
+        var result = await _companyService.ImportAsync(file);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                StatusCode = 400,
+                Error      = "Bad Request",
+                Message    = "File import chứa dữ liệu không hợp lệ.",
+                Data       = result
+            });
+        }
+
+        return Ok(new ApiResponse<object>
+        {
+            StatusCode = 200,
+            Error      = null,
+            Message    = "Import danh sách công ty thành công.",
+            Data       = result
+        });
+    }
 }

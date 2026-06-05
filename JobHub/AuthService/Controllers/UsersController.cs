@@ -4,7 +4,9 @@ using AuthService.Services.Interface;
 using CommonService.Annotations;
 using CommonService.Common;
 using CommonService.Filters;
+using CommonService.Import;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.Controllers;
@@ -89,5 +91,32 @@ public class UsersController : ControllerBase
     {
         await _userService.BroadcastNotificationAsync(request);
         return Ok(new { success = true });
+    }
+
+    // POST /api/v1/users/import (Admin)
+    [HttpPost("import")]
+    [ApiMessage("Import danh sách user thành công")]
+    [RequiresPermission("POST", "/api/v1/users/import")]
+    public async Task<IActionResult> Import(IFormFile file)
+    {
+        var result = await _userService.ImportAsync(file);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                StatusCode = 400,
+                Error      = "Bad Request",
+                Message    = "File import chứa dữ liệu không hợp lệ.",
+                Data       = result
+            });
+        }
+
+        return Ok(new ApiResponse<object>
+        {
+            StatusCode = 200,
+            Error      = null,
+            Message    = "Import danh sách user thành công.",
+            Data       = result
+        });
     }
 }

@@ -15,10 +15,9 @@ public static class DatabaseSeeder
     {
         const string CACHE_KEY_DROPDOWN = "permissions:dropdown";
 
-        // ── 1. Upsert Permissions (thêm nếu chưa có, bỏ qua nếu đã tồn tại) ──
+        // ── 1. Upsert Permissions ──────────────────────────────────────────────
         var allDefined = GetAllPermissions();
 
-        // Lấy tất cả permissions đang có trong DB (key = "METHOD:path")
         var existing = await context.Permissions
             .Select(p => new { p.Method, p.ApiPath })
             .ToListAsync();
@@ -34,7 +33,6 @@ public static class DatabaseSeeder
         {
             await context.Permissions.AddRangeAsync(toAdd);
             await context.SaveChangesAsync();
-            // Xóa cache dropdown để frontend lấy danh sách mới nhất
             await cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
             Console.WriteLine($"[Seeder] ✅ Đã thêm {toAdd.Count} Permissions mới & xóa cache dropdown.");
         }
@@ -43,7 +41,7 @@ public static class DatabaseSeeder
             Console.WriteLine("[Seeder] ℹ️  Tất cả Permissions đã tồn tại, bỏ qua.");
         }
 
-        // ── 2. Seed Roles (chỉ tạo nếu chưa có) ──────────────────────────────
+        // ── 2. Seed Roles ──────────────────────────────────────────────────────
         if (!await context.Roles.AnyAsync())
         {
             var allPerms = await context.Permissions.ToListAsync();
@@ -116,6 +114,7 @@ public static class DatabaseSeeder
         new() { Name = "Xóa user",                         ApiPath = "/api/v1/users/{id}",                Method = "DELETE", Module = "USER" },
         new() { Name = "Đặt lại mật khẩu user",           ApiPath = "/api/v1/users/{id}/reset-password", Method = "PATCH",  Module = "USER" },
         new() { Name = "Gửi thông báo broadcast",          ApiPath = "/api/v1/users/notifications/broadcast", Method = "POST", Module = "USER" },
+        new() { Name = "Import danh sách user",            ApiPath = "/api/v1/users/import",              Method = "POST",   Module = "USER" },
 
         // ── ROLE ─────────────────────────────────────────────────────────────
         new() { Name = "Xem danh sách role",               ApiPath = "/api/v1/roles",                     Method = "GET",    Module = "ROLE" },
@@ -134,6 +133,7 @@ public static class DatabaseSeeder
         // ── PROFILE SERVICE ──────────────────────────────────────────────────
         new() { Name = "Xem danh sách hồ sơ",             ApiPath = "/api/v1/customers",                 Method = "GET",    Module = "PROFILE" },
         new() { Name = "Xem hồ sơ theo ID",               ApiPath = "/api/v1/customers/{id}",            Method = "GET",    Module = "PROFILE" },
+        new() { Name = "Cập nhật hồ sơ cá nhân",          ApiPath = "/api/v1/customers/me",              Method = "PUT",    Module = "PROFILE" },
 
         // ── SKILL ────────────────────────────────────────────────────────────
         new() { Name = "Xem danh sách kỹ năng (Admin)",   ApiPath = "/api/v1/skills",                    Method = "GET",    Module = "SKILL" },
@@ -142,28 +142,30 @@ public static class DatabaseSeeder
         new() { Name = "Xóa kỹ năng",                     ApiPath = "/api/v1/skills/{id}",               Method = "DELETE", Module = "SKILL" },
         new() { Name = "Import danh sách kỹ năng",         ApiPath = "/api/v1/skills/import",             Method = "POST",   Module = "SKILL" },
 
-        // ── COMPANY SERVICE ───────────────────────────────────────────────
+        // ── COMPANY SERVICE ───────────────────────────────────────────────────
         new() { Name = "Xem danh sách công ty",            ApiPath = "/api/v1/companies",                 Method = "GET",    Module = "COMPANY" },
         new() { Name = "Xem chi tiết công ty",             ApiPath = "/api/v1/companies/{id}",            Method = "GET",    Module = "COMPANY" },
         new() { Name = "Tạo công ty mới",                  ApiPath = "/api/v1/companies",                 Method = "POST",   Module = "COMPANY" },
         new() { Name = "Cập nhật thông tin công ty",       ApiPath = "/api/v1/companies/{id}",            Method = "PUT",    Module = "COMPANY" },
         new() { Name = "Xóa công ty",                      ApiPath = "/api/v1/companies/{id}",            Method = "DELETE", Module = "COMPANY" },
         new() { Name = "Xác minh công ty",                 ApiPath = "/api/v1/companies/{id}/verify",     Method = "PATCH",  Module = "COMPANY" },
+        new() { Name = "Import danh sách công ty",          ApiPath = "/api/v1/companies/import",          Method = "POST",   Module = "COMPANY" },
 
-        // ── JOB SERVICE ───────────────────────────────────────────────────
+        // ── JOB SERVICE ───────────────────────────────────────────────────────
         new() { Name = "Xem danh sách tin tuyển dụng",     ApiPath = "/api/v1/jobs",                      Method = "GET",    Module = "JOB" },
         new() { Name = "Xem chi tiết tin tuyển dụng",      ApiPath = "/api/v1/jobs/{id}",                 Method = "GET",    Module = "JOB" },
         new() { Name = "Tạo tin tuyển dụng",               ApiPath = "/api/v1/jobs",                      Method = "POST",   Module = "JOB" },
         new() { Name = "Cập nhật tin tuyển dụng",          ApiPath = "/api/v1/jobs/{id}",                 Method = "PUT",    Module = "JOB" },
         new() { Name = "Xóa tin tuyển dụng",               ApiPath = "/api/v1/jobs/{id}",                 Method = "DELETE", Module = "JOB" },
         new() { Name = "Đổi trạng thái tin tuyển dụng",    ApiPath = "/api/v1/jobs/{id}/status",          Method = "PATCH",  Module = "JOB" },
+        new() { Name = "Import danh sách tin tuyển dụng",   ApiPath = "/api/v1/admin/jobs/import",         Method = "POST",   Module = "JOB" },
 
-        // ── SAVED JOBS ───────────────────────────────────────────────────────────────────────────────
+        // ── SAVED JOBS ────────────────────────────────────────────────────────
         new() { Name = "Xem danh sách việc làm đã lưu",    ApiPath = "/api/v1/saved-jobs",                Method = "GET",    Module = "JOB" },
         new() { Name = "Lưu tin tuyển dụng",                ApiPath = "/api/v1/saved-jobs/{jobId}",       Method = "POST",   Module = "JOB" },
         new() { Name = "Bỏ lưu tin tuyển dụng",            ApiPath = "/api/v1/saved-jobs/{jobId}",        Method = "DELETE", Module = "JOB" },
 
-        // ── RESUME SERVICE ───────────────────────────────────────────────────────────────────────────
+        // ── RESUME SERVICE ────────────────────────────────────────────────────
         new() { Name = "Xem danh sách CV",              ApiPath = "/api/v1/resumes",                     Method = "GET",    Module = "RESUME" },
         new() { Name = "Xem chi tiết CV",               ApiPath = "/api/v1/resumes/{id}",                Method = "GET",    Module = "RESUME" },
         new() { Name = "Tải lên CV (file)",             ApiPath = "/api/v1/resumes",                     Method = "POST",   Module = "RESUME" },
@@ -173,10 +175,11 @@ public static class DatabaseSeeder
         new() { Name = "Xóa CV",                        ApiPath = "/api/v1/resumes/{id}",                Method = "DELETE", Module = "RESUME" },
         new() { Name = "Đặt CV mặc định",               ApiPath = "/api/v1/resumes/{id}/set-default",    Method = "PATCH",  Module = "RESUME" },
 
-        // ── APPLICATION SERVICE ────────────────────────────────────────────────────────────────────────
+        // ── APPLICATION SERVICE ───────────────────────────────────────────────
         new() { Name = "Xem danh sách đơn ứng tuyển",  ApiPath = "/api/v1/applications",                Method = "GET",    Module = "APPLICATION" },
         new() { Name = "Xem chi tiết đơn ứng tuyển",   ApiPath = "/api/v1/applications/{id}",           Method = "GET",    Module = "APPLICATION" },
         new() { Name = "Nộp đơn ứng tuyển",             ApiPath = "/api/v1/applications",                Method = "POST",   Module = "APPLICATION" },
+        new() { Name = "Hủy đơn ứng tuyển",             ApiPath = "/api/v1/applications/{id}",           Method = "DELETE", Module = "APPLICATION" },
         new() { Name = "Cập nhật trạng thái đơn ứng tuyển", ApiPath = "/api/v1/applications/{id}/status", Method = "PATCH",  Module = "APPLICATION" },
     };
 
@@ -195,7 +198,7 @@ public static class DatabaseSeeder
             Name        = "ADMIN",
             Description = "Quản trị viên hệ thống — toàn quyền",
             Active      = true,
-            Permissions = perms.Values.ToList()  // gán tất cả
+            Permissions = perms.Values.ToList()
         };
 
         // ── HR — Nhà tuyển dụng ──────────────────────────────────────────────
@@ -259,10 +262,13 @@ public static class DatabaseSeeder
                 Get("PUT",    "/api/v1/resumes/{id}/content"),
                 Get("DELETE", "/api/v1/resumes/{id}"),
                 Get("PATCH",  "/api/v1/resumes/{id}/set-default"),
-                // Application: ứng viên nộp đơn và theo dõi
+                // Application: ứng viên nộp đơn, theo dõi và hủy
                 Get("GET",    "/api/v1/applications"),
                 Get("GET",    "/api/v1/applications/{id}"),
                 Get("POST",   "/api/v1/applications"),
+                Get("DELETE", "/api/v1/applications/{id}"),
+                // Profile: cập nhật hồ sơ bản thân
+                Get("PUT",    "/api/v1/customers/me"),
             }
         };
 

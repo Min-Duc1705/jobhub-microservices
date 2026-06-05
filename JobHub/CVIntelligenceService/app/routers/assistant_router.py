@@ -1,165 +1,28 @@
+# app/routers/assistant_router.py
+"""
+API endpoints cho AI Assistant.
+Helper logic (Redis, JWT, auth fetch) đã tách sang assistant_router_helpers.py.
+"""
 import base64
 import logging
 import uuid
-import os
-import json
-import redis.asyncio as async_redis
-from fastapi import APIRouter, HTTPException, Header, UploadFile, File
 from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File
 
 from app.schemas.assistant import (
     AssistantChatRequest, AssistantChatResponse, AssistantConfirmRequest
 )
 from app.services import ai_assistant_service
+from .assistant_router_helpers import (
+    fetch_user_permissions_from_redis,
+    extract_user_info_from_token,
+    fetch_user_profile_and_permissions,
+    fetch_user_company_name,
+)
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
 logger = logging.getLogger(__name__)
-
-redis_host = os.getenv("REDIS_HOST", "redis")
-redis_port = int(os.getenv("REDIS_PORT", 6379))
-redis_client = async_redis.Redis(host=redis_host, port=redis_port, db=0, decode_responses=True)
-
-async def _fetch_user_permissions_from_redis(email: str) -> Optional[list[dict]]:
-    """Thử lấy danh sách permissions của user từ Redis cache (perm:{email})."""
-    if not email:
-        return None
-    try:
-        redis_key = f"perm:{email}"
-        cached_data = await redis_client.get(redis_key)
-        if cached_data:
-            raw_perms = json.loads(cached_data)
-            if isinstance(raw_perms, list):
-                permissions = []
-                for p in raw_perms:
-                    method = p.get("Method") or p.get("method")
-                    api_path = p.get("ApiPath") or p.get("apiPath")
-                    if method and api_path:
-                        permissions.append({
-                            "method": method,
-                            "apiPath": api_path
-                        })
-                logger.info(f"[AssistantRouter] Loaded {len(permissions)} permissions from Redis cache for {email}")
-                return permissions
-    except Exception as e:
-        logger.error(f"[AssistantRouter] Failed to fetch permissions from Redis: {e}")
-    return None
-
-
-import httpx
-
-def _extract_user_info_from_token(authorization: str) -> dict:
-    """Parse JWT payload để lấy user info (không verify signature, chỉ decode)."""
-    import base64, json
-    try:
-        # JWT format: header.payload.signature
-        parts = authorization.replace("Bearer ", "").split(".")
-        if len(parts) != 3:
-            return {}
-
-        # Decode payload (base64url)
-        payload_b64 = parts[1]
-        # Add padding
-        padding = 4 - len(payload_b64) % 4
-        if padding != 4:
-            payload_b64 += "=" * padding
-
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
-        
-        # Map .NET claim types to standard keys
-        role = payload.get("role") or payload.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
-        if role:
-            payload["role"] = role
-            
-        username = payload.get("username") or payload.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name") or payload.get("sub")
-        if username:
-            payload["username"] = username
-            
-        email = payload.get("email") or payload.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
-        if email:
-            payload["email"] = email
-            
-        return payload
-    except Exception:
-        return {}
-
-
-async def _fetch_user_profile_and_permissions(token: str) -> dict:
-    """Gọi AuthService để lấy thông tin account chi tiết và permissions thực tế."""
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    url = "http://authservice:8080/api/v1/auth/account"
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        try:
-            resp = await client.get(url, headers=headers)
-            if resp.status_code == 200:
-                body = resp.json()
-                
-                # Check wrapper "data"
-                data = body.get("data") if "data" in body else body
-                if not data:
-                    return {}
-                    
-                user = data.get("user") or {}
-                role_obj = user.get("role") or {}
-                role_name = role_obj.get("name") or "USER"
-                
-                raw_perms = role_obj.get("permissions") or []
-                permissions = []
-                for p in raw_perms:
-                    permissions.append({
-                        "method": p.get("method"),
-                        "apiPath": p.get("apiPath")
-                    })
-                    
-                return {
-                    "role": role_name,
-                    "permissions": permissions,
-                    "username": user.get("username") or user.get("email", "Người dùng")
-                }
-            else:
-                logger.warning(f"[AssistantRouter] Failed to fetch account from authservice: HTTP {resp.status_code}")
-                return {}
-        except Exception as e:
-            logger.error(f"[AssistantRouter] Error calling authservice: {e}")
-            return {}
-
-
-async def _fetch_user_company_name(token: str, role: str) -> str:
-    """Nếu user là HR/Employer, fetch tên công ty của họ từ ProfileService -> CompanyService."""
-    role_upper = (role or "USER").upper()
-    if not ("HR" in role_upper or "EMPLOYER" in role_upper or "ADMIN" in role_upper):
-        return ""
-    
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    
-    # Bước 1: Gọi ProfileService lấy profile của tôi
-    profile_url = "http://profileservice:8080/api/v1/customers/me"
-    async with httpx.AsyncClient(timeout=3.0) as client:
-        try:
-            resp = await client.get(profile_url, headers=headers)
-            if resp.status_code == 200:
-                body = resp.json()
-                data = body.get("data") if "data" in body else body
-                if not data:
-                    return ""
-                
-                company_id = data.get("companyId")
-                if not company_id:
-                    return ""
-                
-                # Bước 2: Gọi CompanyService lấy chi tiết công ty theo ID
-                comp_url = f"http://companyservice:8080/api/v1/companies/{company_id}"
-                comp_resp = await client.get(comp_url, headers=headers)
-                if comp_resp.status_code == 200:
-                    comp_body = comp_resp.json()
-                    comp_data = comp_body.get("data") if "data" in comp_body else comp_body
-                    if comp_data:
-                        company_name = comp_data.get("name", "")
-                        logger.info(f"[AssistantRouter] Found company name for HR: {company_name}")
-                        return company_name
-            return ""
-        except Exception as e:
-            logger.error(f"[AssistantRouter] Error fetching user company name: {e}")
-            return ""
 
 
 @router.post("/chat", response_model=AssistantChatResponse, summary="Chat với AI Assistant")
@@ -170,7 +33,8 @@ async def chat(
 ):
     """
     Gửi tin nhắn đến AI Assistant và nhận phản hồi thông minh.
-    AI sẽ phân tích yêu cầu và thực hiện các hành động phù hợp với quyền hạn của user.
+    Permissions được lấy từ Redis cache (perm:{email}) — được AuthService ghi khi login/refresh.
+    Fallback gọi AuthService chỉ khi Redis miss.
     """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
@@ -178,27 +42,30 @@ async def chat(
     user_token = authorization.replace("Bearer ", "")
     session_id = x_session_id or str(uuid.uuid4())
 
-    # Decode JWT để lấy thông tin fallback
-    jwt_payload = _extract_user_info_from_token(authorization)
-    email = jwt_payload.get("email", "")
+    # Decode JWT — lấy email, role, username trực tiếp (không verify signature)
+    jwt_payload = extract_user_info_from_token(authorization)
+    email     = jwt_payload.get("email", "")
     role_name = jwt_payload.get("role", "USER")
-    username = jwt_payload.get("username", "Người dùng")
-    permissions = []
+    username  = jwt_payload.get("username", "Người dùng")
 
-    # 1. Thử lấy permissions từ Redis cache
-    redis_permissions = await _fetch_user_permissions_from_redis(email)
-    if redis_permissions is not None:
-        permissions = redis_permissions
-    else:
-        # 2. Fallback gọi authservice
-        auth_data = await _fetch_user_profile_and_permissions(user_token)
+    # ── Lấy permissions: Redis trước (O(1)), fallback AuthService ────────────
+    permissions = await fetch_user_permissions_from_redis(email)
+
+    if permissions is None:
+        # Redis miss → gọi AuthService một lần duy nhất
+        logger.warning(f"[AssistantRouter] Redis miss cho '{email}', fallback AuthService")
+        auth_data = await fetch_user_profile_and_permissions(user_token)
+        permissions = auth_data.get("permissions", []) if auth_data else []
         if auth_data:
-            permissions = auth_data.get("permissions", [])
+            # AuthService trả role/username mới nhất (vd admin vừa đổi role user)
             role_name = auth_data.get("role", role_name)
-            username = auth_data.get("username", username)
+            username  = auth_data.get("username", username)
+    else:
+        # Redis hit — dùng permissions từ cache, role/username từ JWT là đủ
+        logger.info(f"[AssistantRouter] Redis hit: {len(permissions)} perms cho '{email}' (role={role_name})")
 
-    # Fetch tên công ty của HR
-    company_name = await _fetch_user_company_name(user_token, role_name)
+    # Fetch tên công ty (HR only, best-effort, không block)
+    company_name = await fetch_user_company_name(user_token, role_name)
 
     try:
         response = await ai_assistant_service.process_assistant_message(
@@ -234,11 +101,7 @@ async def confirm_action(
     user_token = authorization.replace("Bearer ", "")
 
     if not request.confirmed:
-        return {
-            "statusCode": 200,
-            "message": "Đã hủy hành động",
-            "data": {"cancelled": True}
-        }
+        return {"statusCode": 200, "message": "Đã hủy hành động", "data": {"cancelled": True}}
 
     if request.action_type == "create_job":
         job_data = request.payload
@@ -289,12 +152,8 @@ async def upload_file(
     file_bytes = await file.read()
 
     if content_type.startswith("image/"):
-        # Return base64 for image
         image_b64 = base64.b64encode(file_bytes).decode("utf-8")
-
-        # Try to extract job info from image
         extracted = await ai_assistant_service.extract_job_from_image(image_b64)
-
         return {
             "statusCode": 200,
             "message": "Đã phân tích ảnh thành công",
@@ -305,6 +164,7 @@ async def upload_file(
                 "file_name": file.filename,
             }
         }
+
     elif content_type == "text/plain":
         text_content = file_bytes.decode("utf-8", errors="ignore")
         return {
@@ -316,13 +176,12 @@ async def upload_file(
                 "file_name": file.filename,
             }
         }
+
     else:
-        # For PDF/Word, return raw bytes as text (simplified)
         try:
             text_content = file_bytes.decode("utf-8", errors="ignore")
         except Exception:
             text_content = ""
-
         return {
             "statusCode": 200,
             "message": "Đã nhận file",
@@ -342,3 +201,147 @@ async def clear_session(
     if x_session_id:
         ai_assistant_service.clear_session(x_session_id)
     return {"statusCode": 200, "message": "Đã xóa lịch sử hội thoại"}
+
+
+@router.get("/tools/definitions", summary="Lấy danh sách tất cả tool definitions (dùng cho Admin UI)")
+async def get_tool_definitions(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """
+    Trả về danh sách toàn bộ AI tool definitions từ tools/definitions.py.
+    Admin dùng endpoint này để biết các tool hợp lệ khi tạo mới AI Tool qua UI.
+    """
+    from app.services.ai_assistant_service.tools import _ALL_TOOL_DEFS
+
+    result = [
+        {
+            "name": t["name"],
+            "description": t.get("description", ""),
+            "action_type": t.get("action_type", "read"),
+            "permissions_required": [
+                {"method": m, "apiPath": p}
+                for m, p in t.get("permissions_required", [])
+            ],
+        }
+        for t in _ALL_TOOL_DEFS
+    ]
+
+    return {
+        "statusCode": 200,
+        "message": "Lấy danh sách tool definitions thành công",
+        "data": result
+    }
+
+
+@router.post("/import", summary="AI Import dữ liệu từ file Excel/CSV")
+async def ai_import(
+    import_type: str,
+    file: UploadFile = File(...),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """
+    AI thực hiện import dữ liệu từ file Excel/CSV thay mặt Admin.
+
+    - **import_type**: `users` | `skills` | `companies` | `jobs`
+    - **file**: File Excel (.xlsx) hoặc CSV (.csv)
+
+    Endpoint này validate permission của user trước, sau đó forward file
+    đến đúng microservice tương ứng.
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+
+    user_token = authorization.replace("Bearer ", "")
+    jwt_payload = extract_user_info_from_token(authorization)
+    email = jwt_payload.get("email", "")
+
+    # ── Validate permission ──────────────────────────────────────────────────
+    permissions = await fetch_user_permissions_from_redis(email)
+    if permissions is None:
+        auth_data = await fetch_user_profile_and_permissions(user_token)
+        permissions = auth_data.get("permissions", []) if auth_data else []
+
+    _IMPORT_PERMISSION_MAP = {
+        "users":     ("POST", "/api/v1/users/import"),
+        "skills":    ("POST", "/api/v1/skills/import"),
+        "companies": ("POST", "/api/v1/companies/import"),
+        "jobs":      ("POST", "/api/v1/admin/jobs/import"),
+    }
+
+    if import_type not in _IMPORT_PERMISSION_MAP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"import_type không hợp lệ. Chỉ nhận: {list(_IMPORT_PERMISSION_MAP.keys())}"
+        )
+
+    required_method, required_path = _IMPORT_PERMISSION_MAP[import_type]
+    has_permission = any(
+        p.get("method") == required_method and p.get("apiPath") == required_path
+        for p in permissions
+    )
+    if not has_permission:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Bạn không có quyền import {import_type}. Cần permission: {required_method} {required_path}"
+        )
+
+    # ── Validate file type ───────────────────────────────────────────────────
+    allowed_types = {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+        "application/vnd.ms-excel",                                            # .xls
+        "text/csv",
+        "application/csv",
+    }
+    filename = file.filename or f"import_{import_type}.xlsx"
+    content_type = file.content_type or "application/octet-stream"
+
+    if content_type not in allowed_types and not filename.endswith((".xlsx", ".xls", ".csv")):
+        raise HTTPException(
+            status_code=400,
+            detail="Chỉ hỗ trợ file Excel (.xlsx, .xls) hoặc CSV (.csv)"
+        )
+
+    file_bytes = await file.read()
+
+    # ── Forward đến đúng service ─────────────────────────────────────────────
+    _IMPORT_URL_MAP = {
+        "users":     "http://authservice:8080/api/v1/users/import",
+        "skills":    "http://jobhub_jobservice:8080/api/v1/skills/import",
+        "companies": "http://companyservice:8080/api/v1/companies/import",
+        "jobs":      "http://jobhub_jobservice:8080/api/v1/admin/jobs/import",
+    }
+
+    from app.services.ai_assistant_service.api_client import _call_api_multipart
+    result = await _call_api_multipart(
+        url=_IMPORT_URL_MAP[import_type],
+        token=user_token,
+        file_bytes=file_bytes,
+        filename=filename,
+        content_type=content_type,
+    )
+
+    if result.get("success"):
+        data = result.get("data", {})
+        # Lấy summary từ response của service (nếu có)
+        inner = data.get("data", data)
+        total       = inner.get("total", inner.get("totalImported", "?"))
+        success_cnt = inner.get("success", inner.get("successCount", total))
+        failed_cnt  = inner.get("failed",  inner.get("failedCount", 0))
+
+        return {
+            "statusCode": 200,
+            "message": f"✅ Import {import_type} thành công!",
+            "data": {
+                "import_type":   import_type,
+                "file_name":     filename,
+                "total":         total,
+                "success_count": success_cnt,
+                "failed_count":  failed_cnt,
+                "details":       inner.get("errors", inner.get("failedRows", [])),
+            }
+        }
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Import thất bại: {result.get('error', 'Lỗi không xác định')}"
+        )

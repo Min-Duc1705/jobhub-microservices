@@ -32,4 +32,30 @@ public class AdminJobsController : ControllerBase
     public async Task<ActionResult<ResultPaginationDto<JobResponse>>> GetAllForAdmin(
         [FromQuery] AdminJobFilterRequest filter)
         => Ok(await _jobService.GetAllForAdminAsync(filter));
+
+    [HttpPost("import")]
+    [ApiMessage("Import danh sách tin tuyển dụng thành công")]
+    [RequiresPermission("POST", "/api/v1/admin/jobs/import")]
+    public async Task<IActionResult> Import(Microsoft.AspNetCore.Http.IFormFile file)
+    {
+        var result = await _jobService.ImportAsync(file);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                StatusCode = 400,
+                Error      = "Bad Request",
+                Message    = "File import chứa dữ liệu không hợp lệ.",
+                Data       = result
+            });
+        }
+
+        return Ok(new ApiResponse<object>
+        {
+            StatusCode = 200,
+            Error      = null,
+            Message    = "Import danh sách tin tuyển dụng thành công.",
+            Data       = result
+        });
+    }
 }

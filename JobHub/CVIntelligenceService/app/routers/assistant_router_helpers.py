@@ -1,0 +1,164 @@
+# app/routers/assistant_router_helpers.py
+"""
+Helper functions cho assistant_router:
+- Redis permission cache lookup
+- JWT decode
+- AuthService profile/permission fetch
+- Company name fetch for HR accounts
+"""
+import base64
+import json
+import logging
+import os
+from typing import Optional
+
+import httpx
+import redis.asyncio as async_redis
+
+logger = logging.getLogger(__name__)
+
+# Redis client (shared)
+redis_host = os.getenv("REDIS_HOST", "redis")
+redis_port = int(os.getenv("REDIS_PORT", 6379))
+redis_client = async_redis.Redis(host=redis_host, port=redis_port, db=0, decode_responses=True)
+
+
+async def fetch_user_permissions_from_redis(email: str) -> Optional[list[dict]]:
+    """Thử lấy danh sách permissions của user từ Redis cache (perm:{email})."""
+    if not email:
+        return None
+    try:
+        redis_key = f"perm:{email}"
+        cached_data = await redis_client.get(redis_key)
+        if cached_data:
+            raw_perms = json.loads(cached_data)
+            if isinstance(raw_perms, list):
+                permissions = []
+                for p in raw_perms:
+                    method = p.get("Method") or p.get("method")
+                    api_path = p.get("ApiPath") or p.get("apiPath")
+                    if method and api_path:
+                        permissions.append({"method": method, "apiPath": api_path})
+                logger.info(
+                    f"[AssistantHelpers] Loaded {len(permissions)} permissions from Redis for {email}"
+                )
+                return permissions
+    except Exception as e:
+        logger.error(f"[AssistantHelpers] Failed to fetch permissions from Redis: {e}")
+    return None
+
+
+def extract_user_info_from_token(authorization: str) -> dict:
+    """Parse JWT payload để lấy user info (không verify signature, chỉ decode)."""
+    try:
+        parts = authorization.replace("Bearer ", "").split(".")
+        if len(parts) != 3:
+            return {}
+
+        payload_b64 = parts[1]
+        padding = 4 - len(payload_b64) % 4
+        if padding != 4:
+            payload_b64 += "=" * padding
+
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+
+        # Map .NET claim types to standard keys
+        role = (
+            payload.get("role")
+            or payload.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+        )
+        if role:
+            payload["role"] = role
+
+        username = (
+            payload.get("username")
+            or payload.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")
+            or payload.get("sub")
+        )
+        if username:
+            payload["username"] = username
+
+        email = (
+            payload.get("email")
+            or payload.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
+        )
+        if email:
+            payload["email"] = email
+
+        return payload
+    except Exception:
+        return {}
+
+
+async def fetch_user_profile_and_permissions(token: str) -> dict:
+    """Gọi AuthService để lấy thông tin account chi tiết và permissions thực tế."""
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    url = "http://authservice:8080/api/v1/auth/account"
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        try:
+            resp = await client.get(url, headers=headers)
+            if resp.status_code == 200:
+                body = resp.json()
+                data = body.get("data") if "data" in body else body
+                if not data:
+                    return {}
+
+                user = data.get("user") or {}
+                role_obj = user.get("role") or {}
+                role_name = role_obj.get("name") or "USER"
+
+                permissions = [
+                    {"method": p.get("method"), "apiPath": p.get("apiPath")}
+                    for p in (role_obj.get("permissions") or [])
+                ]
+
+                return {
+                    "role": role_name,
+                    "permissions": permissions,
+                    "username": user.get("username") or user.get("email", "Người dùng"),
+                }
+            else:
+                logger.warning(
+                    f"[AssistantHelpers] Failed to fetch account from authservice: HTTP {resp.status_code}"
+                )
+                return {}
+        except Exception as e:
+            logger.error(f"[AssistantHelpers] Error calling authservice: {e}")
+            return {}
+
+
+async def fetch_user_company_name(token: str, role: str) -> str:
+    """Nếu user là HR/Employer, fetch tên công ty của họ từ ProfileService → CompanyService."""
+    role_upper = (role or "USER").upper()
+    if not ("HR" in role_upper or "EMPLOYER" in role_upper or "ADMIN" in role_upper):
+        return ""
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    profile_url = "http://profileservice:8080/api/v1/customers/me"
+    async with httpx.AsyncClient(timeout=3.0) as client:
+        try:
+            resp = await client.get(profile_url, headers=headers)
+            if resp.status_code == 200:
+                body = resp.json()
+                data = body.get("data") if "data" in body else body
+                if not data:
+                    return ""
+
+                company_id = data.get("companyId")
+                if not company_id:
+                    return ""
+
+                comp_url = f"http://companyservice:8080/api/v1/companies/{company_id}"
+                comp_resp = await client.get(comp_url, headers=headers)
+                if comp_resp.status_code == 200:
+                    comp_body = comp_resp.json()
+                    comp_data = comp_body.get("data") if "data" in comp_body else comp_body
+                    if comp_data:
+                        company_name = comp_data.get("name", "")
+                        logger.info(f"[AssistantHelpers] Found company name for HR: {company_name}")
+                        return company_name
+            return ""
+        except Exception as e:
+            logger.error(f"[AssistantHelpers] Error fetching user company name: {e}")
+            return ""
