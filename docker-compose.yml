@@ -95,21 +95,6 @@ services:
     volumes:
       - mongodb_data:/data/db
 
-  # --------------------------------------------------------------------------
-  # 6. ELASTICSEARCH (Tìm kiếm Full-text tốc độ cao cho JobService)
-  # --------------------------------------------------------------------------
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
-    container_name: jobhub_elasticsearch
-    restart: unless-stopped
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
 
   # --------------------------------------------------------------------------
   # 7. JOBHUB MICROSERVICES (.NET 8) - TẠM THỜI TẮT (Chạy local bằng IDE/dotnet CLI)
@@ -558,4 +543,3 @@ volumes:
   redis_data:
   minio_data:
   mongodb_data:
-  elasticsearch_data:
