@@ -578,6 +578,57 @@
       }
     },
     {
+      "UpstreamPathTemplate": "/api/v1/assistant/chat",
+      "UpstreamHttpMethod": [ "POST" ],
+      "DownstreamPathTemplate": "/api/v1/assistant/chat",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "cvintelligenceservice", "Port": 5006 }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": { "TimeoutValue": 60000 }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/assistant/upload",
+      "UpstreamHttpMethod": [ "POST" ],
+      "DownstreamPathTemplate": "/api/v1/assistant/upload",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "cvintelligenceservice", "Port": 5006 }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": { "TimeoutValue": 60000 }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/assistant/confirm-action",
+      "UpstreamHttpMethod": [ "POST" ],
+      "DownstreamPathTemplate": "/api/v1/assistant/confirm-action",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "cvintelligenceservice", "Port": 5006 }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "QoSOptions": { "TimeoutValue": 30000 }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/assistant/session",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "DownstreamPathTemplate": "/api/v1/assistant/session",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "cvintelligenceservice", "Port": 5006 }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
       "UpstreamPathTemplate": "/api/v1/analytics/salary/predict",
       "UpstreamHttpMethod": [
         "POST"

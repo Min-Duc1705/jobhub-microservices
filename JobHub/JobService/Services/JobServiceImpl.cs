@@ -140,6 +140,11 @@ public class JobServiceImpl : IJobService
         job.CustomerId = customerId;
         job.Status     = JobStatus.DRAFT; // Mặc định là bản nháp
 
+        if (job.StartDate == null)
+        {
+            job.StartDate = DateTime.UtcNow;
+        }
+
         // Validate và gán kỹ năng
         if (request.SkillIds.Any())
         {

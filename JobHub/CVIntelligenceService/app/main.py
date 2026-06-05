@@ -27,9 +27,10 @@ app = FastAPI(
 )
 
 # ── Register Routers ───────────────────────────────────────────────────────────
-from app.routers import hire_agent_router
+from app.routers import hire_agent_router, assistant_router
 app.include_router(cv_router.router, prefix="/api/v1")
 app.include_router(hire_agent_router.router, prefix="/api/v1")
+app.include_router(assistant_router.router, prefix="/api/v1")
 
 
 # ── Lifecycle Events ───────────────────────────────────────────────────────────
