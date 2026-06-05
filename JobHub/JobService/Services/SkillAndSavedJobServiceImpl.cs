@@ -1,6 +1,7 @@
 using AutoMapper;
 using CommonService.Common;
 using CommonService.Exceptions;
+using CommonService.Import;
 using JobService.Models;
 using JobService.Models.Request;
 using JobService.Models.Response;
@@ -8,20 +9,27 @@ using JobService.Repositories.Interface;
 using JobService.Services.Interface;
 using JobService.Specifications;
 using MassTransit;
+using Microsoft.AspNetCore.Http;
 
 namespace JobService.Services;
 
 public class SkillServiceImpl : ISkillService
 {
-    private readonly ISkillRepository _skillRepo;
-    private readonly IMapper          _mapper;
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly ISkillRepository       _skillRepo;
+    private readonly IMapper                _mapper;
+    private readonly IPublishEndpoint       _publishEndpoint;
+    private readonly IExcelCsvImportService _importService;
 
-    public SkillServiceImpl(ISkillRepository skillRepo, IMapper mapper, IPublishEndpoint publishEndpoint)
+    public SkillServiceImpl(
+        ISkillRepository skillRepo, 
+        IMapper mapper, 
+        IPublishEndpoint publishEndpoint,
+        IExcelCsvImportService importService)
     {
         _skillRepo       = skillRepo;
         _mapper          = mapper;
         _publishEndpoint = publishEndpoint;
+        _importService   = importService;
     }
 
     public async Task<ResultPaginationDto<SkillResponse>> GetAllAsync(
@@ -105,6 +113,89 @@ public class SkillServiceImpl : ISkillService
         {
             Id = skill.Id
         });
+    }
+
+    public async Task<ImportResult<CreateSkillRequest>> ImportAsync(IFormFile file)
+    {
+        var importResult = await _importService.ImportAsync<CreateSkillRequest>(file);
+        if (!importResult.IsSuccess)
+        {
+            return importResult;
+        }
+
+        // Validate duplicates and empty rows in memory and db
+        var validatedList = new List<CreateSkillRequest>();
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i < importResult.Data.Count; i++)
+        {
+            var req = importResult.Data[i];
+            var rowIndex = i + 2;
+
+            if (req == null || string.IsNullOrWhiteSpace(req.Name))
+            {
+                importResult.Errors.Add(new ValidationError
+                {
+                    RowIndex = rowIndex,
+                    ColumnName = "Name",
+                    ErrorMessage = "Tên kỹ năng không được để trống."
+                });
+                continue;
+            }
+
+            var trimmedName = req.Name.Trim();
+            if (seenNames.Contains(trimmedName))
+            {
+                importResult.Errors.Add(new ValidationError
+                {
+                    RowIndex = rowIndex,
+                    ColumnName = "Name",
+                    ErrorMessage = $"Tên kỹ năng '{req.Name}' bị lặp lại trong file import."
+                });
+                continue;
+            }
+
+            seenNames.Add(trimmedName);
+
+            var existing = await _skillRepo.GetByNameAsync(trimmedName);
+            if (existing != null)
+            {
+                importResult.Errors.Add(new ValidationError
+                {
+                    RowIndex = rowIndex,
+                    ColumnName = "Name",
+                    ErrorMessage = $"Kỹ năng '{req.Name}' đã tồn tại trong hệ thống."
+                });
+                continue;
+            }
+
+            req.Name = trimmedName;
+            validatedList.Add(req);
+        }
+
+        if (!importResult.IsSuccess)
+        {
+            importResult.Data.Clear();
+            return importResult;
+        }
+
+        // Save to Database and publish sync events
+        foreach (var req in validatedList)
+        {
+            var skill = _mapper.Map<Skill>(req);
+            await _skillRepo.AddAsync(skill);
+
+            // Publish event to RabbitMQ for ProfileService to sync
+            await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
+            {
+                Id   = skill.Id,
+                Name = skill.Name
+            });
+        }
+        await _skillRepo.SaveChangesAsync();
+
+        importResult.Data = validatedList;
+        return importResult;
     }
 }
 

@@ -1,6 +1,8 @@
 using CommonService.Common;
+using CommonService.Import;
 using JobService.Models.Request;
 using JobService.Models.Response;
+using Microsoft.AspNetCore.Http;
 
 namespace JobService.Services.Interface;
 
@@ -23,6 +25,7 @@ public interface ISkillService
     Task<SkillResponse> CreateAsync(CreateSkillRequest request);
     Task<SkillResponse> UpdateAsync(Guid id, UpdateSkillRequest request);
     Task DeleteAsync(Guid id);
+    Task<ImportResult<CreateSkillRequest>> ImportAsync(IFormFile file);
 }
 
 public interface ISavedJobService

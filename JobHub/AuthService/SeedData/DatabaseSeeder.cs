@@ -140,6 +140,7 @@ public static class DatabaseSeeder
         new() { Name = "Tạo kỹ năng mới",                 ApiPath = "/api/v1/skills",                    Method = "POST",   Module = "SKILL" },
         new() { Name = "Cập nhật kỹ năng",                ApiPath = "/api/v1/skills/{id}",               Method = "PUT",    Module = "SKILL" },
         new() { Name = "Xóa kỹ năng",                     ApiPath = "/api/v1/skills/{id}",               Method = "DELETE", Module = "SKILL" },
+        new() { Name = "Import danh sách kỹ năng",         ApiPath = "/api/v1/skills/import",             Method = "POST",   Module = "SKILL" },
 
         // ── COMPANY SERVICE ───────────────────────────────────────────────
         new() { Name = "Xem danh sách công ty",            ApiPath = "/api/v1/companies",                 Method = "GET",    Module = "COMPANY" },

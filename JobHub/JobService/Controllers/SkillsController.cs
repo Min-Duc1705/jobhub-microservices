@@ -1,6 +1,7 @@
 using CommonService.Annotations;
 using CommonService.Common;
 using CommonService.Filters;
+using CommonService.Import;
 using JobService.Models.Request;
 using JobService.Models.Response;
 using JobService.Services.Interface;
@@ -74,5 +75,32 @@ public class SkillsController : ControllerBase
     {
         await _skillService.DeleteAsync(id);
         return Ok((object?)null);
+    }
+
+    // POST /api/v1/skills/import (Admin)
+    [HttpPost("import")]
+    [Authorize]
+    [RequiresPermission("POST", "/api/v1/skills/import")]
+    public async Task<IActionResult> Import(IFormFile file)
+    {
+        var result = await _skillService.ImportAsync(file);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                StatusCode = 400,
+                Error      = "Bad Request",
+                Message    = "File import chứa dữ liệu không hợp lệ.",
+                Data       = result
+            });
+        }
+
+        return Ok(new ApiResponse<object>
+        {
+            StatusCode = 200,
+            Error      = null,
+            Message    = "Import danh sách kỹ năng thành công.",
+            Data       = result
+        });
     }
 }

@@ -2,6 +2,7 @@ using CommonService.Common;
 using CommonService.Exceptions;
 using CommonService.File;
 using CommonService.Filters;
+using CommonService.Import;
 using CommonService.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -31,6 +32,7 @@ public static class WebAppExtensions
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
         services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+        services.AddScoped<IExcelCsvImportService, ExcelCsvImportService>();
         return services;
     }
 
