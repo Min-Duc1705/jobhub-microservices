@@ -19,15 +19,17 @@ async def process_job_published_event(msg_body: bytes):
             logger.warning("[RabbitMQ] Message body empty or not inside envelope")
             return
 
-        job_title = msg.get("jobTitle")
-        years_of_experience = msg.get("yearsOfExperience", 0)
-        skill_set = msg.get("skillSet", [])
-        location = msg.get("location", "Khác")
-        level = msg.get("level", "JUNIOR")
-        salary_min_raw = float(msg.get("salaryMin", 0.0))
-        salary_max_raw = float(msg.get("salaryMax", 0.0))
-        is_negotiable = bool(msg.get("isNegotiable", False))
-        salary_currency = str(msg.get("salaryCurrency", "USD")).upper().strip()
+        job_title = msg.get("jobTitle") or msg.get("JobTitle")
+        years_of_experience = msg.get("yearsOfExperience") or msg.get("YearsOfExperience") or 0
+        skill_set = msg.get("skillSet") or msg.get("SkillSet") or []
+        location = msg.get("location") or msg.get("Location") or "Khác"
+        level = msg.get("level") or msg.get("Level") or "JUNIOR"
+        salary_min_raw = float(msg.get("salaryMin") or msg.get("SalaryMin") or 0.0)
+        salary_max_raw = float(msg.get("salaryMax") or msg.get("SalaryMax") or 0.0)
+        is_negotiable = bool(msg.get("isNegotiable") or msg.get("IsNegotiable") or False)
+        
+        currency_raw = msg.get("salaryCurrency") or msg.get("SalaryCurrency")
+        salary_currency = str(currency_raw).upper().strip() if currency_raw else "USD"
 
         if not job_title:
             logger.warning("[RabbitMQ] Job title is missing, skipping")
@@ -39,12 +41,17 @@ async def process_job_published_event(msg_body: bytes):
 
         def normalize(val: float, currency: str) -> float:
             if currency == "USD":
+                if val >= 5000: # Trường hợp nhập nhầm VND vào trường USD
+                    return round(val / VND_UNIT, 2)
                 return round((val * USD_TO_VND) / VND_UNIT, 2)
             elif currency == "VND":
+                if val > 0 and val < 5000: # Người dùng nhập dạng Triệu VND sẵn (ví dụ 30.0 hoặc 50.0)
+                    return round(val, 2)
                 return round(val / VND_UNIT, 2)
             else:
-                # Auto-detect: USD thường < 5000, VND thường hàng chục triệu
+                # Tự động nhận diện cho trường hợp khác hoặc rỗng
                 if val > 0 and val < 5000:
+                    # Dưới 5000 và không khai báo VND -> Mặc định quy đổi như USD thô
                     return round((val * USD_TO_VND) / VND_UNIT, 2)
                 return round(val / VND_UNIT, 2)
 
