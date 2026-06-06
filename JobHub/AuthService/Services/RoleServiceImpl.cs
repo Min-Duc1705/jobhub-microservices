@@ -129,8 +129,7 @@ public class RoleServiceImpl : IRoleService
 
     public async Task DeleteRoleAsync(Guid id)
     {
-        var spec = new RoleByIdSpec(id);
-        var role = await _roleRepo.GetEntityWithSpec(spec)
+        var role = await _roleRepo.GetWithPermissionsAsync(id)
             ?? throw new NotFoundException($"Không tìm thấy Role với ID: {id}");
 
         if (role.Users.Any())

@@ -123,6 +123,7 @@ public class UserServiceImpl : IUserService
             ?? throw new NotFoundException($"Không tìm thấy user với ID: {id}");
 
         _userRepo.Delete(user);
+        await _publishEndpoint.Publish(new UserDeletedEvent { UserId = id });
         await _userRepo.SaveChangesAsync();
     }
 

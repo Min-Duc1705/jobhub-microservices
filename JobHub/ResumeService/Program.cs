@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MassTransit;
+using ResumeService.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,8 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddMassTransit(x =>
 {
     x.SetKebabCaseEndpointNameFormatter();
+
+    x.AddConsumer<ResumeUserDeletedConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {

@@ -45,6 +45,7 @@ builder.Services.AddMassTransit(x =>
     x.SetKebabCaseEndpointNameFormatter();
 
     x.AddConsumer<UserRegisteredEventConsumer>();
+    x.AddConsumer<ProfileUserDeletedConsumer>();
     x.AddConsumer<SkillCreatedConsumer>();
     x.AddConsumer<SkillUpdatedConsumer>();
     x.AddConsumer<SkillDeletedConsumer>();

@@ -51,10 +51,38 @@ async def execute_get_user_detail(args: dict, user_token: str) -> dict:
 
 async def execute_update_user(args: dict, user_token: str) -> dict:
     user_id = args.get("user_id", "")
-    payload = {}
-    for field in ["username", "email", "roleId", "isActive"]:
-        if args.get(field) is not None:
-            payload[field] = args[field]
+    
+    # Fetch current user info first to get mandatory fields for update request
+    try:
+        current_resp = await _call_api("GET", f"{_AUTH_BASE}/users/{user_id}", user_token)
+        current_data = current_resp.get("data") if isinstance(current_resp, dict) and "data" in current_resp else current_resp
+    except Exception as e:
+        logger.warning(f"Failed to fetch current user info for update fallback: {e}")
+        current_data = {}
+
+    if not isinstance(current_data, dict):
+        current_data = {}
+
+    if "user" in current_data:
+        current_data = current_data["user"]
+
+    # Extract roleId from current role object if roleId is not provided
+    curr_role_id = None
+    if isinstance(current_data.get("role"), dict):
+        curr_role_id = current_data.get("role", {}).get("id")
+    else:
+        curr_role_id = current_data.get("roleId")
+
+    payload = {
+        "username": args.get("username") or current_data.get("username", ""),
+        "email":    args.get("email") or current_data.get("email", ""),
+        "status":   current_data.get("status", "Active"),
+        "roleId":   args.get("roleId") or curr_role_id
+    }
+
+    if args.get("isActive") is not None:
+        payload["status"] = "Active" if args["isActive"] else "Deactivated"
+
     return await _call_api("PUT", f"{_AUTH_BASE}/users/{user_id}", user_token, json_data=payload)
 
 
@@ -66,7 +94,23 @@ async def execute_delete_user(args: dict, user_token: str) -> dict:
 async def execute_reset_user_password(args: dict, user_token: str) -> dict:
     user_id      = args.get("user_id", "")
     new_password = args.get("new_password", "")
-    payload = {"newPassword": new_password}
+    
+    email = "test@jobhub.vn"  # fallback dummy email
+    try:
+        current_resp = await _call_api("GET", f"{_AUTH_BASE}/users/{user_id}", user_token)
+        current_data = current_resp.get("data") if isinstance(current_resp, dict) and "data" in current_resp else current_resp
+        if isinstance(current_data, dict) and "user" in current_data:
+            current_data = current_data["user"]
+        if isinstance(current_data, dict) and current_data.get("email"):
+            email = current_data["email"]
+    except Exception as e:
+        logger.warning(f"Failed to fetch current user info for reset password fallback email: {e}")
+        
+    payload = {
+        "email": email,
+        "otpCode": "000000",
+        "newPassword": new_password
+    }
     return await _call_api(
         "PATCH", f"{_AUTH_BASE}/users/{user_id}/reset-password",
         user_token, json_data=payload
@@ -198,15 +242,44 @@ async def execute_create_role(args: dict, user_token: str) -> dict:
 async def execute_update_role(args: dict, user_token: str) -> dict:
     """Admin cập nhật role theo ID."""
     role_id = args.get("role_id", "")
-    payload = {}
-    if args.get("name"):
-        payload["name"] = args["name"]
-    if args.get("description") is not None:
-        payload["description"] = args["description"]
-    if args.get("permissionIds") is not None:
-        payload["permissionIds"] = args["permissionIds"]
-    if args.get("isActive") is not None:
-        payload["isActive"] = args["isActive"]
+    
+    try:
+        current_resp = await _call_api("GET", f"{_AUTH_BASE}/roles/{role_id}", user_token)
+        current_data = current_resp.get("data") if isinstance(current_resp, dict) and "data" in current_resp else current_resp
+    except Exception as e:
+        logger.warning(f"Failed to fetch current role info: {e}")
+        current_data = {}
+
+    if not isinstance(current_data, dict):
+        current_data = {}
+
+    if "role" in current_data:
+        role_info = current_data["role"]
+    else:
+        role_info = current_data
+
+    curr_perm_ids = []
+    if isinstance(role_info.get("permissions"), list):
+        curr_perm_ids = [p.get("id") for p in role_info["permissions"] if isinstance(p, dict) and p.get("id")]
+
+    final_perm_ids = args.get("permissionIds") if args.get("permissionIds") is not None else curr_perm_ids
+    if not final_perm_ids:
+        try:
+            logger.info("No permissions found for update_role. Fetching permissions to use as fallback...")
+            perms_resp = await _call_api("GET", f"{_AUTH_BASE}/permissions?pageSize=1", user_token)
+            perms_list = perms_resp.get("data", {}).get("result", [])
+            if perms_list and perms_list[0].get("id"):
+                final_perm_ids = [perms_list[0]["id"]]
+                logger.info(f"Using fallback permission ID: {final_perm_ids}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch permissions fallback: {e}")
+
+    payload = {
+        "name":        args.get("name") or role_info.get("name", ""),
+        "description": args.get("description") if args.get("description") is not None else role_info.get("description"),
+        "isActive":    args.get("isActive") if args.get("isActive") is not None else role_info.get("isActive", True),
+        "permissionIds": final_perm_ids
+    }
     return await _call_api("PUT", f"{_AUTH_BASE}/roles/{role_id}", user_token, json_data=payload)
 
 

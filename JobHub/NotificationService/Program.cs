@@ -72,6 +72,7 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<OtpRequestedConsumer>();
     x.AddConsumer<SendNotificationConsumer>();
     x.AddConsumer<AuditLogCreatedConsumer>();
+    x.AddConsumer<NotificationUserDeletedConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
