@@ -15,6 +15,7 @@ public interface IJobRepository : IGenericRepository<Job>
 public interface ISkillRepository : IGenericRepository<Skill>
 {
     Task<Skill?> GetByNameAsync(string name);
+    Task<Skill?> GetByNameWithDeletedAsync(string name);
     Task<List<Skill>> GetByIdsAsync(IEnumerable<Guid> ids);
 }
 

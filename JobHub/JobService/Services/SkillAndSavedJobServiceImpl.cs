@@ -57,9 +57,26 @@ public class SkillServiceImpl : ISkillService
 
     public async Task<SkillResponse> CreateAsync(CreateSkillRequest request)
     {
-        var existing = await _skillRepo.GetByNameAsync(request.Name);
+        var existing = await _skillRepo.GetByNameWithDeletedAsync(request.Name);
         if (existing != null)
+        {
+            if (existing.IsDeleted)
+            {
+                existing.IsDeleted = false;
+                _skillRepo.Update(existing);
+                await _skillRepo.SaveChangesAsync();
+
+                // Publish event to RabbitMQ for ProfileService to sync
+                await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
+                {
+                    Id   = existing.Id,
+                    Name = existing.Name
+                });
+
+                return _mapper.Map<SkillResponse>(existing);
+            }
             throw new BadRequestException($"Kỹ năng '{request.Name}' đã tồn tại.");
+        }
 
         var skill = _mapper.Map<Skill>(request);
         await _skillRepo.AddAsync(skill);
@@ -81,7 +98,7 @@ public class SkillServiceImpl : ISkillService
         if (skill == null || skill.IsDeleted)
             throw new NotFoundException($"Không tìm thấy kỹ năng với ID: {id}");
 
-        var conflict = await _skillRepo.GetByNameAsync(request.Name);
+        var conflict = await _skillRepo.GetByNameWithDeletedAsync(request.Name);
         if (conflict != null && conflict.Id != id)
             throw new BadRequestException($"Kỹ năng '{request.Name}' đã tồn tại.");
 
@@ -157,16 +174,19 @@ public class SkillServiceImpl : ISkillService
 
             seenNames.Add(trimmedName);
 
-            var existing = await _skillRepo.GetByNameAsync(trimmedName);
+            var existing = await _skillRepo.GetByNameWithDeletedAsync(trimmedName);
             if (existing != null)
             {
-                importResult.Errors.Add(new ValidationError
+                if (!existing.IsDeleted)
                 {
-                    RowIndex = rowIndex,
-                    ColumnName = "Name",
-                    ErrorMessage = $"Kỹ năng '{req.Name}' đã tồn tại trong hệ thống."
-                });
-                continue;
+                    importResult.Errors.Add(new ValidationError
+                    {
+                        RowIndex = rowIndex,
+                        ColumnName = "Name",
+                        ErrorMessage = $"Kỹ năng '{req.Name}' đã tồn tại trong hệ thống."
+                    });
+                    continue;
+                }
             }
 
             req.Name = trimmedName;
@@ -182,15 +202,31 @@ public class SkillServiceImpl : ISkillService
         // Save to Database and publish sync events
         foreach (var req in validatedList)
         {
-            var skill = _mapper.Map<Skill>(req);
-            await _skillRepo.AddAsync(skill);
-
-            // Publish event to RabbitMQ for ProfileService to sync
-            await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
+            var existing = await _skillRepo.GetByNameWithDeletedAsync(req.Name);
+            if (existing != null && existing.IsDeleted)
             {
-                Id   = skill.Id,
-                Name = skill.Name
-            });
+                existing.IsDeleted = false;
+                _skillRepo.Update(existing);
+
+                // Publish event to RabbitMQ for ProfileService to sync
+                await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
+                {
+                    Id   = existing.Id,
+                    Name = existing.Name
+                });
+            }
+            else
+            {
+                var skill = _mapper.Map<Skill>(req);
+                await _skillRepo.AddAsync(skill);
+
+                // Publish event to RabbitMQ for ProfileService to sync
+                await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
+                {
+                    Id   = skill.Id,
+                    Name = skill.Name
+                });
+            }
         }
         await _skillRepo.SaveChangesAsync();
 

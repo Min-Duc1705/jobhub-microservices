@@ -14,6 +14,10 @@ from typing import Optional
 
 import httpx
 import redis.asyncio as async_redis
+import io
+import zipfile
+import xml.etree.ElementTree as ET
+import csv
 
 logger = logging.getLogger(__name__)
 
@@ -162,3 +166,90 @@ async def fetch_user_company_name(token: str, role: str) -> str:
         except Exception as e:
             logger.error(f"[AssistantHelpers] Error fetching user company name: {e}")
             return ""
+
+
+def parse_skills_from_file_bytes(file_bytes: bytes, filename: str) -> list[str]:
+    """
+    Parse danh sách kỹ năng từ file bytes (.csv, .xlsx).
+    Chỉ dùng thư viện chuẩn của Python để tránh dependencies.
+    """
+    filename = filename.lower()
+    skills = []
+    
+    if filename.endswith('.csv'):
+        try:
+            content = file_bytes.decode('utf-8', errors='ignore')
+            reader = csv.reader(io.StringIO(content))
+            rows = list(reader)
+            if not rows:
+                return []
+            
+            # Tìm column index cho 'name'
+            header = [col.strip().lower() for col in rows[0]]
+            name_idx = 0
+            if 'name' in header:
+                name_idx = header.index('name')
+                
+            for row in rows[1:]:
+                if len(row) > name_idx:
+                    val = row[name_idx].strip()
+                    if val:
+                        skills.append(val)
+        except Exception as e:
+            logger.error(f"[AssistantHelpers] Error parsing CSV: {e}")
+                    
+    elif filename.endswith(('.xlsx', '.xls')):
+        try:
+            with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+                # 1. Đọc shared strings
+                shared_strings = []
+                if 'xl/sharedStrings.xml' in z.namelist():
+                    ss_xml = z.read('xl/sharedStrings.xml')
+                    root = ET.fromstring(ss_xml)
+                    ns = {'ns': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+                    for t_node in root.findall('.//ns:t', ns):
+                        shared_strings.append(t_node.text or '')
+                
+                # 2. Đọc sheet1.xml
+                sheet_xml = z.read('xl/worksheets/sheet1.xml')
+                root = ET.fromstring(sheet_xml)
+                ns = {'ns': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+                
+                rows = root.findall('.//ns:row', ns)
+                if not rows:
+                    return []
+                
+                for row_node in rows:
+                    cells = row_node.findall('ns:c', ns)
+                    row_data = {}
+                    for cell in cells:
+                        r_attr = cell.get('r', '')
+                        col_letter = ''.join([c for c in r_attr if c.isalpha()])
+                        
+                        val = ''
+                        t_attr = cell.get('t', '')
+                        v_node = cell.find('ns:v', ns)
+                        
+                        if v_node is not None:
+                            v_val = v_node.text or ''
+                            if t_attr == 's':
+                                idx = int(v_val)
+                                if 0 <= idx < len(shared_strings):
+                                    val = shared_strings[idx]
+                            else:
+                                val = v_val
+                        else:
+                            is_node = cell.find('ns:is/ns:t', ns)
+                            if is_node is not None:
+                                val = is_node.text or ''
+                        
+                        row_data[col_letter] = val.strip()
+                    
+                    if 'A' in row_data:
+                        name_val = row_data['A']
+                        if name_val and name_val.lower() != 'name':
+                            skills.append(name_val)
+        except Exception as e:
+            logger.error(f"[AssistantHelpers] Error parsing XLSX: {e}")
+            
+    return skills

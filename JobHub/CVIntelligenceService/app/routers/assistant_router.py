@@ -19,6 +19,7 @@ from .assistant_router_helpers import (
     extract_user_info_from_token,
     fetch_user_profile_and_permissions,
     fetch_user_company_name,
+    parse_skills_from_file_bytes,
 )
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
@@ -150,6 +151,21 @@ async def upload_file(
 
     content_type = file.content_type or ""
     file_bytes = await file.read()
+    filename = file.filename or ""
+
+    if filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        skills = parse_skills_from_file_bytes(file_bytes, filename)
+        skills_str = ", ".join(skills) if skills else ""
+        text_content = f"Danh sách các kỹ năng trích xuất từ file: {skills_str}" if skills_str else "Không tìm thấy kỹ năng nào trong file."
+        return {
+            "statusCode": 200,
+            "message": "Đã đọc file import kỹ năng thành công",
+            "data": {
+                "type": "skills_file",
+                "file_content": text_content,
+                "file_name": filename,
+            }
+        }
 
     if content_type.startswith("image/"):
         image_b64 = base64.b64encode(file_bytes).decode("utf-8")

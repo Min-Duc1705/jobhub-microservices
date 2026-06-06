@@ -540,6 +540,23 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "import_skills_to_my_profile",
+        "description": "Thêm hàng loạt kỹ năng từ danh sách tên kỹ năng vào hồ sơ cá nhân của người dùng đang đăng nhập (Candidate hoặc HR).",
+        "permissions_required": [("GET", "/api/v1/jobs")],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "skill_names": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Mảng danh sách tên các kỹ năng cần thêm (ví dụ: ['React', 'Node.js', 'Python'])"
+                }
+            },
+            "required": ["skill_names"]
+        }
+    },
+    {
         "name": "remove_my_skill",
         "description": "Xóa một kỹ năng khỏi hồ sơ cá nhân của người dùng đang đăng nhập (HR hoặc Candidate).",
         # DELETE /api/v1/skills/me/{skillId} — không yêu cầu permission đặc biệt

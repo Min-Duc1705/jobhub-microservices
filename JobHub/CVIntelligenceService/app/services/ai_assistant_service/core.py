@@ -55,7 +55,8 @@ _CAPABILITY_MAP = {
     "get_my_hire_agent_campaigns": "- Xem danh sách các chiến dịch tuyển dụng bằng AI (Hire Agent Campaigns)",
     "create_hire_agent_campaign": "- Tạo một chiến dịch tuyển dụng bằng AI mới (HR)",
     "schedule_campaign_interview": "- Đặt lịch hẹn phỏng vấn cho ứng viên trong chiến dịch tuyển dụng AI",
-    "broadcast_notification": "- Gửi thông báo hệ thống (broadcast) tới người dùng hoặc nhóm đối tượng"
+    "broadcast_notification": "- Gửi thông báo hệ thống (broadcast) tới người dùng hoặc nhóm đối tượng",
+    "import_skills_to_my_profile": "- Thêm/import hàng loạt kỹ năng từ danh sách tên kỹ năng vào hồ sơ cá nhân của bạn"
 }
 
 

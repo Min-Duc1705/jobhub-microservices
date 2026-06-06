@@ -22,7 +22,8 @@ from .company_executor import (
 )
 from .skill_executor import (
     execute_get_all_skills, execute_create_skill, execute_update_skill,
-    execute_delete_skill, execute_add_my_skill, execute_remove_my_skill
+    execute_delete_skill, execute_add_my_skill, execute_remove_my_skill,
+    execute_import_skills_to_my_profile
 )
 from .hire_agent_executor import (
     execute_get_my_hire_agent_campaigns, execute_create_hire_agent_campaign,
@@ -80,6 +81,7 @@ _TOOL_EXECUTOR_MAP = {
     # Skills — Personal
     "add_my_skill":         execute_add_my_skill,
     "remove_my_skill":      execute_remove_my_skill,
+    "import_skills_to_my_profile": execute_import_skills_to_my_profile,
     # Hire Agent tools
     "get_my_hire_agent_campaigns":  execute_get_my_hire_agent_campaigns,
     "create_hire_agent_campaign":   execute_create_hire_agent_campaign,

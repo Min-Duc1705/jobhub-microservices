@@ -29,6 +29,9 @@ public class SkillRepository : GenericRepository<JobDbContext, Skill>, ISkillRep
     public async Task<Skill?> GetByNameAsync(string name)
         => await _dbSet.FirstOrDefaultAsync(s => s.Name.ToLower() == name.ToLower() && !s.IsDeleted);
 
+    public async Task<Skill?> GetByNameWithDeletedAsync(string name)
+        => await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Name.ToLower() == name.ToLower());
+
     public async Task<List<Skill>> GetByIdsAsync(IEnumerable<Guid> ids)
         => await _dbSet.Where(s => ids.Contains(s.Id) && !s.IsDeleted).ToListAsync();
 }
