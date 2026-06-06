@@ -20,7 +20,7 @@ _PROFILE_BASE = "http://profileservice:8080/api/v1/customers"
 # ── User management ────────────────────────────────────────────────────────────
 
 async def execute_get_all_users(args: dict, user_token: str) -> dict:
-    params = {"pageSize": args.get("pageSize", 20)}
+    params = {"pageSize": int(args.get("pageSize", 20))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
     if args.get("status"):
@@ -76,7 +76,7 @@ async def execute_reset_user_password(args: dict, user_token: str) -> dict:
 # ── Roles ──────────────────────────────────────────────────────────────────────
 
 async def execute_get_all_roles(args: dict, user_token: str) -> dict:
-    params = {"pageSize": args.get("pageSize", 50)}
+    params = {"pageSize": int(args.get("pageSize", 50))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
     result = await _call_api("GET", f"{_AUTH_BASE}/roles", user_token, params=params)
@@ -97,7 +97,7 @@ async def execute_get_all_roles(args: dict, user_token: str) -> dict:
 # ── Permissions ────────────────────────────────────────────────────────────────
 
 async def execute_get_all_permissions(args: dict, user_token: str) -> dict:
-    params = {"pageSize": args.get("pageSize", 100)}
+    params = {"pageSize": int(args.get("pageSize", 100))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
     if args.get("module"):
@@ -147,7 +147,7 @@ async def execute_delete_customer(args: dict, user_token: str) -> dict:
 
 async def execute_get_admin_jobs(args: dict, user_token: str) -> dict:
     """Admin xem tất cả jobs mọi trạng thái (DRAFT, PUBLISHED, CLOSED)."""
-    params = {"pageSize": args.get("pageSize", 20)}
+    params = {"pageSize": int(args.get("pageSize", 20))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
     if args.get("status"):

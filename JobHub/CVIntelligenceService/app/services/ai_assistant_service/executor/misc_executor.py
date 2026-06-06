@@ -63,7 +63,7 @@ async def execute_broadcast_notification(args: dict, user_token: str) -> dict:
 
 
 async def execute_get_my_saved_jobs(args: dict, user_token: str) -> dict:
-    params = {"pageSize": args.get("pageSize", 10)}
+    params = {"pageSize": int(args.get("pageSize", 10))}
     return await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/saved-jobs", user_token, params)
 
 

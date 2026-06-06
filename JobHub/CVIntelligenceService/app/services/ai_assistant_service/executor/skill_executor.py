@@ -18,7 +18,7 @@ _SKILL_BASE = "http://profileservice:8080/api/v1/skills"
 
 async def execute_get_all_skills(args: dict, user_token: str) -> dict:
     """Lấy danh sách kỹ năng hệ thống (Admin/HR)."""
-    params = {"pageSize": args.get("pageSize", 20)}
+    params = {"pageSize": int(args.get("pageSize", 20))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
 
@@ -49,8 +49,19 @@ async def execute_update_skill(args: dict, user_token: str) -> dict:
     """Admin cập nhật kỹ năng theo ID."""
     skill_id = args.get("skill_id", "")
     payload = {}
-    if args.get("name"):
-        payload["name"] = args["name"]
+    name = args.get("name")
+    
+    if not name:
+        try:
+            current_resp = await _call_api("GET", f"{_SKILL_BASE}/{skill_id}", user_token)
+            current_data = current_resp.get("data") if isinstance(current_resp, dict) and "data" in current_resp else current_resp
+            if isinstance(current_data, dict):
+                name = current_data.get("name")
+        except Exception as e:
+            logger.warning(f"Failed to fetch current skill info for fallback name: {e}")
+            
+    if name:
+        payload["name"] = name
     if args.get("description") is not None:
         payload["description"] = args["description"]
 

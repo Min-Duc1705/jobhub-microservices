@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def execute_search_jobs(args: dict, user_token: str) -> dict:
-    params = {"pageSize": args.get("pageSize", 10)}
+    params = {"pageSize": int(args.get("pageSize", 10))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
     if args.get("level"):
@@ -75,7 +75,7 @@ async def execute_get_job_detail(args: dict, user_token: str) -> dict:
 
 async def execute_get_my_jobs(args: dict, user_token: str) -> dict:
     customer_id = _get_customer_id_from_token(user_token)
-    params = {"pageSize": args.get("pageSize", 20)}
+    params = {"pageSize": int(args.get("pageSize", 20))}
     if customer_id:
         params["customerId"] = customer_id
     result = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/jobs", user_token, params)

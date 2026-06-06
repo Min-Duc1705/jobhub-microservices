@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def execute_search_candidates(args: dict, user_token: str) -> dict:
-    params = {"pageSize": args.get("pageSize", 10)}
+    params = {"pageSize": int(args.get("pageSize", 10))}
     if args.get("keyword"):
         params["name"] = args["keyword"]
     result = await _call_api("GET", "http://profileservice:8080/api/v1/customers", user_token, params)
