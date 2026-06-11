@@ -10,6 +10,7 @@ import google.generativeai as genai
 from app.ml.llm_generator import _load_api_keys
 from .api_client import _call_api
 from .executor.category_utils import normalize_category
+from .executor.level_utils import infer_level_smart
 
 logger = logging.getLogger(__name__)
 
@@ -96,19 +97,35 @@ async def confirm_create_job(
                 end_date = None
 
         # Build API payload
+        exp_req = job_data.get("experience_required")
+        job_name = job_data.get("name", "")
+        inferred_lvl = infer_level_smart(job_name, exp_req, current_level=job_data.get("level"))
+        
+        salary_min = job_data.get("salary_min")
+        salary_max = job_data.get("salary_max")
+        has_numeric = (salary_min is not None and salary_min > 0) or (salary_max is not None and salary_max > 0)
+        if has_numeric:
+            is_negotiable = False
+        else:
+            is_negotiable = bool(job_data.get("is_salary_negotiable"))
+            if salary_min is None and salary_max is None:
+                is_negotiable = True
+
         payload = {
-            "name": job_data.get("name", ""),
+            "name": job_name,
             "description": job_data.get("description", ""),
             "requirements": job_data.get("requirements", ""),
             "benefits": job_data.get("benefits", ""),
             "location": job_data.get("location", "Hà Nội"),
-            "salaryMin": job_data.get("salary_min"),
-            "salaryMax": job_data.get("salary_max"),
+            "salaryMin": salary_min,
+            "salaryMax": salary_max,
             "salaryCurrency": job_data.get("salary_currency", "VND"),
+            "isSalaryNegotiable": is_negotiable,
+            "level": str(inferred_lvl).upper(),
             "quantity": job_data.get("quantity", 1),
             "startDate": None,
             "endDate": end_date,
-            "experienceRequired": job_data.get("experience_required"),
+            "experienceRequired": exp_req,
             "category": normalize_category(job_data.get("category")),
             "skillIds": skill_ids,
             "companyId": company_id,
@@ -160,16 +177,20 @@ async def extract_job_from_image(image_base64: str) -> dict:
     prompt = """
 Hãy phân tích ảnh này và trích xuất thông tin tuyển dụng theo định dạng JSON thuần túy (không dùng markdown).
 
+Đối với các trường văn bản dài (description, requirements, benefits), bạn BẮT BUỘC phải sử dụng ký tự xuống dòng '\\n' để phân tách các dòng/ý tuyển dụng rõ ràng, không được viết dồn tất cả trên cùng một dòng.
+Riêng trường 'requirements' và 'benefits', mỗi ý tuyển dụng phải là một dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: "- Ý 1\\n- Ý 2").
+
 Trả về JSON với các trường sau (bỏ trống nếu không có thông tin):
 {
   "name": "Tên vị trí tuyển dụng",
-  "description": "Mô tả công việc",
-  "requirements": "Yêu cầu ứng viên",
-  "benefits": "Quyền lợi và phúc lợi",
+  "description": "Mô tả công việc chi tiết (sử dụng '\\n' để ngắt dòng/đoạn văn)",
+  "requirements": "Yêu cầu ứng viên (dạng danh sách gạch đầu dòng bắt đầu bằng '- ', ngắt dòng bằng '\\n')",
+  "benefits": "Quyền lợi và phúc lợi (dạng danh sách gạch đầu dòng bắt đầu bằng '- ', ngắt dòng bằng '\\n')",
   "location": "Địa điểm làm việc",
   "salary_min": null,
   "salary_max": null,
   "salary_currency": "VND",
+  "is_salary_negotiable": false,
   "quantity": 1,
   "deadline": null,
   "skill_names": ["skill1", "skill2"],
@@ -178,24 +199,39 @@ Trả về JSON với các trường sau (bỏ trống nếu không có thông t
 }
     """
 
-    genai.configure(api_key=keys[0])
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    models_to_try = [
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-pro-preview",
+        "gemini-3.1-flash-lite",
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash-latest",
+    ]
     image_data = base64.b64decode(image_base64)
 
-    try:
-        response = await model.generate_content_async(
-            contents=[
-                genai.protos.Part(
-                    inline_data=genai.protos.Blob(mime_type="image/jpeg", data=image_data)
-                ),
-                genai.protos.Part(text=prompt)
-            ],
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.1,
-                response_mime_type="application/json"
-            )
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        logger.error(f"[JobConfirm] extract_job_from_image failed: {e}")
-        return {}
+    for key in keys:
+        for model_name in models_to_try:
+            try:
+                genai.configure(api_key=key)
+                model = genai.GenerativeModel(model_name)
+                response = await model.generate_content_async(
+                    contents=[
+                        genai.protos.Part(
+                            inline_data=genai.protos.Blob(mime_type="image/jpeg", data=image_data)
+                        ),
+                        genai.protos.Part(text=prompt)
+                    ],
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.1,
+                        response_mime_type="application/json"
+                    )
+                )
+                return json.loads(response.text)
+            except Exception as e:
+                logger.warning(f"[JobConfirm] extract failed with key and model {model_name}: {e}")
+    logger.error("[JobConfirm] extract_job_from_image failed with all keys and models")
+    return {}

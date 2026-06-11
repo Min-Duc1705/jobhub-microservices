@@ -7,8 +7,10 @@ import logging
 from ..api_client import _call_api
 from .token_utils import _get_customer_id_from_token
 from .category_utils import normalize_category
+from .level_utils import infer_level_smart
 
 logger = logging.getLogger(__name__)
+
 
 
 async def execute_search_jobs(args: dict, user_token: str) -> dict:
@@ -98,21 +100,37 @@ async def execute_get_my_jobs(args: dict, user_token: str) -> dict:
 
 async def execute_preview_create_job(args: dict, user_token: str) -> dict:
     """Trả về preview data mà không tạo job thực sự."""
+    exp_req = args.get("experience_required", "")
+    job_name = args.get("name", "")
+    inferred_lvl = infer_level_smart(job_name, exp_req, current_level=args.get("level"))
+    
+    salary_min = args.get("salary_min")
+    salary_max = args.get("salary_max")
+    has_numeric = (salary_min is not None and salary_min > 0) or (salary_max is not None and salary_max > 0)
+    if has_numeric:
+        is_negotiable = False
+    else:
+        is_negotiable = bool(args.get("is_salary_negotiable"))
+        if salary_min is None and salary_max is None:
+            is_negotiable = True
+
     return {
         "preview": True,
         "job_data": {
-            "name": args.get("name", ""),
+            "name": job_name,
             "description": args.get("description", ""),
             "requirements": args.get("requirements", ""),
             "benefits": args.get("benefits", ""),
             "location": args.get("location", ""),
-            "salary_min": args.get("salary_min"),
-            "salary_max": args.get("salary_max"),
+            "salary_min": salary_min,
+            "salary_max": salary_max,
             "salary_currency": args.get("salary_currency", "VND"),
+            "is_salary_negotiable": is_negotiable,
+            "level": inferred_lvl,
             "quantity": args.get("quantity", 1),
             "deadline": args.get("deadline", ""),
             "skill_names": args.get("skill_names", []),
-            "experience_required": args.get("experience_required", ""),
+            "experience_required": exp_req,
             "category": normalize_category(args.get("category", ""))
         },
         "message": "Preview job - chưa tạo thực sự. Cần xác nhận từ HR."
@@ -150,6 +168,8 @@ async def execute_update_job(args: dict, user_token: str) -> dict:
         payload["salaryMax"] = args["salary_max"]
     if args.get("salary_currency"):
         payload["salaryCurrency"] = args["salary_currency"].upper()
+    if args.get("is_salary_negotiable") is not None:
+        payload["isSalaryNegotiable"] = args["is_salary_negotiable"]
     if args.get("skill_names"):
         payload["skillNames"] = args["skill_names"]
     if args.get("category"):

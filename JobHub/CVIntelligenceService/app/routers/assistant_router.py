@@ -49,8 +49,11 @@ async def chat(
     role_name = jwt_payload.get("role", "USER")
     username  = jwt_payload.get("username", "Người dùng")
 
-    # ── Lấy permissions: Redis trước (O(1)), fallback AuthService ────────────
-    permissions = await fetch_user_permissions_from_redis(email)
+    # ── Lấy permissions và company_name song song để tối ưu hiệu suất (Parallel setup) ──
+    import asyncio
+    permissions_task = fetch_user_permissions_from_redis(email)
+    company_task = fetch_user_company_name(user_token, role_name)
+    permissions, company_name = await asyncio.gather(permissions_task, company_task)
 
     if permissions is None:
         # Redis miss → gọi AuthService một lần duy nhất
@@ -64,9 +67,6 @@ async def chat(
     else:
         # Redis hit — dùng permissions từ cache, role/username từ JWT là đủ
         logger.info(f"[AssistantRouter] Redis hit: {len(permissions)} perms cho '{email}' (role={role_name})")
-
-    # Fetch tên công ty (HR only, best-effort, không block)
-    company_name = await fetch_user_company_name(user_token, role_name)
 
     try:
         response = await ai_assistant_service.process_assistant_message(

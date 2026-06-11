@@ -120,9 +120,15 @@ async def process_assistant_message(
 
     # Model fallback list
     models_to_try = [
-        "gemini-2.5-flash",
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-pro-preview",
+        "gemini-3.1-flash-lite",
+        "gemini-3-flash-preview",
         "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
         "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
         "gemini-1.5-flash-latest",
     ]
 
@@ -132,7 +138,7 @@ async def process_assistant_message(
     global _current_key_idx
     num_keys = len(keys)
     num_models = len(models_to_try)
-    max_attempts = min(12, num_keys * num_models)
+    max_attempts = num_keys * num_models
 
     attempt = 0
     curr_key_idx = _current_key_idx % num_keys if num_keys > 0 else 0
@@ -210,26 +216,32 @@ async def process_assistant_message(
                 if not fn_calls:
                     break  # No more tool calls
 
+                # Định nghĩa helper chạy song song các tool calls
+                async def run_single_tool(fc):
+                    t_name = fc.name
+                    r_args = dict(fc.args) if fc.args else {}
+                    # Chuẩn hóa RepeatedComposite thành list
+                    norm_args = {}
+                    for k, v in r_args.items():
+                        if hasattr(v, '__iter__') and not isinstance(v, (str, dict)):
+                            norm_args[k] = list(v)
+                        else:
+                            norm_args[k] = v
+                    logger.info(f"[AIAssistant] Calling tool in parallel: {t_name}({norm_args})")
+                    res = await _execute_tool(t_name, norm_args, user_token)
+                    return t_name, norm_args, res
+
+                # Chạy song song tất cả các tool calls trong lượt này để tối ưu hiệu suất (Parallel Tool Calling)
+                import asyncio
+                tasks = [run_single_tool(fc) for fc in fn_calls]
+                tool_results = await asyncio.gather(*tasks)
+
                 # Execute each function call
                 fn_responses = []
-                for fn_call in fn_calls:
-                    tool_name = fn_call.name
-                    raw_args = dict(fn_call.args) if fn_call.args else {}
-
-                    # Normalize protobuf RepeatedComposite → list
-                    args = {}
-                    for k, v in raw_args.items():
-                        if hasattr(v, '__iter__') and not isinstance(v, (str, dict)):
-                            args[k] = list(v)
-                        else:
-                            args[k] = v
-
-                    logger.info(f"[AIAssistant] Calling tool: {tool_name}({args})")
-
+                for tool_name, args, result in tool_results:
                     tool_def = next((t for t in available_tool_defs if t["name"] == tool_name), None)
 
                     if tool_def and tool_def.get("action_type") == "preview":
-                        result = await _execute_tool(tool_name, args, user_token)
                         action_type = "create_job" if tool_name == "preview_create_job" else "delete_job"
                         description = (
                             f"Tạo tin tuyển dụng: {args.get('name', 'N/A')}"
@@ -244,7 +256,6 @@ async def process_assistant_message(
                             tool_name=tool_name
                         )
                     else:
-                        result = await _execute_tool(tool_name, args, user_token)
                         actions_taken.append(ActionItem(
                             action_type=f"tool_{tool_name}",
                             description=f"Đã truy vấn: {tool_name}",
@@ -339,14 +350,10 @@ async def process_assistant_message(
             last_error = err_str
             logger.warning(f"[AIAssistant] Model {model_name} key[{curr_key_idx}] failed: {err_str}")
 
-            is_rate_limit = any(kw in err_str.lower() for kw in ["429", "quota", "limit", "unauthorized"])
-            if is_rate_limit:
+            # Thử model tiếp theo trên cùng 1 key; nếu đã thử hết tất cả model thì mới chuyển sang key tiếp theo
+            curr_model_idx = (curr_model_idx + 1) % num_models
+            if curr_model_idx == 0:
                 curr_key_idx = (curr_key_idx + 1) % num_keys
-                curr_model_idx = 0
-            else:
-                curr_model_idx = (curr_model_idx + 1) % num_models
-                if curr_model_idx == 0:
-                    curr_key_idx = (curr_key_idx + 1) % num_keys
 
     return AssistantChatResponse(
         reply="Xin lỗi, AI Assistant đang gặp sự cố kỹ thuật. Vui lòng thử lại sau ít phút.",

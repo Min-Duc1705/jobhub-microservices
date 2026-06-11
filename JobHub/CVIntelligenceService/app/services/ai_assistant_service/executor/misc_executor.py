@@ -36,11 +36,27 @@ async def execute_navigate_to_page(args: dict, user_token: str) -> dict:
 
 
 async def execute_predict_salary(args: dict, user_token: str) -> dict:
+    level_raw = args.get("level", "MIDDLE")
+    level = "MIDDLE"
+    if level_raw:
+        level_upper = str(level_raw).upper()
+        if "INTERN" in level_upper:
+            level = "INTERN"
+        elif "JUNIOR" in level_upper:
+            level = "JUNIOR"
+        elif "SENIOR" in level_upper:
+            level = "SENIOR"
+        elif "MID" in level_upper:
+            level = "MIDDLE"
+        elif level_upper in ["INTERN", "JUNIOR", "MIDDLE", "SENIOR"]:
+            level = level_upper
+
     payload = {
-        "jobTitle": args.get("job_title", ""),
-        "experienceYears": args.get("experience_years", 1),
-        "skills": args.get("skills", []),
-        "location": args.get("location", "Hà Nội")
+        "job_title": args.get("job_title", ""),
+        "years_of_experience": int(args.get("experience_years") or args.get("years_of_experience") or 1),
+        "skill_set": args.get("skills") or args.get("skill_set") or [],
+        "location": args.get("location", "Hà Nội"),
+        "level": level
     }
     result = await _call_api(
         "POST", "http://dataanalyticsservice:5007/api/v1/analytics/salary/predict",

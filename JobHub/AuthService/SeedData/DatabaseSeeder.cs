@@ -74,6 +74,24 @@ public static class DatabaseSeeder
                     Console.WriteLine($"[Seeder] ✅ Đã bổ sung {missing.Count} Permissions mới cho ADMIN role.");
                 }
             }
+
+            // Loại bỏ permission broadcast khỏi HR role nếu có
+            var hrRole = await context.Roles
+                .Include(r => r.Permissions)
+                .FirstOrDefaultAsync(r => r.Name == "HR");
+
+            if (hrRole != null)
+            {
+                var broadcastPerm = hrRole.Permissions
+                    .FirstOrDefault(p => p.Method == "POST" && p.ApiPath == "/api/v1/users/notifications/broadcast");
+
+                if (broadcastPerm != null)
+                {
+                    hrRole.Permissions.Remove(broadcastPerm);
+                    await context.SaveChangesAsync();
+                    Console.WriteLine("[Seeder] ℹ️ Đã gỡ bỏ permission broadcast khỏi HR role.");
+                }
+            }
         }
 
         // ── 3. Seed Admin user ─────────────────────────────────────────────────

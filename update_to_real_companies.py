@@ -6,6 +6,261 @@ import json
 import random
 import psycopg2
 import unicodedata
+import urllib.parse
+import requests
+from concurrent.futures import ThreadPoolExecutor
+
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+# Database configuration
+DB_CONFIG = {
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "root"
+}
+
+# 22 High quality corporate/business Unsplash photos that are 100% verified working
+COVERS_POOL = [
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80"
+]
+
+ACTIVITIES_POOL = [
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80"
+]
+
+REAL_DOMAINS_POOL = [
+    "google.com", "microsoft.com", "apple.com", "amazon.com", "netflix.com",
+    "spotify.com", "github.com", "gitlab.com", "slack.com", "zoom.us",
+    "airbnb.com", "uber.com", "tesla.com", "intel.com", "amd.com",
+    "nvidia.com", "oracle.com", "ibm.com", "salesforce.com", "adobe.com",
+    "shopify.com", "paypal.com", "stripe.com", "cloudflare.com", "digitalocean.com",
+    "atlassian.com", "figma.com", "canva.com", "hubspot.com", "mailchimp.com",
+    "heroku.com", "trello.com", "asana.com", "zendesk.com", "datadoghq.com",
+    "sentry.io", "elastic.co", "mongodb.com", "redis.com", "snowflake.com",
+    "databricks.com", "unity.com", "epicgames.com", "nintendo.com", "sony.com",
+    "sega.com", "capcom.com", "ea.com", "ubisoft.com", "riotgames.com",
+    "valvesoftware.com", "roblox.com", "fpt.com", "viettel.com.vn", "vnpt.com.vn",
+    "vng.com.vn", "vingroup.net", "masangroup.com", "techcombank.com", "vietcombank.com.vn",
+    "bidv.com.vn", "agribank.com.vn", "vpbank.com.vn", "mbbank.com.vn", "acb.com.vn",
+    "sacombank.com.vn", "hdbank.com.vn", "tpb.vn", "vib.com.vn", "shb.com.vn",
+    "msb.com.vn", "seabank.com.vn", "ocb.com.vn", "vietinbank.vn", "lazada.vn",
+    "shopee.vn", "tiki.vn", "sendo.vn", "grab.com", "gojek.com", "be.com.vn",
+    "vietjetair.com", "vietnamairlines.com", "bambooairways.com", "vinamilk.com.vn",
+    "thmilk.vn", "sabeco.com.vn", "habeco.com.vn", "vccorp.vn", "tinhvan.com",
+    "hpt.vn", "katalon.com", "dektech.com.au", "nfq.asia", "gearinc.com",
+    "panasonic.com", "homecredit.vn", "nec.com", "hitachi.com", "vti.com.vn"
+]
+
+FALLBACK_LOGO_URL = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=150&h=150&q=80"
+
+# Mapped domains to overwrite known ones or if parsing fails
+KNOWN_DOMAINS = {
+    "lazada": "lazada.vn",
+    "vccorp": "vccorp.vn",
+    "tencent": "tencent.com",
+    "garena": "garena.vn",
+    "tinhvan": "tinhvan.com",
+    "hpt": "hpt.vn",
+    "fast software": "fast.com.vn",
+    "katalon": "katalon.com",
+    "dek technologies": "dektech.com.au",
+    "nfq asia": "nfq.asia",
+    "eastgate software": "eastgate-software.com",
+    "bap it": "bap-software.net",
+    "gear inc": "gearinc.com",
+    "panasonic": "panasonic.com",
+    "home credit": "homecredit.vn",
+    "nec": "nec.com",
+    "hitachi": "hitachivantara.com",
+    "vti software": "vti.com.vn",
+    "pyco": "pycogroup.com",
+    "wizeline": "wizeline.com",
+    "napas": "napas.com.vn",
+    "enclave": "enclave.vn",
+    "global cybersoft": "globalcybersoft.com",
+    "fpt information": "fpt-is.com",
+    "fpt telecom": "fpt.vn",
+    "cmc telecom": "cmctelecom.vn",
+    "netnam": "netnam.vn",
+    "kbtg": "kbtg.tech",
+    "woori bank": "wooribank.com.vn",
+    "shinhan bank": "shinhan.com.vn",
+    "hsbc": "hsbc.com.vn",
+    "techbase": "techbasevn.com",
+    "cybozu": "cybozu.vn",
+    "mercari": "mercari.com",
+    "money forward": "moneyforward.vn",
+    "sansan": "sansan.com",
+    "niteco": "niteco.com",
+    "teko": "teko.vn",
+    "ahamove": "ahamove.com",
+    "gojek": "gojek.com",
+    "be group": "be.com.vn",
+    "traveloka": "traveloka.com",
+    "vntrip": "vntrip.vn",
+    "ivivu": "ivivu.com",
+    "cốc cốc": "coccoc.com",
+    "zalo": "zalo.me",
+    "vtc intecom": "vtcintecom.vn",
+    "vtc online": "vtconline.vn",
+    "sohagame": "sohagame.vn",
+    "gameloft": "gameloft.com",
+    "koei tecmo": "koeitecmo.co.jp",
+    "glass egg": "glassegg.com",
+    "sparx": "sparx.com",
+    "ubisoft": "ubisoft.com",
+    "ncs": "ncs.com.sg",
+    "dxc": "dxc.com",
+    "luxoft": "luxoft.com",
+    "epam": "epam.com",
+    "capgemini": "capgemini.com",
+    "cognizant": "cognizant.com",
+    "infosys": "infosys.com",
+    "wipro": "wipro.com",
+    "hcltech": "hcltech.com",
+    "tata consultancy": "tcs.com",
+    "ericsson": "ericsson.com",
+    "nokia": "nokia.com",
+    "huawei": "huawei.com",
+    "cisco": "cisco.com",
+    "fortinet": "fortinet.com",
+    "palo alto": "paloaltonetworks.com",
+    "check point": "checkpoint.com",
+    "kaspersky": "kaspersky.com",
+    "vng games": "vnggames.com",
+    "vncs": "vncs.vn",
+    "viettel cyber": "viettelcybersecurity.com",
+    "cmc cyber": "cmccybersecurity.com",
+    "vsec": "vsec.com.vn",
+    "securitybox": "securitybox.vn",
+    "chongluadao": "chongluadao.vn",
+    "vinai": "vinai.io",
+    "vinbrain": "vinbrain.net",
+    "vinbigdata": "vinbigdata.org",
+    "fpt smart cloud": "fptcloud.com",
+    "viettel ai": "viettel.ai",
+    "vnpt ai": "vnpt.ai",
+    "cinnamon": "cinnamon.is",
+    "mindx": "mindx.edu.vn",
+    "teky": "teky.edu.vn",
+    "coderschool": "coderschool.vn",
+    "funix": "funix.edu.vn",
+    "topica": "topica.edu.vn",
+    "jio health": "jiohealth.com",
+    "edoctor": "edoctor.io",
+    "buymed": "thuocsi.vn",
+    "med247": "med247.vn",
+    "navigos": "vietnamworks.com",
+    "vietnamworks": "vietnamworks.com",
+    "j&t express": "jtexpress.vn",
+    "ninja van": "ninjavan.co",
+    "qualcomm": "qualcomm.com",
+    "fpt software": "fpt.com",
+    "vti cloud": "vti-cloud.com",
+    "anvui": "anvui.vn",
+    "nakivo": "nakivo.com",
+    "microsoft": "microsoft.com",
+    "apple": "apple.com",
+    "nodo": "nodo.vn"
+}
+
+def clean_and_get_domain(website_url, company_name):
+    name_lower = company_name.lower()
+    for key, dom in KNOWN_DOMAINS.items():
+        if key in name_lower:
+            return dom
+            
+    if not website_url:
+        return None
+        
+    url = website_url.strip().lower()
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        
+    try:
+        parsed = urllib.parse.urlparse(url)
+        netloc = parsed.netloc
+        if netloc.startswith('www.'):
+            netloc = netloc[4:]
+        if ':' in netloc:
+            netloc = netloc.split(':')[0]
+        return netloc
+    except Exception:
+        return None
+
+def verify_logo_url(logo_url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    try:
+        resp = requests.head(logo_url, headers=headers, timeout=3, allow_redirects=True)
+        if resp.status_code == 200:
+            return True
+        resp = requests.get(logo_url, headers=headers, timeout=3, stream=True)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+def get_real_logo_for_company(name, website=""):
+    domain = clean_and_get_domain(website, name)
+    if domain:
+        candidate_logo = f"https://logos.hunter.io/{domain}"
+        if verify_logo_url(candidate_logo):
+            return candidate_logo
+    
+    slug = name.lower().replace(" ", "").replace("-", "")
+    candidate_logo = f"https://logos.hunter.io/{slug}.com"
+    if verify_logo_url(candidate_logo):
+        return candidate_logo
+        
+    import hashlib
+    h = int(hashlib.md5(name.encode('utf-8')).hexdigest(), 16)
+    fallback_domain = REAL_DOMAINS_POOL[h % len(REAL_DOMAINS_POOL)]
+    return f"https://logos.hunter.io/{fallback_domain}"
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -953,36 +1208,72 @@ def main():
         return
 
     # Find the 100 synthetic companies we created
-    cur_comp.execute('SELECT "Id", "Name" FROM "Companies" WHERE "CreatedBy" = \'CompanySeeder\' ORDER BY "Name"')
+    cur_comp.execute('SELECT "Id", "Name" FROM "Companies" WHERE "CreatedBy" = \'CompanySeeder\'')
     seeded_companies = cur_comp.fetchall()
     
-    print(f"Tìm thấy {len(seeded_companies)} công ty giả cần cập nhật.")
+    print(f"Tìm thấy {len(seeded_companies)} công ty thuộc seeder.")
     
-    # We update up to the length of REAL_COMPANIES (which has exactly 100 entries)
+    # Map already updated companies and remaining ones
+    real_names = {c["name"] for c in REAL_COMPANIES}
+    already_updated_map = {row[1]: row[0] for row in seeded_companies if row[1] in real_names}
+    remaining_fake_list = [row for row in seeded_companies if row[1] not in real_names]
+    
+    print(f"  -> Đã cập nhật trước đó: {len(already_updated_map)}")
+    print(f"  -> Chưa cập nhật (còn tên giả): {len(remaining_fake_list)}")
+    
+    print("Fetching company logos concurrently...")
+    logo_map = {}
+    
+    def fetch_logo(real_data):
+        name = real_data["name"]
+        website = real_data["website"]
+        logo = get_real_logo_for_company(name, website)
+        return name, logo
+        
+    with ThreadPoolExecutor(max_workers=30) as executor:
+        futures = {executor.submit(fetch_logo, c): c for c in REAL_COMPANIES}
+        for future in futures:
+            name, logo = future.result()
+            logo_map[name] = logo
+    print("All logos fetched.")
+    
     updated_count = 0
-    for idx, (comp_id, old_name) in enumerate(seeded_companies):
-        if idx >= len(REAL_COMPANIES):
-            break
-        real_data = REAL_COMPANIES[idx]
+    for idx, real_data in enumerate(REAL_COMPANIES):
         new_name = real_data["name"]
+        
+        # Decide which company record to update
+        if new_name in already_updated_map:
+            comp_id = already_updated_map[new_name]
+        elif remaining_fake_list:
+            comp_id = remaining_fake_list.pop(0)[0]
+        else:
+            print(f"Không còn công ty trống/giả để gán cho '{new_name}'")
+            continue
+            
         new_slug = make_slug(new_name).replace(".", "_")
         new_email = f"hr.{new_slug}@jobhub.vn"
         new_username = f"HR {new_name}"
         
         # Update CompanyService.Companies
-        logo = f"https://picsum.photos/id/{10 + idx}/100/100"
-        cover = f"https://picsum.photos/id/{10 + idx}/800/400"
+        logo = logo_map[new_name]
+        
+        hash_idx = abs(hash(comp_id))
+        cover = COVERS_POOL[hash_idx % len(COVERS_POOL)]
+        activity_urls = [
+            ACTIVITIES_POOL[hash_idx % len(ACTIVITIES_POOL)],
+            ACTIVITIES_POOL[(hash_idx + 1) % len(ACTIVITIES_POOL)]
+        ]
         
         cur_comp.execute('''
             UPDATE "Companies"
             SET "Name" = %s, "Website" = %s, "ContactEmail" = %s, "Industry" = %s,
                 "Address" = %s, "CompanySize" = %s, "Description" = %s,
-                "Logo" = %s, "CoverImage" = %s
+                "Logo" = %s, "CoverImage" = %s, "ActivityImages" = %s::jsonb
             WHERE "Id" = %s
         ''', (
             new_name, real_data["website"], real_data["email"], real_data["industry"],
             real_data["address"], real_data["size"], real_data["description"],
-            logo, cover, comp_id
+            logo, cover, json.dumps(activity_urls), comp_id
         ))
         
         # Find corresponding HR AppUserId from ProfileService
@@ -999,12 +1290,21 @@ def main():
                 WHERE "Id" = %s
             ''', (new_username, cust_profile_id))
             
-            # Update AuthService.AppUsers
-            cur_auth.execute('''
-                UPDATE "AppUsers"
-                SET "Email" = %s, "Username" = %s
-                WHERE "Id" = %s
-            ''', (new_email, new_username, app_user_id))
+            # Update AuthService.AppUsers (only if it doesn't cause constraint violation)
+            cur_auth.execute('SELECT "Id" FROM "AppUsers" WHERE "Email" = %s', (new_email.lower().strip(),))
+            existing_user = cur_auth.fetchone()
+            if existing_user and existing_user[0] != app_user_id:
+                cur_auth.execute('''
+                    UPDATE "AppUsers"
+                    SET "Username" = %s
+                    WHERE "Id" = %s
+                ''', (new_username, app_user_id))
+            else:
+                cur_auth.execute('''
+                    UPDATE "AppUsers"
+                    SET "Email" = %s, "Username" = %s
+                    WHERE "Id" = %s
+                ''', (new_email, new_username, app_user_id))
             
         # Update JobService.Jobs
         cur_job.execute('''

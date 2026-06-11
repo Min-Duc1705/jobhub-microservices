@@ -21,7 +21,7 @@ public class HireAgentRepository : GenericRepository<NotificationDbContext, Hire
 
     public async Task<HireAgentCampaign?> GetCampaignAsync(Guid campaignId)
     {
-        return await _dbSet.FirstOrDefaultAsync(c => c.Id == campaignId);
+        return await _dbSet.AsNoTracking().FirstOrDefaultAsync(c => c.Id == campaignId);
     }
 
     public async Task<List<HireAgentCampaign>> GetActiveCampaignsAsync()

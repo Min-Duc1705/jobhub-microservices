@@ -124,6 +124,7 @@ public class CompanyServiceImpl : ICompanyService
         }
 
         _mapper.Map(request, company);
+        company.IsVerified = false;
         _companyRepo.Update(company);
         await _companyRepo.SaveChangesAsync();
 

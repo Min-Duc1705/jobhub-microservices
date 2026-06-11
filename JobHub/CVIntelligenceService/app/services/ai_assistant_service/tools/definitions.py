@@ -16,8 +16,8 @@ _ALL_TOOL_DEFS = [
                 "keyword": {"type": "string", "description": "Từ khóa tìm kiếm chung (tên vị trí, công ty). Tránh đưa các từ khóa chỉ cấp độ như 'junior', 'senior' vào đây, thay vào đó hãy dùng tham số 'level' tương ứng."},
                 "level": {"type": "string", "description": "Cấp độ công việc. Chỉ nhận một trong các giá trị: INTERN, JUNIOR, MIDDLE, SENIOR, LEAD, DIRECTOR. Hãy phân tích câu hỏi của user để trích xuất cấp độ phù hợp."},
                 "location": {"type": "string", "description": "Địa điểm làm việc cần lọc (ví dụ: 'Hà Nội', 'Hồ Chí Minh')"},
-                "salaryMin": {"type": "number", "description": "Mức lương tối thiểu yêu cầu (ví dụ: 15)"},
-                "salaryMax": {"type": "number", "description": "Mức lương tối đa yêu cầu (ví dụ: 30)"},
+                "salaryMin": {"type": "number", "description": "Mức lương tối thiểu yêu cầu (VND hoặc USD thực tế). BẮT BUỘC nếu tiền VND phải điền đầy đủ số tiền thực tế (ví dụ: 15 triệu VND điền 15000000), nếu là USD điền số USD thực tế (ví dụ: 1000)."},
+                "salaryMax": {"type": "number", "description": "Mức lương tối đa yêu cầu (VND hoặc USD thực tế). BẮT BUỘC nếu tiền VND phải điền đầy đủ số tiền thực tế (ví dụ: 30 triệu VND điền 30000000), nếu là USD điền số USD thực tế (ví dụ: 3000)."},
                 "skills": {"type": "array", "items": {"type": "string"}, "description": "Mảng danh sách tên các kỹ năng cần lọc (ví dụ: ['React', 'Java', 'Nodejs'])"},
                 "pageSize": {"type": "integer", "description": "Số lượng kết quả trả về (mặc định 10)"},
             },
@@ -46,13 +46,15 @@ _ALL_TOOL_DEFS = [
             "type": "object",
             "properties": {
                 "name": {"type": "string", "description": "Tên vị trí tuyển dụng"},
-                "description": {"type": "string", "description": "Mô tả công việc chi tiết"},
-                "requirements": {"type": "string", "description": "Yêu cầu ứng viên"},
-                "benefits": {"type": "string", "description": "Quyền lợi và phúc lợi"},
+                "description": {"type": "string", "description": "Mô tả công việc chi tiết. BẮT BUỘC phải sử dụng ký tự xuống dòng '\\n' để phân tách các câu hoặc đoạn văn rõ ràng."},
+                "requirements": {"type": "string", "description": "Yêu cầu ứng viên. BẮT BUỘC định dạng gạch đầu dòng, mỗi dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: '- Yêu cầu 1\\n- Yêu cầu 2')."},
+                "benefits": {"type": "string", "description": "Quyền lợi và phúc lợi. BẮT BUỘC định dạng gạch đầu dòng, mỗi dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: '- Quyền lợi 1\\n- Quyền lợi 2')."},
                 "location": {"type": "string", "description": "Địa điểm làm việc"},
-                "salary_min": {"type": "number", "description": "Mức lương tối thiểu. Nếu tiền tệ là VND thì điền số triệu (ví dụ: 15), nếu là USD thì điền số USD thực tế (ví dụ: 1000)"},
-                "salary_max": {"type": "number", "description": "Mức lương tối đa. Nếu tiền tệ là VND thì điền số triệu (ví dụ: 25), nếu là USD thì điền số USD thực tế (ví dụ: 2500)"},
+                "salary_min": {"type": "number", "description": "Mức lương tối thiểu (VND hoặc USD thực tế). BẮT BUỘC nếu là VND phải điền đầy đủ số tiền thực tế (ví dụ: 15 triệu VND điền 15000000), nếu là USD điền số USD thực tế (ví dụ: 1000)."},
+                "salary_max": {"type": "number", "description": "Mức lương tối đa (VND hoặc USD thực tế). BẮT BUỘC nếu là VND phải điền đầy đủ số tiền thực tế (ví dụ: 25 triệu VND điền 25000000), nếu là USD điền số USD thực tế (ví dụ: 2500)."},
                 "salary_currency": {"type": "string", "description": "Loại tiền tệ của mức lương, chỉ nhận 'VND' hoặc 'USD'. Mặc định là 'VND'."},
+                "is_salary_negotiable": {"type": "boolean", "description": "Mức lương có thỏa thuận/thương lượng hay không. Đặt bằng false nếu có mức lương số cụ thể (ví dụ: 15-20 triệu) để hiển thị số tiền trên website. BẮT BUỘC đặt bằng true nếu JD ghi lương 'Thỏa thuận', 'Thương lượng', hoặc không đề cập mức lương cụ thể."},
+                "level": {"type": "string", "description": "Cấp độ công việc. BẮT BUỘC chọn một trong các giá trị sau: 'INTERN', 'FRESHER', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEADER', 'MANAGER'."},
                 "quantity": {"type": "integer", "description": "Số lượng tuyển dụng"},
                 "deadline": {"type": "string", "description": "Hạn nộp hồ sơ (YYYY-MM-DD)"},
                 "skill_names": {"type": "array", "items": {"type": "string"}, "description": "Danh sách kỹ năng yêu cầu"},
@@ -114,9 +116,10 @@ _ALL_TOOL_DEFS = [
                 "job_title": {"type": "string", "description": "Tên vị trí công việc"},
                 "experience_years": {"type": "number", "description": "Số năm kinh nghiệm"},
                 "skills": {"type": "array", "items": {"type": "string"}, "description": "Danh sách kỹ năng"},
-                "location": {"type": "string", "description": "Địa điểm làm việc"}
+                "location": {"type": "string", "description": "Địa điểm làm việc"},
+                "level": {"type": "string", "description": "Cấp độ công việc (ví dụ: INTERN, JUNIOR, MIDDLE, SENIOR)"}
             },
-            "required": ["job_title"]
+            "required": ["job_title", "experience_years", "skills", "location", "level"]
         }
     },
     {
@@ -153,7 +156,7 @@ _ALL_TOOL_DEFS = [
             "properties": {
                 "page_name": {
                     "type": "string",
-                    "description": "Tên định danh của trang cần mở. Chỉ nhận các giá trị: 'home', 'jobs', 'companies', 'job_detail', 'salary_predictor', 'profile_settings', 'resume_manager', 'applied_jobs', 'saved_jobs', 'hr_jobs', 'hr_hire_agent', 'admin_dashboard', 'admin_jobs', 'admin_users', 'admin_skills', 'admin_companies', 'admin_resumes', 'admin_applications'"
+                    "description": "Tên định danh của trang cần mở. Chỉ nhận các giá trị: 'home', 'jobs', 'companies', 'job_detail', 'salary_predictor', 'profile_settings', 'resume_manager', 'applied_jobs', 'saved_jobs', 'hr_jobs', 'hr_job_applications', 'hr_hire_agent', 'admin_dashboard', 'admin_jobs', 'admin_users', 'admin_skills', 'admin_companies', 'admin_resumes', 'admin_applications'"
                 },
                 "path": {
                     "type": "string",
@@ -169,6 +172,7 @@ _ALL_TOOL_DEFS = [
                         "- 'applied_jobs': '/candidate/applied-jobs'\n"
                         "- 'saved_jobs': '/candidate/saved-jobs'\n"
                         "- 'hr_jobs': '/hr/jobs'\n"
+                        "- 'hr_job_applications': '/hr/jobs/{jobId}/applications' (dành cho HR/Admin xem danh sách các hồ sơ ứng tuyển của một job cụ thể, ví dụ: '/hr/jobs/28375608-e857-4f7e-9bb9-4adb58376960/applications')\n"
                         "- 'hr_hire_agent': '/hr/hire-agent'\n"
                         "- 'admin_dashboard': '/admin/dashboard'\n"
                         "- 'admin_jobs': '/admin/jobs'\n"
@@ -581,13 +585,14 @@ _ALL_TOOL_DEFS = [
             "properties": {
                 "job_id":              {"type": "string",  "description": "ID tin tuyển dụng cần cập nhật"},
                 "name":                {"type": "string",  "description": "Tên vị trí tuyển dụng mới"},
-                "description":         {"type": "string",  "description": "Mô tả công việc mới"},
-                "requirements":        {"type": "string",  "description": "Yêu cầu ứng viên mới"},
-                "benefits":            {"type": "string",  "description": "Quyền lợi mới"},
+                "description":         {"type": "string",  "description": "Mô tả công việc mới. BẮT BUỘC phải sử dụng ký tự xuống dòng '\\n' để phân tách các câu hoặc đoạn văn rõ ràng."},
+                "requirements":        {"type": "string",  "description": "Yêu cầu ứng viên mới. BẮT BUỘC định dạng gạch đầu dòng, mỗi dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: '- Yêu cầu 1\\n- Yêu cầu 2')."},
+                "benefits":            {"type": "string",  "description": "Quyền lợi mới. BẮT BUỘC định dạng gạch đầu dòng, mỗi dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: '- Quyền lợi 1\\n- Quyền lợi 2')."},
                 "location":            {"type": "string",  "description": "Địa điểm làm việc mới"},
-                "salary_min":          {"type": "number",  "description": "Mức lương tối thiểu mới"},
-                "salary_max":          {"type": "number",  "description": "Mức lương tối đa mới"},
+                "salary_min":          {"type": "number",  "description": "Mức lương tối thiểu mới (VND hoặc USD thực tế). Nếu là VND phải điền đầy đủ số tiền thực tế (ví dụ: 15 triệu VND điền 15000000)."},
+                "salary_max":          {"type": "number",  "description": "Mức lương tối đa mới (VND hoặc USD thực tế). Nếu là VND phải điền đầy đủ số tiền thực tế (ví dụ: 25 triệu VND điền 25000000)."},
                 "salary_currency":     {"type": "string",  "description": "Loại tiền tệ: 'VND' hoặc 'USD'"},
+                "is_salary_negotiable": {"type": "boolean", "description": "Cập nhật lương thỏa thuận hay không (true/false). Đặt bằng false nếu có mức lương số cụ thể để hiển thị số tiền trên website. Đặt bằng true nếu lương thỏa thuận."},
                 "quantity":            {"type": "integer", "description": "Số lượng tuyển mới"},
                 "deadline":            {"type": "string",  "description": "Hạn nộp hồ sơ mới (YYYY-MM-DD)"},
                 "skill_names":         {"type": "array", "items": {"type": "string"}, "description": "Danh sách kỹ năng mới"},

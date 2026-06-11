@@ -350,6 +350,7 @@ services:
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
+      - MinIO__ExternalEndpoint=jobhub.dpdns.org
     depends_on:
       postgres:
         condition: service_healthy
@@ -383,6 +384,7 @@ services:
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
+      - MinIO__ExternalEndpoint=jobhub.dpdns.org
     depends_on:
       postgres:
         condition: service_healthy
@@ -416,6 +418,7 @@ services:
       - MinIO__AccessKey=admin
       - MinIO__SecretKey=AdminPassword123!
       - MinIO__Secure=false
+      - MinIO__ExternalEndpoint=jobhub.dpdns.org
     depends_on:
       postgres:
         condition: service_healthy

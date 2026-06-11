@@ -29,7 +29,7 @@ async def process_job_published_event(msg_body: bytes):
         is_negotiable = bool(msg.get("isNegotiable") or msg.get("IsNegotiable") or False)
         
         currency_raw = msg.get("salaryCurrency") or msg.get("SalaryCurrency")
-        salary_currency = str(currency_raw).upper().strip() if currency_raw else "USD"
+        salary_currency = str(currency_raw).upper().strip() if currency_raw else ""
 
         if not job_title:
             logger.warning("[RabbitMQ] Job title is missing, skipping")
@@ -39,26 +39,39 @@ async def process_job_published_event(msg_body: bytes):
         USD_TO_VND = 25_000
         VND_UNIT = 1_000_000
 
-        def normalize(val: float, currency: str) -> float:
-            if currency == "USD":
-                if val >= 5000: # Trường hợp nhập nhầm VND vào trường USD
-                    return round(val / VND_UNIT, 2)
-                return round((val * USD_TO_VND) / VND_UNIT, 2)
-            elif currency == "VND":
-                if val > 0 and val < 5000: # Người dùng nhập dạng Triệu VND sẵn (ví dụ 30.0 hoặc 50.0)
+        def normalize(val: float, currency_hint: str) -> float:
+            if val <= 0:
+                return 0.0
+            
+            curr = str(currency_hint).upper().strip() if currency_hint else ""
+            
+            # CASE 1: Full VND form (e.g. 15,000,000 or 150,000,000)
+            if val >= 100_000:
+                return round(val / VND_UNIT, 2)
+                
+            # CASE 2: Explicit VND form
+            if curr == "VND":
+                if val < 500:  # e.g., 30.0 -> 30.0
                     return round(val, 2)
-                return round(val / VND_UNIT, 2)
-            else:
-                # Tự động nhận diện cho trường hợp khác hoặc rỗng
-                if val > 0 and val < 5000:
-                    # Dưới 5000 và không khai báo VND -> Mặc định quy đổi như USD thô
-                    return round((val * USD_TO_VND) / VND_UNIT, 2)
-                return round(val / VND_UNIT, 2)
+                else:          # e.g., 30000 -> 30.0
+                    return round(val / 1000.0, 2)
+                    
+            # CASE 3: Explicit USD form
+            if curr == "USD":
+                if val < 100:  # Nhập nhầm 30 (Triệu VND) vào trường USD
+                    return round(val, 2)
+                return round((val * USD_TO_VND) / VND_UNIT, 2)
+                
+            # CASE 4: No currency hint (Tự động nhận diện)
+            if val <= 250:     # e.g. 30.0 -> 30 Triệu VND
+                return round(val, 2)
+            else:              # e.g. 1500 -> 1500 USD -> 37.5 Triệu VND
+                return round((val * USD_TO_VND) / VND_UNIT, 2)
 
         salary_min = normalize(salary_min_raw, salary_currency) if not is_negotiable else 0.0
         salary_max = normalize(salary_max_raw, salary_currency) if not is_negotiable else 0.0
 
-        logger.info(f"[RabbitMQ] Processing sync for Job: {job_title} | {salary_currency} {salary_min_raw}-{salary_max_raw} -> {salary_min}-{salary_max} tr.VND")
+        logger.info(f"[RabbitMQ] Processing sync for Job: {job_title} | {salary_currency or 'VND (Auto)'} {salary_min_raw}-{salary_max_raw} -> {salary_min}-{salary_max} tr.VND")
 
         # 1. Lưu vào salary_datasets để làm dữ liệu train XGBoost
         dataset_col = get_salary_dataset_col()

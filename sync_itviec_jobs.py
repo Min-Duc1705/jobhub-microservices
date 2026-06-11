@@ -45,13 +45,23 @@ API_GATEWAY_URL = "http://localhost:5000"
 # ==============================================================================
 # REAL-WORLD BUILT-IN DATASET (ITVIEC RESILIENT FALLBACK)
 # ==============================================================================
+COVERS_POOL = [
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80"
+]
+
+FALLBACK_LOGO_URL = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=150&h=150&q=80"
+
 BUILTIN_COMPANIES = [
     {
         "name": "FPT Software",
         "description": "FPT Software là công ty xuất khẩu phần mềm lớn nhất Việt Nam và khu vực Đông Nam Á, với quy mô hơn 30,000 nhân sự toàn cầu, cung cấp dịch vụ chuyển đổi số và công nghệ thông tin cho các tập đoàn Fortune 500.",
         "address": "Khu công nghệ cao Hòa Lạc, Thạch Thất, Hà Nội",
-        "logo": "https://images.vietnamworks.com/pictureprofile/fpt-software-logo.png",
-        "cover_image": "https://images.vietnamworks.com/pictureprofile/fpt-software-cover.png",
+        "logo": "https://logos.hunter.io/fpt.com",
+        "cover_image": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
         "industry": "Software Outsourcing & IT Services",
         "size": "ENTERPRISE",
         "website": "https://www.fpt-software.com",
@@ -88,8 +98,8 @@ BUILTIN_COMPANIES = [
         "name": "VNG Corporation",
         "description": "VNG Corporation là doanh nghiệp công nghệ kỳ lân đầu tiên tại Việt Nam, sở hữu hệ sinh thái internet đa dạng bao gồm Zalo, ZaloPay, VNG Games và VNG Cloud, phục vụ hàng chục triệu người dùng mỗi ngày.",
         "address": "Z06 Đường số 13, Tân Thuận Đông, Quận 7, TP. Hồ Chí Minh",
-        "logo": "https://img.vietnamworks.com/pictureprofile/vng-logo.png",
-        "cover_image": "https://img.vietnamworks.com/pictureprofile/vng-cover.png",
+        "logo": "https://logos.hunter.io/vng.com.vn",
+        "cover_image": "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
         "industry": "Internet & Game Publishing",
         "size": "ENTERPRISE",
         "website": "https://vng.com.vn",
@@ -126,8 +136,8 @@ BUILTIN_COMPANIES = [
         "name": "KMS Technology",
         "description": "KMS Technology là công ty phát triển phần mềm và tư vấn công nghệ hàng đầu được thành lập tại Mỹ với các trung tâm phát triển tại Việt Nam, nổi tiếng với môi trường làm việc tuyệt vời và năng động chuyên nghiệp.",
         "address": "Số 2 Trường Quốc Dung, Phường 8, Phú Nhuận, TP. Hồ Chí Minh",
-        "logo": "https://itviec.com/logos/kms-technology.png",
-        "cover_image": "https://itviec.com/covers/kms-technology-cover.png",
+        "logo": "https://logos.hunter.io/kms-technology.com",
+        "cover_image": "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=1200&q=80",
         "industry": "Software Engineering Outsourcing",
         "size": "ENTERPRISE",
         "website": "https://www.kms-technology.com",
@@ -152,8 +162,8 @@ BUILTIN_COMPANIES = [
         "name": "NashTech Vietnam",
         "description": "NashTech là một phần của tập đoàn Harvey Nash toàn cầu, chuyên cung cấp giải pháp công nghệ số sáng tạo, phát triển phần mềm doanh nghiệp và vận hành quy trình kinh doanh (BPO) cho khách hàng quốc tế.",
         "address": "Tòa nhà Etown 3, 367 Cộng Hòa, Tân Bình, TP. Hồ Chí Minh",
-        "logo": "https://itviec.com/logos/nashtech.png",
-        "cover_image": "https://itviec.com/covers/nashtech-cover.png",
+        "logo": "https://logos.hunter.io/nashtechglobal.com",
+        "cover_image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
         "industry": "IT Consulting & Outsourcing",
         "size": "ENTERPRISE",
         "website": "https://nashtechglobal.com",
@@ -178,8 +188,8 @@ BUILTIN_COMPANIES = [
         "name": "VTI Cloud",
         "description": "VTI Cloud là Đối tác tư vấn cao cấp (Advanced Consulting Partner) của AWS tại Việt Nam, chuyên cung cấp dịch vụ chuyển đổi đám mây, kiến trúc hóa hạ tầng, di tản hệ thống và tối ưu hóa chi phí cloud.",
         "address": "Tầng 7, Tòa nhà Sông Đà, Phạm Hùng, Mỹ Đình, Hà Nội",
-        "logo": "https://itviec.com/logos/vti-cloud.png",
-        "cover_image": "https://itviec.com/covers/vti-cloud-cover.png",
+        "logo": "https://logos.hunter.io/vticloud.io",
+        "cover_image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
         "industry": "Cloud Infrastructure & Consulting",
         "size": "SME",
         "website": "https://vticloud.io",
@@ -201,6 +211,66 @@ BUILTIN_COMPANIES = [
         ]
     }
 ]
+
+def clean_and_get_domain(website_url, company_name):
+    # Known domains mapping
+    known = {
+        "fpt software": "fpt.com",
+        "vng corporation": "vng.com.vn",
+        "kms technology": "kms-technology.com",
+        "nashtech": "nashtechglobal.com",
+        "vti cloud": "vticloud.io"
+    }
+    name_lower = company_name.lower()
+    for key, dom in known.items():
+        if key in name_lower:
+            return dom
+            
+    if not website_url:
+        return None
+        
+    url = website_url.strip().lower()
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        
+    try:
+        parsed = urllib.parse.urlparse(url)
+        netloc = parsed.netloc
+        if netloc.startswith('www.'):
+            netloc = netloc[4:]
+        if ':' in netloc:
+            netloc = netloc.split(':')[0]
+        return netloc
+    except Exception:
+        return None
+
+def verify_logo_url(logo_url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    try:
+        resp = requests.head(logo_url, headers=headers, timeout=3, allow_redirects=True)
+        if resp.status_code == 200:
+            return True
+        resp = requests.get(logo_url, headers=headers, timeout=3, stream=True)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+def get_real_logo_for_company(name, website=""):
+    domain = clean_and_get_domain(website, name)
+    if domain:
+        candidate_logo = f"https://logos.hunter.io/{domain}"
+        if verify_logo_url(candidate_logo):
+            return candidate_logo
+    
+    # Try slugify name for guess
+    slug = name.lower().replace(" ", "").replace("-", "")
+    candidate_logo = f"https://logos.hunter.io/{slug}.com"
+    if verify_logo_url(candidate_logo):
+        return candidate_logo
+        
+    return FALLBACK_LOGO_URL
 
 # ==============================================================================
 # LIVE CRAWLER FOR ITVIEC (BEAUTIFUL SOUP)
@@ -262,10 +332,7 @@ def crawl_itviec_live(keyword="python"):
                 company_name = comp_el.text.strip() if comp_el else "Công ty Công nghệ Việt"
                 
                 # Logo
-                logo_el = card.find('img')
-                logo_url = logo_el['src'] if logo_el and logo_el.has_attr('src') else "https://itviec.com/logos/default.png"
-                if logo_url.startswith('/'):
-                    logo_url = "https://itviec.com" + logo_url
+                logo_url = get_real_logo_for_company(company_name)
                 
                 # Location
                 loc_el = card.find(class_=lambda x: x and 'location' in x) or card.find('span', class_='address')
@@ -282,7 +349,7 @@ def crawl_itviec_live(keyword="python"):
                         "description": f"{company_name} là đối tác công nghệ hàng đầu tại Việt Nam.",
                         "address": location,
                         "logo": logo_url,
-                        "cover_image": "https://itviec.com/covers/default.png",
+                        "cover_image": random.choice(COVERS_POOL),
                         "industry": "Information Technology",
                         "size": "SME" if len(skills) > 2 else "STARTUP",
                         "website": "https://example.com",

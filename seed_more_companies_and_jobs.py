@@ -8,8 +8,10 @@ import time
 import requests
 import psycopg2
 import unicodedata
+import urllib.parse
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -23,6 +25,138 @@ DB_CONFIG = {
     "user": "postgres",
     "password": "root"
 }
+
+# 22 High quality corporate/business Unsplash photos that are 100% verified working
+COVERS_POOL = [
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80"
+]
+
+ACTIVITIES_POOL = [
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80"
+]
+
+REAL_DOMAINS_POOL = [
+    "google.com", "microsoft.com", "apple.com", "amazon.com", "netflix.com",
+    "spotify.com", "github.com", "gitlab.com", "slack.com", "zoom.us",
+    "airbnb.com", "uber.com", "tesla.com", "intel.com", "amd.com",
+    "nvidia.com", "oracle.com", "ibm.com", "salesforce.com", "adobe.com",
+    "shopify.com", "paypal.com", "stripe.com", "cloudflare.com", "digitalocean.com",
+    "atlassian.com", "figma.com", "canva.com", "hubspot.com", "mailchimp.com",
+    "heroku.com", "trello.com", "asana.com", "zendesk.com", "datadoghq.com",
+    "sentry.io", "elastic.co", "mongodb.com", "redis.com", "snowflake.com",
+    "databricks.com", "unity.com", "epicgames.com", "nintendo.com", "sony.com",
+    "sega.com", "capcom.com", "ea.com", "ubisoft.com", "riotgames.com",
+    "valvesoftware.com", "roblox.com", "fpt.com", "viettel.com.vn", "vnpt.com.vn",
+    "vng.com.vn", "vingroup.net", "masangroup.com", "techcombank.com", "vietcombank.com.vn",
+    "bidv.com.vn", "agribank.com.vn", "vpbank.com.vn", "mbbank.com.vn", "acb.com.vn",
+    "sacombank.com.vn", "hdbank.com.vn", "tpb.vn", "vib.com.vn", "shb.com.vn",
+    "msb.com.vn", "seabank.com.vn", "ocb.com.vn", "vietinbank.vn", "lazada.vn",
+    "shopee.vn", "tiki.vn", "sendo.vn", "grab.com", "gojek.com", "be.com.vn",
+    "vietjetair.com", "vietnamairlines.com", "bambooairways.com", "vinamilk.com.vn",
+    "thmilk.vn", "sabeco.com.vn", "habeco.com.vn", "vccorp.vn", "tinhvan.com",
+    "hpt.vn", "katalon.com", "dektech.com.au", "nfq.asia", "gearinc.com",
+    "panasonic.com", "homecredit.vn", "nec.com", "hitachi.com", "vti.com.vn"
+]
+
+FALLBACK_LOGO_URL = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=150&h=150&q=80"
+
+KNOWN_DOMAINS = {}
+
+def clean_and_get_domain(website_url, company_name):
+    name_lower = company_name.lower()
+    for key, dom in KNOWN_DOMAINS.items():
+        if key in name_lower:
+            return dom
+            
+    if not website_url:
+        return None
+        
+    url = website_url.strip().lower()
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        
+    try:
+        parsed = urllib.parse.urlparse(url)
+        netloc = parsed.netloc
+        if netloc.startswith('www.'):
+            netloc = netloc[4:]
+        if ':' in netloc:
+            netloc = netloc.split(':')[0]
+        return netloc
+    except Exception:
+        return None
+
+def verify_logo_url(logo_url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    try:
+        resp = requests.head(logo_url, headers=headers, timeout=3, allow_redirects=True)
+        if resp.status_code == 200:
+            return True
+        resp = requests.get(logo_url, headers=headers, timeout=3, stream=True)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+def get_real_logo_for_company(name, website=""):
+    domain = clean_and_get_domain(website, name)
+    if domain:
+        candidate_logo = f"https://logos.hunter.io/{domain}"
+        if verify_logo_url(candidate_logo):
+            return candidate_logo
+    
+    slug = name.lower().replace(" ", "").replace("-", "")
+    candidate_logo = f"https://logos.hunter.io/{slug}.com"
+    if verify_logo_url(candidate_logo):
+        return candidate_logo
+        
+    import hashlib
+    h = int(hashlib.md5(name.encode('utf-8')).hexdigest(), 16)
+    fallback_domain = REAL_DOMAINS_POOL[h % len(REAL_DOMAINS_POOL)]
+    return f"https://logos.hunter.io/{fallback_domain}"
 
 def remove_accents_str(input_str):
     s = input_str.replace('Đ', 'D').replace('đ', 'd')
@@ -43,20 +177,24 @@ def generate_100_companies():
     prefixes = ['Apex', 'Blue', 'Cloud', 'Delta', 'Eco', 'Forte', 'Genesis', 'Helix', 'Intellect', 'Jet', 'Krypton', 'Lumina', 'Matrix', 'Nova', 'Omni', 'Prime', 'Quantum', 'Rift', 'Sigma', 'Titan', 'Ultra', 'Vertex', 'Wave', 'Zenith', 'Smart', 'Global', 'Cyber', 'Data', 'Nexus', 'Vina', 'Saigon', 'Hanoi', 'Mekong', 'SongHong', 'Viet']
     suffixes = ['Software', 'Solutions', 'Systems', 'Tech', 'Digital', 'Technologies', 'Labs', 'Analytics', 'Consulting', 'Hub', 'Innovation', 'Networks', 'Code', 'Soft', 'Intelligence', 'Media', 'Works', 'Space']
     
-    # Query existing company names to avoid collisions
+    # Query existing company names and tax codes to avoid collisions
     try:
         conn = psycopg2.connect(host=DB_CONFIG["host"], port=DB_CONFIG["port"], dbname="CompanyService", user=DB_CONFIG["user"], password=DB_CONFIG["password"])
         cur = conn.cursor()
-        cur.execute('SELECT "Name" FROM "Companies"')
-        existing_names = {r[0].lower().strip() for r in cur.fetchall()}
+        cur.execute('SELECT "Name", "TaxCode" FROM "Companies"')
+        rows = cur.fetchall()
+        existing_names = {r[0].lower().strip() for r in rows if r[0]}
+        existing_tax_codes = {r[1].strip() for r in rows if r[1]}
         cur.close()
         conn.close()
     except Exception as e:
         print(f"  [Warning] Không lấy được danh sách công ty cũ: {e}")
         existing_names = set()
+        existing_tax_codes = set()
         
     new_companies = []
     generated_names = set()
+    generated_tax_codes = set()
     random.seed(2026)
     
     attempts = 0
@@ -78,6 +216,9 @@ def generate_100_companies():
             website = f"https://www.{slug}.com"
             email = f"contact@{slug}.com"
             tax_code = "".join([str(random.randint(0, 9)) for _ in range(10)])
+            while tax_code in existing_tax_codes or tax_code in generated_tax_codes:
+                tax_code = "".join([str(random.randint(0, 9)) for _ in range(10)])
+            generated_tax_codes.add(tax_code)
             size = random.choice(['STARTUP', 'SME', 'ENTERPRISE'])
             industry = random.choice(['Software Outsourcing', 'Product Development', 'Fintech Solutions', 'AI & Data Analytics', 'E-commerce Platform', 'Game Development'])
             address = random.choice([
@@ -88,8 +229,13 @@ def generate_100_companies():
                 "Hàm Nghi, Thanh Khê, Đà Nẵng",
                 "3 Tháng 2, Ninh Kiều, Cần Thơ"
             ])
-            logo = f"https://picsum.photos/id/{random.randint(10, 200)}/100/100"
-            cover = f"https://picsum.photos/id/{random.randint(10, 200)}/800/400"
+            cover = random.choice(COVERS_POOL)
+            activity_imgs = [
+                random.choice(ACTIVITIES_POOL),
+                random.choice(ACTIVITIES_POOL)
+            ]
+            while len(activity_imgs) > 1 and activity_imgs[0] == activity_imgs[1]:
+                activity_imgs[1] = random.choice(ACTIVITIES_POOL)
             desc = f"Chúng tôi là {name}, đơn vị đi đầu trong lĩnh vực {industry.lower()}. Chúng tôi tập trung vào việc cung cấp các giải pháp chất lượng cao cho khách hàng trong nước và quốc tế."
             
             new_companies.append({
@@ -101,12 +247,22 @@ def generate_100_companies():
                 "size": size,
                 "industry": industry,
                 "address": address,
-                "logo": logo,
+                "logo": None,
                 "cover": cover,
+                "activity_images": activity_imgs,
                 "description": desc
             })
             
-    print(f"Đã tạo danh sách {len(new_companies)} công ty mới độc nhất.")
+    print(f"Đã tạo danh sách {len(new_companies)} công ty mới độc nhất. Đang tìm kiếm logo đồng thời...")
+    
+    def fetch_logo_for_dict(c):
+        c["logo"] = get_real_logo_for_company(c["name"], c["website"])
+        
+    with ThreadPoolExecutor(max_workers=30) as executor:
+        # Convert iterator to list to force completion of all threads
+        list(executor.map(fetch_logo_for_dict, new_companies))
+        
+    print("Hoàn tất tìm logo.")
     return new_companies
 
 def seed_companies_to_db(companies):
@@ -124,11 +280,12 @@ def seed_companies_to_db(companies):
                 ) VALUES (
                     %s, %s, %s, %s, %s, %s, %s,
                     %s, %s, %s, %s, %s, %s,
-                    NOW(), NOW(), 'CompanySeeder', 'CompanySeeder', '[]'::jsonb
+                    NOW(), NOW(), 'CompanySeeder', 'CompanySeeder', %s::jsonb
                 )
             ''', (
                 c["id"], c["name"], c["description"], c["address"], c["logo"], c["cover"], c["industry"],
-                c["website"], c["email"], c["tax_code"], c["size"], True, False
+                c["website"], c["email"], c["tax_code"], c["size"], True, False,
+                json.dumps(c.get("activity_images", []))
             ))
             
         conn.commit()
@@ -208,14 +365,9 @@ def seed_hr_accounts(companies):
             
         # Update Profile in ProfileService Customers table
         try:
-            found_profile = False
-            for _ in range(50):
-                profile_cur.execute('SELECT "Id" FROM "Customers" WHERE "AppUserId" = %s', (user_id,))
-                row = profile_cur.fetchone()
-                if row:
-                    found_profile = True
-                    break
-                time.sleep(0.1)
+            profile_cur.execute('SELECT "Id" FROM "Customers" WHERE "AppUserId" = %s', (user_id,))
+            row = profile_cur.fetchone()
+            found_profile = row is not None
                 
             if not found_profile:
                 profile_cur.execute('''
