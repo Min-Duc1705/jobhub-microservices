@@ -84,7 +84,12 @@ async def execute_update_my_profile(args: dict, user_token: str) -> dict:
 
 async def execute_get_my_resumes(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
-    return await _call_api("GET", "http://resumeservice:8080/api/v1/resumes", user_token, params=params)
+    result = await _call_api("GET", "http://resumeservice:8080/api/v1/resumes", user_token, params=params)
+    resumes = result.get("data", {}).get("result", [])
+    for r in resumes:
+        if "extractedText" in r and r["extractedText"]:
+            r["extractedText"] = r["extractedText"][:500] + "..."
+    return result
 
 
 async def execute_set_default_resume(args: dict, user_token: str) -> dict:
@@ -101,4 +106,11 @@ async def execute_delete_resume(args: dict, user_token: str) -> dict:
 
 async def execute_get_my_applications(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
-    return await _call_api("GET", "http://resumeservice:8080/api/v1/applications", user_token, params=params)
+    result = await _call_api("GET", "http://resumeservice:8080/api/v1/applications", user_token, params=params)
+    apps = result.get("data", {}).get("result", [])
+    for app in apps:
+        if "resume" in app and app["resume"]:
+            r = app["resume"]
+            if "extractedText" in r and r["extractedText"]:
+                r["extractedText"] = r["extractedText"][:500] + "..."
+    return result

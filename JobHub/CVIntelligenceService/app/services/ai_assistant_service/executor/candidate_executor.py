@@ -25,7 +25,19 @@ async def execute_get_applications_for_job(args: dict, user_token: str) -> dict:
     params = {"jobId": job_id, "pageSize": 100}
     result = await _call_api("GET", "http://resumeservice:8080/api/v1/applications", user_token, params=params)
     apps = result.get("data", {}).get("result", [])
-    return {"applications": apps, "total": result.get("data", {}).get("meta", {}).get("total", 0)}
+    
+    # Rút gọn extractedText để tránh vượt quá giới hạn token và lỗi cắt chuỗi JSON (MALFORMED_FUNCTION_CALL)
+    cleaned_apps = []
+    for app in apps:
+        app_copy = app.copy()
+        if "resume" in app_copy and app_copy["resume"]:
+            resume_copy = app_copy["resume"].copy()
+            if "extractedText" in resume_copy and resume_copy["extractedText"]:
+                resume_copy["extractedText"] = resume_copy["extractedText"][:500] + "..."
+            app_copy["resume"] = resume_copy
+        cleaned_apps.append(app_copy)
+        
+    return {"applications": cleaned_apps, "total": result.get("data", {}).get("meta", {}).get("total", 0)}
 
 
 async def execute_apply_job(args: dict, user_token: str) -> dict:

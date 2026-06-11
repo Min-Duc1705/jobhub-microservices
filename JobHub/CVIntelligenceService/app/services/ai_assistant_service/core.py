@@ -264,11 +264,15 @@ async def process_assistant_message(
                             tool_name=tool_name
                         ))
 
+                    serialized_res = json.dumps(result, ensure_ascii=False)
+                    if len(serialized_res) > 15000:
+                        serialized_res = serialized_res[:15000] + "... [TRUNCATED]"
+
                     fn_responses.append(
                         genai.protos.Part(
                             function_response=genai.protos.FunctionResponse(
                                 name=tool_name,
-                                response={"result": json.dumps(result, ensure_ascii=False)[:3000]}
+                                response={"result": serialized_res}
                             )
                         )
                     )
