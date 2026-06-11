@@ -19,29 +19,33 @@ async def execute_search_candidates(args: dict, user_token: str) -> dict:
 
 
 async def execute_get_applications_for_job(args: dict, user_token: str) -> dict:
-    job_id = args.get("job_id", "")
-    params = {"jobId": job_id, "pageSize": 20}
+    job_id = args.get("job_id") or args.get("jobId") or ""
+    if not job_id:
+        return {"error": "Thiếu tham số job_id để lấy danh sách hồ sơ ứng tuyển.", "applications": [], "total": 0}
+    params = {"jobId": job_id, "pageSize": 100}
     result = await _call_api("GET", "http://resumeservice:8080/api/v1/applications", user_token, params=params)
     apps = result.get("data", {}).get("result", [])
     return {"applications": apps, "total": result.get("data", {}).get("meta", {}).get("total", 0)}
 
 
 async def execute_apply_job(args: dict, user_token: str) -> dict:
+    job_id = args.get("job_id") or args.get("jobId") or ""
+    resume_id = args.get("resume_id") or args.get("resumeId") or ""
     payload = {
-        "jobId": args.get("job_id", ""),
-        "resumeId": args.get("resume_id", ""),
+        "jobId": job_id,
+        "resumeId": resume_id,
         "coverLetter": args.get("cover_letter")
     }
     return await _call_api("POST", "http://resumeservice:8080/api/v1/applications", user_token, json_data=payload)
 
 
 async def execute_cancel_application(args: dict, user_token: str) -> dict:
-    app_id = args.get("application_id", "")
+    app_id = args.get("application_id") or args.get("applicationId") or ""
     return await _call_api("DELETE", f"http://resumeservice:8080/api/v1/applications/{app_id}", user_token)
 
 
 async def execute_review_application(args: dict, user_token: str) -> dict:
-    app_id = args.get("application_id", "")
+    app_id = args.get("application_id") or args.get("applicationId") or ""
     status_str = str(args.get("status", "")).upper()
 
     status_val = 0
@@ -65,7 +69,9 @@ async def execute_review_application(args: dict, user_token: str) -> dict:
 
 
 async def execute_score_candidates_for_job(args: dict, user_token: str) -> dict:
-    job_id = args.get("job_id", "")
+    job_id = args.get("job_id") or args.get("jobId") or ""
+    if not job_id:
+        return {"error": "Thiếu tham số job_id để thực hiện chấm điểm ứng viên."}
     top_n = int(args.get("top_n", 10))
 
     # 1. Fetch Job Description
