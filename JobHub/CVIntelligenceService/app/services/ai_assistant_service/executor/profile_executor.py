@@ -84,7 +84,7 @@ async def execute_update_my_profile(args: dict, user_token: str) -> dict:
 
 async def execute_get_my_resumes(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
-    return await _call_api("GET", "http://resumeservice:8080/api/v1/resumes", user_token, params)
+    return await _call_api("GET", "http://resumeservice:8080/api/v1/resumes", user_token, params=params)
 
 
 async def execute_set_default_resume(args: dict, user_token: str) -> dict:
@@ -101,4 +101,4 @@ async def execute_delete_resume(args: dict, user_token: str) -> dict:
 
 async def execute_get_my_applications(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
-    return await _call_api("GET", "http://resumeservice:8080/api/v1/applications", user_token, params)
+    return await _call_api("GET", "http://resumeservice:8080/api/v1/applications", user_token, params=params)

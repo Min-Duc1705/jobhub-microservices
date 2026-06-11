@@ -106,6 +106,20 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "score_candidates_for_job",
+        "description": "Thực hiện chấm điểm độ tương thích (Matching Score) và phân tích điểm mạnh/yếu của tất cả các ứng viên đã ứng tuyển vào một tin tuyển dụng (Job). Kết quả được lưu chính thức vào database để đồng bộ với Web UI.",
+        "permissions_required": [("POST", "/api/v1/cv/score/batch")],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "job_id": {"type": "string", "description": "ID của tin tuyển dụng cần chấm điểm"},
+                "top_n": {"type": "integer", "description": "Số lượng ứng viên điểm cao nhất cần nhận xét chi tiết (mặc định 10)"}
+            },
+            "required": ["job_id"]
+        }
+    },
+    {
         "name": "predict_salary",
         "description": "Dự đoán mức lương thị trường dựa trên vị trí, kỹ năng, kinh nghiệm và địa điểm làm việc",
         "permissions_required": [],

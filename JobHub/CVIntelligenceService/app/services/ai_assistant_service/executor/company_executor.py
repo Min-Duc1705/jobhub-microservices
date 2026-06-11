@@ -34,7 +34,7 @@ async def execute_search_companies(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
     if keyword:
         params["searchTerm"] = keyword
-    result = await _call_api("GET", "http://companyservice:8080/api/v1/companies", user_token, params)
+    result = await _call_api("GET", "http://companyservice:8080/api/v1/companies", user_token, params=params)
     companies_raw = result.get("data", {}).get("result", [])
     companies = [
         {

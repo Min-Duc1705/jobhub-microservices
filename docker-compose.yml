@@ -449,6 +449,8 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - Telegram__BotToken=$TelegramBotToken
+      - Telegram__WebhookDomain=https://jobhub.dpdns.org
+      - FrontendUrl=https://jobhub-frontend-two.vercel.app
     depends_on:
       postgres:
         condition: service_healthy

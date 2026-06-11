@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NotificationService.Data;
+using NotificationService.Hubs;
 using NotificationService.Models;
 using NotificationService.Services.Interface;
 using Telegram.Bot;
@@ -19,16 +24,25 @@ public class TelegramBotService : ITelegramBotService
     private readonly TelegramBotClient? _botClient;
     private readonly NotificationDbContext _dbContext;
     private readonly ILogger<TelegramBotService> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IChatService _chatService;
+    private readonly IHubContext<ChatHub> _hubContext;
+    private static readonly HttpClient _httpClient = new HttpClient();
 
     public TelegramBotService(
         IConfiguration configuration,
         NotificationDbContext dbContext,
-        ILogger<TelegramBotService> logger)
+        ILogger<TelegramBotService> logger,
+        IChatService chatService,
+        IHubContext<ChatHub> hubContext)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _configuration = configuration;
+        _chatService = chatService;
+        _hubContext = hubContext;
 
-        var token = configuration["Telegram:BotToken"];
+        var token = _configuration["Telegram:BotToken"];
         if (!string.IsNullOrEmpty(token) && token != "YOUR_TELEGRAM_BOT_TOKEN")
         {
             _botClient = new TelegramBotClient(token);
@@ -39,9 +53,19 @@ public class TelegramBotService : ITelegramBotService
         }
     }
 
-    public async Task ProcessUpdateAsync(Update update)
+    private TelegramBotClient? GetBotClient(string? customToken = null)
     {
-        if (_botClient == null || update.Message == null || string.IsNullOrEmpty(update.Message.Text))
+        if (!string.IsNullOrEmpty(customToken))
+        {
+            return new TelegramBotClient(customToken);
+        }
+        return _botClient;
+    }
+
+    public async Task ProcessUpdateAsync(Update update, string? botToken = null)
+    {
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null || update.Message == null || string.IsNullOrEmpty(update.Message.Text))
             return;
 
         var message = update.Message;
@@ -53,17 +77,26 @@ public class TelegramBotService : ITelegramBotService
         {
             if (text.StartsWith("/start"))
             {
-                await HandleStartCommandAsync(chatId, text, username);
+                await HandleStartCommandAsync(chatId, text, username, botToken);
             }
             else
             {
                 // Check if user is bound
-                var binding = await _dbContext.UserTelegramBindings
-                    .FirstOrDefaultAsync(x => x.TelegramChatId == chatId);
+                UserTelegramBinding? binding = null;
+                if (!string.IsNullOrEmpty(botToken))
+                {
+                    binding = await _dbContext.UserTelegramBindings
+                        .FirstOrDefaultAsync(x => x.TelegramChatId == chatId && x.BotToken == botToken);
+                }
+                else
+                {
+                    binding = await _dbContext.UserTelegramBindings
+                        .FirstOrDefaultAsync(x => x.TelegramChatId == chatId);
+                }
 
                 if (binding == null)
                 {
-                    await _botClient.SendTextMessageAsync(chatId,
+                    await activeClient.SendTextMessageAsync(chatId,
                         "⚠️ Tài khoản của bạn chưa được liên kết với JobHub.\n\n" +
                         "Vui lòng truy cập trang *Cài đặt cá nhân* trên website JobHub và nhấn nút *Kết nối Telegram* để thực hiện liên kết.",
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
@@ -72,30 +105,51 @@ public class TelegramBotService : ITelegramBotService
 
                 if (text.StartsWith("/help"))
                 {
-                    await HandleHelpCommandAsync(chatId);
+                    await HandleHelpCommandAsync(chatId, botToken);
+                }
+                else if (text.StartsWith("/jobs"))
+                {
+                    await HandleJobsCommandAsync(chatId, binding.UserId, botToken);
                 }
                 else if (text.StartsWith("/campaigns"))
                 {
-                    await HandleCampaignsCommandAsync(chatId, binding.UserId);
+                    await HandleCampaignsCommandAsync(chatId, binding.UserId, botToken);
                 }
                 else if (text.StartsWith("/interviews"))
                 {
-                    await HandleInterviewsCommandAsync(chatId, binding.UserId);
+                    await HandleInterviewsCommandAsync(chatId, binding.UserId, botToken);
                 }
                 else if (text.StartsWith("/notifications"))
                 {
-                    await HandleNotificationsCommandAsync(chatId, binding.UserId);
+                    await HandleNotificationsCommandAsync(chatId, binding.UserId, botToken);
                 }
                 else if (text.StartsWith("/profile"))
                 {
-                    await HandleProfileCommandAsync(chatId, binding.UserId, binding);
+                    await HandleProfileCommandAsync(chatId, binding.UserId, binding, botToken);
                 }
                 else
                 {
-                    await _botClient.SendTextMessageAsync(chatId,
-                        "🤖 Xin chào! Tôi là trợ lý JobHub.\n" +
-                        "Tôi không hiểu lệnh này. Gõ `/help` để xem danh sách các lệnh hỗ trợ.",
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    // Check if this is a reply to a previous message with a Ref GUID
+                    if (message.ReplyToMessage != null && !string.IsNullOrEmpty(message.ReplyToMessage.Text))
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(message.ReplyToMessage.Text, @"Ref:\s*([a-fA-F0-9-]{36})");
+                        if (match.Success && Guid.TryParse(match.Groups[1].Value, out Guid partnerId))
+                        {
+                            // Send reply to partner
+                            var replyMsgResponse = await _chatService.SendMessageAsync(binding.UserId.ToString(), partnerId.ToString(), text, "text");
+                            
+                            // Send SignalR real-time for both the sender and partner so their Web UIs update
+                            await _hubContext.Clients.Group(binding.UserId.ToString().ToLower()).SendAsync("ReceiveMessage", replyMsgResponse);
+                            await _hubContext.Clients.Group(partnerId.ToString().ToLower()).SendAsync("ReceiveMessage", replyMsgResponse);
+
+                            await activeClient.SendTextMessageAsync(chatId, $"✅ Đã gửi phản hồi thành công.");
+                            return;
+                        }
+                    }
+
+                    // Route standard messages to AI Assistant via ChatService!
+                    // Pass "telegram" as the type so ChatServiceImpl knows to reply back to Telegram
+                    await _chatService.SendMessageAsync(binding.UserId.ToString(), "ai_assistant", text, "telegram");
                 }
             }
         }
@@ -107,17 +161,26 @@ public class TelegramBotService : ITelegramBotService
 
     public async Task SendPushNotificationAsync(Guid userId, string title, string message)
     {
-        if (_botClient == null) return;
-
         try
         {
             var binding = await _dbContext.UserTelegramBindings
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
-            if (binding != null)
+            if (binding != null && binding.TelegramChatId.HasValue)
             {
+                var activeClient = GetBotClient(binding.BotToken);
+                if (activeClient == null) return;
+
                 var formatted = $"🔔 *{title}*\n\n{message}";
-                await _botClient.SendTextMessageAsync(binding.TelegramChatId, formatted, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                try
+                {
+                    var htmlMessage = ConvertMarkdownToHtml(formatted);
+                    await activeClient.SendTextMessageAsync(binding.TelegramChatId.Value, htmlMessage, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                }
+                catch (Exception)
+                {
+                    await activeClient.SendTextMessageAsync(binding.TelegramChatId.Value, formatted);
+                }
             }
         }
         catch (Exception ex)
@@ -126,9 +189,39 @@ public class TelegramBotService : ITelegramBotService
         }
     }
 
-    private async Task HandleStartCommandAsync(long chatId, string text, string? username)
+    public async Task SendTextMessageAsync(Guid userId, string message)
     {
-        if (_botClient == null) return;
+        try
+        {
+            var binding = await _dbContext.UserTelegramBindings
+                .FirstOrDefaultAsync(x => x.UserId == userId);
+
+            if (binding != null && binding.TelegramChatId.HasValue)
+            {
+                var activeClient = GetBotClient(binding.BotToken);
+                if (activeClient == null) return;
+
+                try
+                {
+                    var htmlMessage = ConvertMarkdownToHtml(message);
+                    await activeClient.SendTextMessageAsync(binding.TelegramChatId.Value, htmlMessage, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                }
+                catch (Exception)
+                {
+                    await activeClient.SendTextMessageAsync(binding.TelegramChatId.Value, message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gửi tin nhắn qua Telegram cho User {UserId}", userId);
+        }
+    }
+
+    private async Task HandleStartCommandAsync(long chatId, string text, string? username, string? botToken = null)
+    {
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
 
         // Check deep link binding parameter /start BIND_UserId
         var parts = text.Split(' ');
@@ -138,13 +231,17 @@ public class TelegramBotService : ITelegramBotService
             if (Guid.TryParse(userIdStr, out Guid userId))
             {
                 var existing = await _dbContext.UserTelegramBindings
-                    .FirstOrDefaultAsync(x => x.UserId == userId || x.TelegramChatId == chatId);
+                    .FirstOrDefaultAsync(x => x.UserId == userId);
 
                 if (existing != null)
                 {
                     existing.TelegramChatId = chatId;
                     existing.Username = username;
                     existing.CreatedDate = DateTimeOffset.UtcNow;
+                    if (!string.IsNullOrEmpty(botToken))
+                    {
+                        existing.BotToken = botToken;
+                    }
                     _dbContext.UserTelegramBindings.Update(existing);
                 }
                 else
@@ -153,62 +250,164 @@ public class TelegramBotService : ITelegramBotService
                     {
                         UserId = userId,
                         TelegramChatId = chatId,
-                        Username = username
+                        Username = username,
+                        BotToken = botToken
                     };
                     _dbContext.UserTelegramBindings.Add(binding);
                 }
 
                 await _dbContext.SaveChangesAsync();
 
-                await _botClient.SendTextMessageAsync(chatId,
+                await activeClient.SendTextMessageAsync(chatId,
                     "🎉 *Liên kết thành công!*\n\n" +
                     "Tài khoản của bạn đã được kết nối với JobHub. Từ bây giờ bạn sẽ nhận được thông báo đẩy trực tiếp qua Telegram này.\n\n" +
                     "Gõ `/help` để xem danh sách lệnh hỗ trợ.",
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     
                 // Gửi thông báo test ngay lập tức
-                await _botClient.SendTextMessageAsync(chatId,
+                await activeClient.SendTextMessageAsync(chatId,
                     "🔔 *Kiểm tra kết nối*\n\nChào mừng bạn! Hệ thống thông báo tự động JobHub đã hoạt động tốt trên thiết bị của bạn.",
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 return;
             }
         }
 
-        await _botClient.SendTextMessageAsync(chatId,
+        await activeClient.SendTextMessageAsync(chatId,
             "👋 Chào mừng bạn đến với *JobHub Bot*!\n\n" +
             "Để nhận thông báo đẩy và sử dụng các tính năng điều khiển, vui lòng vào trang *Cài đặt cá nhân* của JobHub trên trình duyệt web và click nút *Kết nối Telegram*.",
             parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
 
-    private async Task HandleHelpCommandAsync(long chatId)
+    private async Task HandleHelpCommandAsync(long chatId, string? botToken = null)
     {
-        if (_botClient == null) return;
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
 
         var msg = "🤖 *Danh sách lệnh hỗ trợ trên JobHub Bot*:\n\n" +
                   "📌 `/profile` - Xem thông tin tài khoản liên kết hiện tại\n" +
                   "📌 `/notifications` - Xem 5 thông báo chưa đọc mới nhất\n" +
                   "📌 `/campaigns` - (Dành cho HR) Xem danh sách chiến dịch tuyển dụng AI\n" +
+                  "📌 `/jobs` - (Dành cho HR) Xem danh sách công việc tuyển dụng của bạn\n" +
                   "📌 `/interviews` - (Dành cho Ứng viên) Xem lịch hẹn phỏng vấn AI của bạn\n" +
-                  "📌 `/help` - Xem hướng dẫn này";
+                  "📌 `/help` - Xem hướng dẫn này\n\n" +
+                  "💬 Bạn cũng có thể nhắn tin trực tiếp để trò chuyện với Trợ lý AI Assistant bất cứ lúc nào!";
 
-        await _botClient.SendTextMessageAsync(chatId, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+        await activeClient.SendTextMessageAsync(chatId, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
 
-    private async Task HandleProfileCommandAsync(long chatId, Guid userId, UserTelegramBinding binding)
+    private async Task HandleProfileCommandAsync(long chatId, Guid userId, UserTelegramBinding binding, string? botToken = null)
     {
-        if (_botClient == null) return;
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
 
         var msg = "👤 *Thông tin liên kết tài khoản*:\n\n" +
                   $"🔹 *ID tài khoản:* `{userId}`\n" +
                   $"🔹 *Telegram Username:* `@{binding.Username ?? "N/A"}`\n" +
+                  $"🔹 *Bot Username:* `@{binding.BotUsername ?? "Hệ thống"}`\n" +
                   $"🔹 *Ngày liên kết:* {binding.CreatedDate.ToString("dd/MM/yyyy HH:mm")}";
 
-        await _botClient.SendTextMessageAsync(chatId, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+        await activeClient.SendTextMessageAsync(chatId, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
 
-    private async Task HandleCampaignsCommandAsync(long chatId, Guid userId)
+    private async Task HandleJobsCommandAsync(long chatId, Guid userId, string? botToken = null)
     {
-        if (_botClient == null) return;
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
+
+        try
+        {
+            var secretKey = _configuration["Jwt:SecretKey"] ?? "JobHubSuperSecretKeyMinimum64CharactersLongToSupportHS512Algorithm!!";
+            var issuer = _configuration["Jwt:Issuer"] ?? "JobHub";
+            var audience = _configuration["Jwt:Audience"] ?? "JobHubClient";
+            var token = InternalTokenGenerator.GenerateInternalToken(secretKey, issuer, audience);
+
+            var userReq = new HttpRequestMessage(HttpMethod.Get, $"http://authservice:8080/api/v1/users/{userId}");
+            userReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var userRes = await _httpClient.SendAsync(userReq);
+
+            if (!userRes.IsSuccessStatusCode)
+            {
+                await activeClient.SendTextMessageAsync(chatId, "⚠️ Không thể xác thực tài khoản của bạn để lấy danh sách công việc.");
+                return;
+            }
+
+            var userContent = await userRes.Content.ReadAsStringAsync();
+            using var userJson = JsonDocument.Parse(userContent);
+            var data = userJson.RootElement.GetProperty("data");
+            
+            string roleName = string.Empty;
+            if (data.TryGetProperty("role", out var roleProp) && roleProp.ValueKind != JsonValueKind.Null)
+            {
+                roleName = roleProp.GetProperty("name").GetString() ?? "";
+            }
+
+            if (roleName != "HR" && roleName != "ADMIN")
+            {
+                await activeClient.SendTextMessageAsync(chatId, "⚠️ Lệnh `/jobs` chỉ dành cho tài khoản Nhà tuyển dụng (HR).");
+                return;
+            }
+
+            var jobReq = new HttpRequestMessage(HttpMethod.Get, $"http://jobservice:8080/api/v1/jobs?CustomerId={userId}&pageSize=10");
+            jobReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var jobRes = await _httpClient.SendAsync(jobReq);
+
+            if (!jobRes.IsSuccessStatusCode)
+            {
+                await activeClient.SendTextMessageAsync(chatId, "⚠️ Đã xảy ra lỗi khi lấy danh sách công việc từ hệ thống.");
+                return;
+            }
+
+            var jobContent = await jobRes.Content.ReadAsStringAsync();
+            using var jobJson = JsonDocument.Parse(jobContent);
+            var result = jobJson.RootElement.GetProperty("data").GetProperty("result");
+
+            if (result.ValueKind != JsonValueKind.Array || result.GetArrayLength() == 0)
+            {
+                await activeClient.SendTextMessageAsync(chatId, "📋 Bạn chưa có tin tuyển dụng nào đang đăng tuyển.");
+                return;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("📋 *Danh sách Công việc đang tuyển dụng (Tối đa 10)*:\n");
+
+            foreach (var job in result.EnumerateArray())
+            {
+                var name = job.GetProperty("name").GetString();
+                var status = job.GetProperty("status").GetString();
+                var quantity = job.GetProperty("quantity").GetInt32();
+                var location = job.TryGetProperty("location", out var locProp) && locProp.ValueKind != JsonValueKind.Null ? locProp.GetString() : "Chưa cập nhật";
+                
+                var salaryMin = job.TryGetProperty("salaryMin", out var minProp) && minProp.ValueKind != JsonValueKind.Null ? minProp.GetDouble() : (double?)null;
+                var salaryMax = job.TryGetProperty("salaryMax", out var maxProp) && maxProp.ValueKind != JsonValueKind.Null ? maxProp.GetDouble() : (double?)null;
+                var isSalaryNegotiable = job.TryGetProperty("isSalaryNegotiable", out var negoProp) && negoProp.GetBoolean();
+                
+                var salaryStr = isSalaryNegotiable || (!salaryMin.HasValue && !salaryMax.HasValue)
+                    ? "Thỏa thuận"
+                    : $"{(salaryMin.HasValue ? salaryMin.Value.ToString("N0") : "0")} - {(salaryMax.HasValue ? salaryMax.Value.ToString("N0") : "N/A")} VND";
+
+                var statusBadge = status == "PUBLISHED" ? "🟢 Published" : "🟡 " + status;
+
+                sb.AppendLine($"💼 *{name}*");
+                sb.AppendLine($"   Trạng thái: {statusBadge}");
+                sb.AppendLine($"   Số lượng: {quantity} người");
+                sb.AppendLine($"   Địa điểm: {location}");
+                sb.AppendLine($"   Mức lương: {salaryStr}");
+                sb.AppendLine();
+            }
+
+            await activeClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi xử lý lệnh /jobs cho ChatId: {ChatId}", chatId);
+            await activeClient.SendTextMessageAsync(chatId, "❌ Đã xảy ra lỗi hệ thống khi xử lý yêu cầu của bạn.");
+        }
+    }
+
+    private async Task HandleCampaignsCommandAsync(long chatId, Guid userId, string? botToken = null)
+    {
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
 
         var campaigns = await _dbContext.HireAgentCampaigns
             .Where(x => x.RecruiterId == userId.ToString())
@@ -218,7 +417,7 @@ public class TelegramBotService : ITelegramBotService
 
         if (campaigns.Count == 0)
         {
-            await _botClient.SendTextMessageAsync(chatId, "📋 Bạn chưa có chiến dịch tuyển dụng AI nào đang chạy.");
+            await activeClient.SendTextMessageAsync(chatId, "📋 Bạn chưa có chiến dịch tuyển dụng AI nào đang chạy.");
             return;
         }
 
@@ -235,12 +434,13 @@ public class TelegramBotService : ITelegramBotService
             sb.AppendLine();
         }
 
-        await _botClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+        await activeClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
 
-    private async Task HandleInterviewsCommandAsync(long chatId, Guid userId)
+    private async Task HandleInterviewsCommandAsync(long chatId, Guid userId, string? botToken = null)
     {
-        if (_botClient == null) return;
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
 
         var query = from conv in _dbContext.HireAgentConversations
                     join camp in _dbContext.HireAgentCampaigns on conv.CampaignId equals camp.Id
@@ -252,7 +452,7 @@ public class TelegramBotService : ITelegramBotService
 
         if (list.Count == 0)
         {
-            await _botClient.SendTextMessageAsync(chatId, "📅 Bạn chưa tham gia cuộc phỏng vấn AI nào.");
+            await activeClient.SendTextMessageAsync(chatId, "📅 Bạn chưa tham gia cuộc phỏng vấn AI nào.");
             return;
         }
 
@@ -272,12 +472,13 @@ public class TelegramBotService : ITelegramBotService
             sb.AppendLine();
         }
 
-        await _botClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+        await activeClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
 
-    private async Task HandleNotificationsCommandAsync(long chatId, Guid userId)
+    private async Task HandleNotificationsCommandAsync(long chatId, Guid userId, string? botToken = null)
     {
-        if (_botClient == null) return;
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
 
         var notifs = await _dbContext.Notifications
             .Where(x => x.AppUserId == userId && !x.IsRead)
@@ -287,7 +488,7 @@ public class TelegramBotService : ITelegramBotService
 
         if (notifs.Count == 0)
         {
-            await _botClient.SendTextMessageAsync(chatId, "🔔 Bạn không có thông báo chưa đọc nào.");
+            await activeClient.SendTextMessageAsync(chatId, "🔔 Bạn không có thông báo chưa đọc nào.");
             return;
         }
 
@@ -302,6 +503,95 @@ public class TelegramBotService : ITelegramBotService
             sb.AppendLine();
         }
 
-        await _botClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+        await activeClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+    }
+
+    private string ConvertMarkdownToHtml(string markdown)
+    {
+        if (string.IsNullOrEmpty(markdown)) return string.Empty;
+
+        // 1. Escape HTML special characters
+        var html = markdown
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;");
+
+        // 2. Process code blocks: ```code``` -> <pre>code</pre>
+        var parts = html.Split(new[] { "```" }, StringSplitOptions.None);
+        var sb = new StringBuilder();
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (i % 2 == 1)
+            {
+                // Inside code block
+                var code = parts[i];
+                var firstNewline = code.IndexOf('\n');
+                if (firstNewline >= 0 && firstNewline < 10)
+                {
+                    code = code.Substring(firstNewline + 1);
+                }
+                sb.Append("<pre>").Append(code.Trim()).Append("</pre>");
+            }
+            else
+            {
+                // Outside code block
+                var segment = parts[i];
+                
+                // Process line-by-line for headers and list items
+                var lines = segment.Split('\n');
+                for (int l = 0; l < lines.Length; l++)
+                {
+                    var line = lines[l];
+                    var trimmed = line.TrimStart();
+                    
+                    // Check headers: e.g. ### Header
+                    if (trimmed.StartsWith("#"))
+                    {
+                        var hashCount = 0;
+                        while (hashCount < trimmed.Length && trimmed[hashCount] == '#')
+                        {
+                            hashCount++;
+                        }
+                        if (hashCount < trimmed.Length && trimmed[hashCount] == ' ')
+                        {
+                            var headerText = trimmed.Substring(hashCount + 1).Trim();
+                            line = $"<b>{headerText}</b>";
+                        }
+                    }
+                    // Check list items: * item or - item
+                    else if (trimmed.StartsWith("* ") || trimmed.StartsWith("- "))
+                    {
+                        var leadingSpaces = line.Substring(0, line.Length - trimmed.Length);
+                        var itemText = trimmed.Substring(2).Trim();
+                        line = $"{leadingSpaces}• {itemText}";
+                    }
+
+                    lines[l] = line;
+                }
+                segment = string.Join("\n", lines);
+
+                // Process inline markdown: bold, italic, code, links
+                segment = System.Text.RegularExpressions.Regex.Replace(segment, @"\*\*(.*?)\*\*", "<b>$1</b>");
+                segment = System.Text.RegularExpressions.Regex.Replace(segment, @"\*(.*?)\*", "<i>$1</i>");
+                segment = System.Text.RegularExpressions.Regex.Replace(segment, @"_(.*?)_", "<i>$1</i>");
+                segment = System.Text.RegularExpressions.Regex.Replace(segment, @"`(.*?)`", "<code>$1</code>");
+                segment = System.Text.RegularExpressions.Regex.Replace(segment, @"\[(.*?)\]\((.*?)\)", "<a href=\"$2\">$1</a>");
+
+                // 3. Convert relative routing paths to clickable absolute links
+                var domain = _configuration["FrontendUrl"] ?? "https://jobhub-frontend-two.vercel.app";
+                domain = domain.TrimEnd('/');
+                var pathPattern = @"(?<![a-zA-Z0-9:/""'.])/((?:jobs|companies|hr|candidate|admin|salary-predict|schedule|profile)(?:/[a-zA-Z0-9\-_]+)*)";
+                segment = System.Text.RegularExpressions.Regex.Replace(segment, pathPattern, match =>
+                {
+                    var relativePath = match.Value;
+                    var absoluteUrl = $"{domain}{relativePath}";
+                    return $"<a href=\"{absoluteUrl}\">{relativePath}</a>";
+                });
+
+                sb.Append(segment);
+            }
+        }
+
+        return sb.ToString();
     }
 }

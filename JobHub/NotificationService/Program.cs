@@ -286,13 +286,18 @@ using (var scope = app.Services.CreateScope())
         CREATE TABLE IF NOT EXISTS ""UserTelegramBindings"" (
             ""Id""                 uuid          NOT NULL,
             ""UserId""             uuid          NOT NULL,
-            ""TelegramChatId""     bigint        NOT NULL,
+            ""TelegramChatId""     bigint,
             ""Username""           text,
+            ""BotToken""           text,
+            ""BotUsername""         text,
             ""CreatedDate""        timestamptz   NOT NULL,
             CONSTRAINT ""PK_UserTelegramBindings"" PRIMARY KEY (""Id"")
         );
+        ALTER TABLE ""UserTelegramBindings"" ALTER COLUMN ""TelegramChatId"" DROP NOT NULL;
+        ALTER TABLE ""UserTelegramBindings"" ADD COLUMN IF NOT EXISTS ""BotToken"" text;
+        ALTER TABLE ""UserTelegramBindings"" ADD COLUMN IF NOT EXISTS ""BotUsername"" text;
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_UserId"" ON ""UserTelegramBindings"" (""UserId"");
-        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_TelegramChatId"" ON ""UserTelegramBindings"" (""TelegramChatId"");
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_TelegramChatId"" ON ""UserTelegramBindings"" (""TelegramChatId"") WHERE ""TelegramChatId"" IS NOT NULL;
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();

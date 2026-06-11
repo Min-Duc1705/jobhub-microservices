@@ -72,7 +72,9 @@ def extract_user_info_from_token(authorization: str) -> dict:
             or payload.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
         )
         if role:
-            payload["role"] = role
+            if isinstance(role, list):
+                role = next((r for r in role if r), "USER")
+            payload["role"] = str(role)
 
         username = (
             payload.get("username")
@@ -80,14 +82,18 @@ def extract_user_info_from_token(authorization: str) -> dict:
             or payload.get("sub")
         )
         if username:
-            payload["username"] = username
+            if isinstance(username, list):
+                username = next((u for u in username if u), "Người dùng")
+            payload["username"] = str(username)
 
         email = (
             payload.get("email")
             or payload.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
         )
         if email:
-            payload["email"] = email
+            if isinstance(email, list):
+                email = next((e for e in email if e), "")
+            payload["email"] = str(email)
 
         return payload
     except Exception:

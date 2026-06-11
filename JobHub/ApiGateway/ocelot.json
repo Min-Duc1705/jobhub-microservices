@@ -639,7 +639,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5006
+          "Port": 5008
         }
       ],
       "AuthenticationOptions": {
@@ -873,6 +873,70 @@
         {
           "Host": "localhost",
           "Port": 5005
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/telegram/webhook",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/api/v1/telegram/webhook",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/telegram/webhook/{everything}",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/api/v1/telegram/webhook/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/telegram/binding",
+      "UpstreamHttpMethod": [
+        "GET",
+        "DELETE"
+      ],
+      "DownstreamPathTemplate": "/api/v1/telegram/binding",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/telegram/binding/{everything}",
+      "UpstreamHttpMethod": [
+        "POST",
+        "DELETE"
+      ],
+      "DownstreamPathTemplate": "/api/v1/telegram/binding/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
         }
       ],
       "AuthenticationOptions": {

@@ -10,7 +10,8 @@ from .job_executor import (
 )
 from .candidate_executor import (
     execute_search_candidates, execute_get_applications_for_job,
-    execute_apply_job, execute_cancel_application, execute_review_application
+    execute_apply_job, execute_cancel_application, execute_review_application,
+    execute_score_candidates_for_job
 )
 from .profile_executor import (
     execute_update_my_profile, execute_get_my_resumes,
@@ -59,6 +60,7 @@ _TOOL_EXECUTOR_MAP = {
     # Candidate/Application tools
     "search_candidates":            execute_search_candidates,
     "get_applications_for_job":     execute_get_applications_for_job,
+    "score_candidates_for_job":     execute_score_candidates_for_job,
     "apply_job":                    execute_apply_job,
     "cancel_application":           execute_cancel_application,
     "review_application":           execute_review_application,

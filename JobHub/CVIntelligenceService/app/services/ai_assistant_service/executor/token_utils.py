@@ -22,8 +22,10 @@ def _get_customer_id_from_token(token: str) -> str:
                    payload.get("id") or
                    payload.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier") or
                    "")
+            if isinstance(sub, list):
+                sub = next((s for s in sub if s), "")
             logger.info(f"[AIAssistant] Parsed customerId from token: {sub}")
-            return sub
+            return str(sub)
     except Exception as e:
         logger.error(f"[AIAssistant] Error parsing customerId from token: {e}")
     return ""
@@ -41,7 +43,9 @@ def _get_role_from_token(token: str) -> str:
             role = (payload.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role") or
                     payload.get("role") or
                     "USER")
-            return role.upper()
+            if isinstance(role, list):
+                role = next((r for r in role if r), "USER")
+            return str(role).upper()
     except Exception as e:
         logger.error(f"[AIAssistant] Error parsing role from token: {e}")
     return "USER"

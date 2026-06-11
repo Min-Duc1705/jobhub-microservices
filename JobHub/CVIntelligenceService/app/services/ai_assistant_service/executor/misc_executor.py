@@ -80,7 +80,7 @@ async def execute_broadcast_notification(args: dict, user_token: str) -> dict:
 
 async def execute_get_my_saved_jobs(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
-    return await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/saved-jobs", user_token, params)
+    return await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/saved-jobs", user_token, params=params)
 
 
 async def execute_save_job(args: dict, user_token: str) -> dict:
@@ -89,7 +89,7 @@ async def execute_save_job(args: dict, user_token: str) -> dict:
     if args.get("note"):
         params["note"] = args["note"]
     return await _call_api(
-        "POST", f"http://jobhub_jobservice:8080/api/v1/saved-jobs/{job_id}", user_token, params
+        "POST", f"http://jobhub_jobservice:8080/api/v1/saved-jobs/{job_id}", user_token, params=params
     )
 
 

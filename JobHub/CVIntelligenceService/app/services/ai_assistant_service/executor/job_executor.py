@@ -51,7 +51,7 @@ async def execute_search_jobs(args: dict, user_token: str) -> dict:
         if skill_ids:
             params["SkillIds"] = skill_ids
 
-    result = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/jobs", user_token, params)
+    result = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/jobs", user_token, params=params)
     raw_jobs = result.get("data", {}).get("result", [])
     jobs = [
         {
@@ -80,7 +80,7 @@ async def execute_get_my_jobs(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 20))}
     if customer_id:
         params["customerId"] = customer_id
-    result = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/jobs", user_token, params)
+    result = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/jobs", user_token, params=params)
     raw_jobs = result.get("data", {}).get("result", [])
     jobs = [
         {

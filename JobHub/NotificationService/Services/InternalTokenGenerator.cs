@@ -30,4 +30,30 @@ public static class InternalTokenGenerator
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }
+
+    public static string GenerateTokenForUser(string secretKey, string issuer, string audience, Guid userId, string email, string role, string username)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(secretKey);
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim("sub", userId.ToString()),
+                new Claim(ClaimTypes.Role, role),
+                new Claim("role", role),
+                new Claim(ClaimTypes.Email, email),
+                new Claim("email", email),
+                new Claim("username", username),
+                new Claim(ClaimTypes.Name, username)
+            }),
+            Expires = DateTime.UtcNow.AddMinutes(30),
+            Issuer = issuer,
+            Audience = audience,
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
 }
