@@ -12,15 +12,18 @@ public class SendNotificationConsumer : IConsumer<SendNotificationEvent>
 {
     private readonly INotificationService _notificationService;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly ITelegramBotService _telegramBotService;
     private readonly ILogger<SendNotificationConsumer> _logger;
 
     public SendNotificationConsumer(
         INotificationService notificationService,
         IHubContext<NotificationHub> hubContext,
+        ITelegramBotService telegramBotService,
         ILogger<SendNotificationConsumer> logger)
     {
         _notificationService = notificationService;
         _hubContext = hubContext;
+        _telegramBotService = telegramBotService;
         _logger = logger;
     }
 
@@ -46,5 +49,8 @@ public class SendNotificationConsumer : IConsumer<SendNotificationEvent>
             .SendAsync("ReceiveNotification", payload);
 
         _logger.LogInformation("Đã lưu (qua service) và đẩy notification {Id} thành công qua SignalR cho User {UserId}", notification.Id, msg.UserId);
+
+        // Gửi thêm thông báo qua Telegram nếu người dùng có liên kết
+        await _telegramBotService.SendPushNotificationAsync(msg.UserId, msg.Title, msg.Message);
     }
 }

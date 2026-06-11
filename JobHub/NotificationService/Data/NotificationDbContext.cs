@@ -22,10 +22,18 @@ public class NotificationDbContext : DbContext
     public DbSet<Contact> Contacts { get; set; } = null!;
     public DbSet<HireAgentCampaign> HireAgentCampaigns { get; set; } = null!;
     public DbSet<HireAgentConversation> HireAgentConversations { get; set; } = null!;
+    public DbSet<UserTelegramBinding> UserTelegramBindings { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<UserTelegramBinding>(entity =>
+        {
+            entity.HasKey(ut => ut.Id);
+            entity.HasIndex(ut => ut.UserId).IsUnique().HasDatabaseName("IX_UserTelegramBindings_UserId");
+            entity.HasIndex(ut => ut.TelegramChatId).IsUnique().HasDatabaseName("IX_UserTelegramBindings_TelegramChatId");
+        });
 
         modelBuilder.Entity<Notification>(entity =>
         {

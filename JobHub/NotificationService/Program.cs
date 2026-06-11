@@ -43,6 +43,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogServiceImpl>();
 builder.Services.AddScoped<IChatService, ChatServiceImpl>();
 builder.Services.AddScoped<IContactService, ContactServiceImpl>();
 builder.Services.AddScoped<IHireAgentService, HireAgentServiceImpl>();
+builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
 builder.Services.AddHostedService<HireAgentWorker>();
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
@@ -281,6 +282,17 @@ using (var scope = app.Services.CreateScope())
         CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_ConversationId"" ON ""HireAgentConversations"" (""ConversationId"");
         CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_Status"" ON ""HireAgentConversations"" (""Status"");
         CREATE INDEX IF NOT EXISTS ""IX_HireAgentConversations_IsDeleted"" ON ""HireAgentConversations"" (""IsDeleted"");
+
+        CREATE TABLE IF NOT EXISTS ""UserTelegramBindings"" (
+            ""Id""                 uuid          NOT NULL,
+            ""UserId""             uuid          NOT NULL,
+            ""TelegramChatId""     bigint        NOT NULL,
+            ""Username""           text,
+            ""CreatedDate""        timestamptz   NOT NULL,
+            CONSTRAINT ""PK_UserTelegramBindings"" PRIMARY KEY (""Id"")
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_UserId"" ON ""UserTelegramBindings"" (""UserId"");
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_TelegramChatId"" ON ""UserTelegramBindings"" (""TelegramChatId"");
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();

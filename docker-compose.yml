@@ -448,6 +448,7 @@ services:
       - RabbitMQ__Port=5672
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
+      - Telegram__BotToken=$TelegramBotToken
     depends_on:
       postgres:
         condition: service_healthy
