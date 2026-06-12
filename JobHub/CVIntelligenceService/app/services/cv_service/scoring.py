@@ -184,8 +184,9 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
     for idx, (cv_item, score) in enumerate(scored):
         feedback_data = {"extracted_skills": [], "strengths": [], "weaknesses": [], "ai_feedback": None}
 
-        if idx < top_n and score >= 40.0:
-            feedback_data = await generate_feedback(req.job_description, cv_item["cv_text"])
+        # Không sinh feedback tự động bằng LLM ở đây để tránh làm chậm và tốn quota.
+        # Feedback chi tiết sẽ được sinh on-demand (khi NTD click xem chi tiết ứng viên).
+        pass
 
         res_item = ScoringResult(
             application_id=cv_item.get("application_id"),

@@ -301,6 +301,21 @@ using (var scope = app.Services.CreateScope())
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();
+
+    // ── Cấu hình Webhook cho System Bot Telegram ──
+    try
+    {
+        var telegramService = scope.ServiceProvider.GetRequiredService<ITelegramBotService>();
+        if (telegramService is TelegramBotService impl)
+        {
+            await impl.InitializeWebhookAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Lỗi khi cấu hình webhook cho System Bot Telegram trên startup");
+    }
 }
 
 app.Run();

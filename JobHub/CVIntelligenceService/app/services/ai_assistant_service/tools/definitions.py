@@ -120,6 +120,20 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "get_candidate_evaluation_detail",
+        "description": "Xem nhận xét chi tiết bằng AI (bao gồm điểm mạnh strengths, điểm yếu weaknesses, nhận xét chi tiết ai_feedback và kỹ năng extracted_skills) của một ứng viên cụ thể đã được chấm điểm trước đó, dựa trên Tên ứng viên hoặc Application ID.",
+        "permissions_required": [("POST", "/api/v1/cv/score")],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "application_id": {"type": "string", "description": "ID hồ sơ ứng tuyển của ứng viên (nếu có)"},
+                "candidate_name": {"type": "string", "description": "Tên của ứng viên cần xem chi tiết nhận xét (ví dụ: 'Lê Minh Đức')"}
+            },
+            "required": []
+        }
+    },
+    {
         "name": "predict_salary",
         "description": "Dự đoán mức lương thị trường dựa trên vị trí, kỹ năng, kinh nghiệm và địa điểm làm việc",
         "permissions_required": [],

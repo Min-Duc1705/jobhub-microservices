@@ -93,16 +93,21 @@ public class TelegramWebhookController : ControllerBase
             var binding = await _dbContext.UserTelegramBindings
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
+            var systemBotUsername = await _telegramBotService.GetSystemBotUsernameAsync();
+
             if (binding != null)
             {
                 return Ok(new { 
                     isConnected = binding.TelegramChatId.HasValue, 
                     username = binding.Username,
                     botToken = binding.BotToken,
-                    botUsername = binding.BotUsername
+                    botUsername = binding.BotUsername ?? systemBotUsername
                 });
             }
-            return Ok(new { isConnected = false });
+            return Ok(new { 
+                isConnected = false,
+                botUsername = systemBotUsername
+            });
         }
         catch (Exception)
         {

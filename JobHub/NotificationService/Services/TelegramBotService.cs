@@ -28,6 +28,7 @@ public class TelegramBotService : ITelegramBotService
     private readonly IChatService _chatService;
     private readonly IHubContext<ChatHub> _hubContext;
     private static readonly HttpClient _httpClient = new HttpClient();
+    private static string? _systemBotUsername = null;
 
     public TelegramBotService(
         IConfiguration configuration,
@@ -230,6 +231,15 @@ public class TelegramBotService : ITelegramBotService
             var userIdStr = parts[1].Substring(5);
             if (Guid.TryParse(userIdStr, out Guid userId))
             {
+                // Giải phóng TelegramChatId nếu đã được liên kết với User khác
+                var otherBinding = await _dbContext.UserTelegramBindings
+                    .FirstOrDefaultAsync(x => x.TelegramChatId == chatId && x.UserId != userId);
+                if (otherBinding != null)
+                {
+                    _dbContext.UserTelegramBindings.Remove(otherBinding);
+                    await _dbContext.SaveChangesAsync();
+                }
+
                 var existing = await _dbContext.UserTelegramBindings
                     .FirstOrDefaultAsync(x => x.UserId == userId);
 
@@ -327,7 +337,10 @@ public class TelegramBotService : ITelegramBotService
 
             if (!userRes.IsSuccessStatusCode)
             {
-                await activeClient.SendTextMessageAsync(chatId, "⚠️ Không thể xác thực tài khoản của bạn để lấy danh sách công việc.");
+                if ((int)userRes.StatusCode == 403)
+                    await activeClient.SendTextMessageAsync(chatId, "⚠️ Bạn không có quyền thực hiện thao tác này. Tính năng `/jobs` chỉ dành cho tài khoản *Nhà tuyển dụng (HR)* hoặc *Admin*.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                else
+                    await activeClient.SendTextMessageAsync(chatId, "⚠️ Không thể xác thực tài khoản của bạn. Vui lòng thử lại sau.");
                 return;
             }
 
@@ -343,7 +356,7 @@ public class TelegramBotService : ITelegramBotService
 
             if (roleName != "HR" && roleName != "ADMIN")
             {
-                await activeClient.SendTextMessageAsync(chatId, "⚠️ Lệnh `/jobs` chỉ dành cho tài khoản Nhà tuyển dụng (HR).");
+                await activeClient.SendTextMessageAsync(chatId, "⚠️ Bạn không có quyền thực hiện thao tác này. Tính năng `/jobs` chỉ dành cho tài khoản *Nhà tuyển dụng (HR)* hoặc *Admin*.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 return;
             }
 
@@ -408,6 +421,41 @@ public class TelegramBotService : ITelegramBotService
     {
         var activeClient = GetBotClient(botToken);
         if (activeClient == null) return;
+
+        // Kiểm tra quyền: chỉ HR mới có chiến dịch tuyển dụng
+        try
+        {
+            var secretKey = _configuration["Jwt:SecretKey"] ?? "JobHubSuperSecretKeyMinimum64CharactersLongToSupportHS512Algorithm!!";
+            var issuer = _configuration["Jwt:Issuer"] ?? "JobHub";
+            var audience = _configuration["Jwt:Audience"] ?? "JobHubClient";
+            var token = InternalTokenGenerator.GenerateInternalToken(secretKey, issuer, audience);
+
+            var userReq = new HttpRequestMessage(HttpMethod.Get, $"http://authservice:8080/api/v1/users/{userId}");
+            userReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var userRes = await _httpClient.SendAsync(userReq);
+
+            if (userRes.IsSuccessStatusCode)
+            {
+                var userContent = await userRes.Content.ReadAsStringAsync();
+                using var userJson = JsonDocument.Parse(userContent);
+                var data = userJson.RootElement.GetProperty("data");
+                string roleName = string.Empty;
+                if (data.TryGetProperty("role", out var roleProp) && roleProp.ValueKind != JsonValueKind.Null)
+                    roleName = roleProp.GetProperty("name").GetString() ?? "";
+
+                if (roleName != "HR" && roleName != "ADMIN")
+                {
+                    await activeClient.SendTextMessageAsync(chatId,
+                        "⚠️ Bạn không có quyền thực hiện thao tác này. Tính năng `/campaigns` chỉ dành cho tài khoản *Nhà tuyển dụng (HR)* hoặc *Admin*.",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi kiểm tra quyền /campaigns cho ChatId: {ChatId}", chatId);
+        }
 
         var campaigns = await _dbContext.HireAgentCampaigns
             .Where(x => x.RecruiterId == userId.ToString())
@@ -593,5 +641,52 @@ public class TelegramBotService : ITelegramBotService
         }
 
         return sb.ToString();
+    }
+
+    public async Task<string?> GetSystemBotUsernameAsync()
+    {
+        if (!string.IsNullOrEmpty(_systemBotUsername))
+        {
+            return _systemBotUsername;
+        }
+
+        if (_botClient != null)
+        {
+            try
+            {
+                var me = await _botClient.GetMeAsync();
+                _systemBotUsername = me.Username;
+                return _systemBotUsername;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy thông tin System Bot từ Telegram");
+            }
+        }
+        return null;
+    }
+
+    public async Task InitializeWebhookAsync()
+    {
+        if (_botClient == null) return;
+
+        try
+        {
+            var webhookDomain = _configuration["Telegram:WebhookDomain"];
+            if (string.IsNullOrEmpty(webhookDomain))
+            {
+                _logger.LogWarning("Telegram WebhookDomain is not configured. Webhook registration skipped.");
+                return;
+            }
+
+            var webhookUrl = $"{webhookDomain.TrimEnd('/')}/api/v1/telegram/webhook";
+            _logger.LogInformation("Đang đăng ký Webhook cho System Bot: {WebhookUrl}", webhookUrl);
+            await _botClient.SetWebhookAsync(webhookUrl);
+            _logger.LogInformation("Đăng ký Webhook cho System Bot thành công!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi đăng ký Webhook cho System Bot");
+        }
     }
 }

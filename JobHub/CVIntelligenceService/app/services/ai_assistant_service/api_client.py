@@ -31,6 +31,10 @@ async def _call_api(
                 return resp.json()
             except Exception:
                 return {"raw": resp.text}
+        elif resp.status_code == 401:
+            return {"error": "UNAUTHORIZED: Token xác thực không hợp lệ hoặc đã hết hạn (HTTP 401)."}
+        elif resp.status_code == 403:
+            return {"error": "FORBIDDEN: Bạn không có quyền thực hiện thao tác này (HTTP 403). Tính năng này chỉ dành cho vai trò HR hoặc ADMIN."}
         else:
             try:
                 return {"error": resp.json().get("message", f"HTTP {resp.status_code}")}
