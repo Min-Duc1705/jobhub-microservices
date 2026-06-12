@@ -23,3 +23,7 @@ def get_resume_analysis_col():
 
 def get_job_view_history_col():
     return get_db()["job_view_histories"]
+
+
+def get_job_training_corpus_col():
+    return get_db()["job_training_corpus"]

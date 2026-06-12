@@ -5,6 +5,10 @@ from app.ml.llm_generator import _load_api_keys, GEMINI_MODELS
 
 logger = logging.getLogger(__name__)
 
+_current_key_idx = 0
+_current_model_idx = 0
+
+
 _PROMPT_TEMPLATE = """
 Bạn là một Trợ lý AI tuyển dụng đại diện cho chuyên viên nhân sự "{recruiter_name_val}" thuộc tập đoàn/công ty "{company_name_val}" trên hệ thống JobHub.
 Nhiệm vụ của bạn là thực hiện cuộc trò chuyện và phỏng vấn sàng lọc sơ bộ (screening interview) với ứng viên dựa trên Mô tả công việc (JD) và CV của họ.
@@ -40,7 +44,7 @@ GIAI ĐOẠN 2: CHỜ ĐỒNG Ý / HOÃN LẠI (Nếu lịch sử chat có tin n
   - Set 'is_completed' = false, 'is_passed' = false.
 
 GIAI ĐOẠN 3: PHỎNG VẤN CHUYÊN MÔN (Khi ứng viên đã gửi phản hồi đồng ý hoặc sẵn sàng trong lịch sử chat)
-- Chỉ bắt đầu giai đoạn này khi ứng viên đã nhắn một từ khóa đồng ý hoặc sẵn sàng (ví dụ: "đồng ý", "sẵn sàng", "ok", "yes", "sure", "tôi đồng ý", "được nha"...).
+- Chỉ bắt đầu giai đoạn này khi ứng viên đã nhắn một từ khóa đồng ý hoặc sẵn sàng (ví dụ: "đồng ý", "sẵn sàng", "ok", "oke", "được rồi", "bắt đầu đi", "bắt đầu thôi", "ok luôn", "nhất trí", "chốt", "được chứ", "tiến hành đi", "tiếp tục", "go", "yes", "sure", "tôi đồng ý", "được nha", "được", v.v. hoặc bất kỳ từ ngữ nào thể hiện sự đồng ý bắt đầu cuộc phỏng vấn).
 - Đặt câu hỏi phỏng vấn kỹ thuật/chuyên môn liên quan đến JD và CV. Mỗi tin nhắn CHỈ đặt ĐÚNG 1 câu hỏi.
 - Đặt tối thiểu 2 câu hỏi kỹ thuật/chuyên môn để làm rõ kinh nghiệm thực tế của ứng viên. Lắng nghe phản hồi của ứng viên ở mỗi câu hỏi, nhận xét ngắn gọn hoặc phản hồi lịch sự trước khi đưa ra câu hỏi tiếp theo.
 - 🚫 TUYỆT ĐỐI NGHIÊM CẤM: Tuyệt đối không hỏi mức lương mong muốn hay thời gian bắt đầu ở giai đoạn này. Giai đoạn chuyên môn chỉ tập trung vào kỹ năng kỹ thuật/kinh nghiệm.
@@ -51,7 +55,10 @@ GIAI ĐOẠN 4: THU THẬP THÔNG TIN PHỤ & CHỐT KẾT QUẢ (Sau khi đã k
 - Đặt câu hỏi để thu thập thông tin hành chính: "Bạn vui lòng cho biết mức lương mong muốn (Gross) và thời gian sớm nhất bạn có thể bắt đầu công việc tại {company_name_val} là khi nào?"
 - Khi ứng viên đã trả lời câu hỏi về lương/thời gian này:
   - Đánh dấu 'is_completed' = true.
-  - Đánh giá sự phù hợp về mặt kỹ thuật và ngân sách lương của họ. Quyết định Đạt ('is_passed' = true) hoặc Không đạt ('is_passed' = false).
+  - Đánh giá sự phù hợp về mặt kỹ thuật và ngân sách lương của họ.
+  - ⚠️ LƯU Ý QUAN TRỌNG VỀ ĐÁNH GIÁ KỸ THUẬT: Bạn phải đánh giá cực kỳ nghiêm túc và khắt khe độ chính xác kỹ thuật trong các câu trả lời ở Giai đoạn 3.
+    - Nếu ứng viên trả lời sai kiến thức căn bản hoặc đưa ra các tuyên bố phi lý (ví dụ: tuyên bố viết Native Module bằng Kotlin chạy được trên iOS, import trực tiếp file .kt vào Javascript, bật Hermes để tự động làm tree-shaking, khuyên tắt minify trong production để chạy nhanh hơn, nói Firebase Messaging không chạy được trên Android...), bạn phải đánh giá là KHÔNG ĐẠT ('is_passed' = false). Không được để các thuật ngữ chuyên môn (buzzwords) đánh lừa nếu chúng được dùng sai ngữ cảnh hoặc sai nguyên lý hoạt động.
+    - Quyết định Đạt ('is_passed' = true) nếu các câu trả lời kỹ thuật đúng trọng tâm, đúng nguyên lý và mức lương nằm trong khoảng hợp lý. Ngược lại, quyết định Không đạt ('is_passed' = false).
   - Sinh tin nhắn kết luận:
     + Nếu ĐẠT: Chúc mừng ứng viên và báo rằng họ sẽ được chuyên viên nhân sự {recruiter_name_val} liên hệ để phỏng vấn chính thức.
     + Nếu KHÔNG ĐẠT: Cảm ơn sự tham gia của ứng viên và từ chối lịch sự, tinh tế.
@@ -67,7 +74,13 @@ GIAI ĐOẠN 4: THU THẬP THÔNG TIN PHỤ & CHỐT KẾT QUẢ (Sau khi đã k
    - Lịch sự từ chối và hướng ứng viên về tuyển dụng nếu họ yêu cầu làm việc ngoài lề (viết code, giải toán, trò chuyện lạc đề...).
 
 === YÊU CẦU ĐẦU RA (CẤM markdown ```json) ===
+Trước khi xuất ra JSON, hãy phân tích kỹ:
+1. Cuộc hội thoại đang ở giai đoạn nào dựa trên Lịch sử chat? Tại sao?
+2. Câu trả lời tiếp theo nên là gì?
+Hãy đưa phần phân tích này vào trường "reasoning" trong JSON đầu ra.
+
 {{
+  "reasoning": "Giải thích chi tiết lý do chọn Giai đoạn này và logic đưa ra câu trả lời",
   "reply": "Nội dung phản hồi hoặc câu hỏi của bạn dựa trên đúng Giai đoạn hiện tại và các Nguyên tắc trên",
   "is_completed": false,
   "is_passed": false
@@ -126,9 +139,13 @@ async def process_screening_chat(
     num_models = len(models_to_try)
     total_attempts = num_keys * num_models
 
+    global _current_key_idx, _current_model_idx
+    start_key_idx = _current_key_idx % num_keys
+    start_model_idx = _current_model_idx % num_models
+
     attempt = 0
-    curr_key_idx = 0
-    curr_model_idx = 0
+    curr_key_idx = start_key_idx
+    curr_model_idx = start_model_idx
 
     while attempt < total_attempts:
         key = keys[curr_key_idx]
@@ -146,6 +163,10 @@ async def process_screening_chat(
             )
             text_content = response.text
             result = json.loads(text_content)
+            
+            # Lưu lại vị trí thành công gần nhất
+            _current_key_idx = curr_key_idx
+            _current_model_idx = curr_model_idx
             return result
         except Exception as e:
             logger.warning(f"[HireAgent] Thất bại với Key Index {curr_key_idx}, Model {target_model}: {e}")

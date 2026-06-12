@@ -64,3 +64,40 @@ class JobViewHistory(BaseModel):
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+
+
+class JobTrainingDocument(BaseModel):
+    """
+    Nội dung job đã xác minh dùng làm corpus cho matching và recommendation.
+    Không dùng làm nhãn lương hoặc dữ liệu tương tác SVD.
+    """
+    id:                  Optional[PyObjectId] = Field(None, alias="_id")
+    job_id:              str
+    hr_user_id:          str
+    company_id:          str
+    company_name:        str
+    title:               str
+    location:            str
+    level:               str
+    job_type:            str
+    category:            str
+    experience_required: Optional[str] = None
+    description:         str
+    requirements:        str
+    benefits:            str
+    skills:              List[str] = Field(default_factory=list)
+    status:              str
+    source:              str
+    source_url:          Optional[str] = None
+    source_posted_at:    Optional[datetime] = None
+    expires_at:          Optional[datetime] = None
+    training_purpose:    List[str] = Field(default_factory=list)
+    training_text:       str
+    is_labeled:          bool = False
+    collected_at:        datetime = Field(default_factory=datetime.utcnow)
+    synced_at:           datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}

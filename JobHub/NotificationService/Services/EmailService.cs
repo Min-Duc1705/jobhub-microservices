@@ -177,4 +177,51 @@ public class EmailService : IEmailService
 
         return html;
     }
+
+    public async Task SendInterviewProposalEmailAsync(string toEmail, string candidateName, string jobName, string proposedDateStr, string recruiterName, string confirmUrl)
+    {
+        var subject = "📅 Nhà tuyển dụng đề xuất lịch phỏng vấn - JobHub";
+        var templatePath = Path.Combine(_env.ContentRootPath, "Templates", "interview_email.html");
+        string body;
+
+        if (File.Exists(templatePath))
+        {
+            var html = await File.ReadAllTextAsync(templatePath);
+            html = html.Replace("{{TITLE}}", "Đề xuất lịch phỏng vấn từ Nhà tuyển dụng");
+            html = html.Replace("{{CANDIDATE_NAME}}", candidateName);
+            html = html.Replace("{{JOB_NAME}}", jobName);
+            html = html.Replace("{{INTERVIEW_DATE}}", proposedDateStr);
+            html = html.Replace("{{RECRUITER_NAME}}", recruiterName);
+            html = html.Replace("{{CHAT_URL}}", confirmUrl);
+            body = html;
+        }
+        else
+        {
+            body = $@"<h2>Xin chào {candidateName},</h2>
+<p>Nhà tuyển dụng <strong>{recruiterName}</strong> đã đề xuất lịch phỏng vấn cho vị trí <strong>{jobName}</strong> vào lúc <strong>{proposedDateStr}</strong>.</p>
+<p>Vui lòng truy cập <a href=""{confirmUrl}"">liên kết này</a> để xác nhận hoặc đề xuất thời gian khác.</p>
+<p>Trân trọng,<br/>JobHub AI Agent</p>";
+        }
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(
+            _config["Smtp:FromName"] ?? "JobHub Support",
+            _config["Smtp:FromEmail"]));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = subject;
+
+        var bodyBuilder = new BodyBuilder { HtmlBody = body };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync(
+            _config["Smtp:Host"],
+            int.Parse(_config["Smtp:Port"] ?? "587"),
+            SecureSocketOptions.StartTls);
+        await smtp.AuthenticateAsync(_config["Smtp:Username"], _config["Smtp:Password"]);
+        await smtp.SendAsync(message);
+        await smtp.DisconnectAsync(true);
+
+        _logger.LogInformation("Interview proposal email sent to candidate {Email}", toEmail);
+    }
 }

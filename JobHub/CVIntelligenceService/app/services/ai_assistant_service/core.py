@@ -121,16 +121,14 @@ async def process_assistant_message(
     # Model fallback list
     models_to_try = [
         "gemini-3.5-flash",
-        "gemini-3.1-flash-lite-preview",
-        "gemini-3.1-pro-preview",
-        "gemini-3.1-flash-lite",
-        "gemini-3-flash-preview",
-        "gemini-2.5-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-2.5-flash-lite",
         "gemini-2.0-flash-lite",
         "gemini-1.5-flash-latest",
     ]
+
 
     actions_taken = []
     pending_action = None

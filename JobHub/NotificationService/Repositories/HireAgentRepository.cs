@@ -50,7 +50,14 @@ public class HireAgentRepository : GenericRepository<NotificationDbContext, Hire
 
     public async Task<HireAgentConversation?> GetActiveConversationByChatIdAsync(Guid chatConversationId)
     {
-        return await _dbContext.HireAgentConversations.FirstOrDefaultAsync(c => c.ConversationId == chatConversationId && c.Status == "Screening");
+        // Lấy conversation đang active (Screening hoặc PendingCandidateConfirm)
+        // và đảm bảo Campaign tương ứng tồn tại (chưa bị xóa)
+        return await (from conv in _dbContext.HireAgentConversations
+                      join camp in _dbContext.HireAgentCampaigns on conv.CampaignId equals camp.Id
+                      where conv.ConversationId == chatConversationId
+                         && (conv.Status == "Screening" || conv.Status == "PendingCandidateConfirm")
+                      orderby conv.CreatedAt descending
+                      select conv).FirstOrDefaultAsync();
     }
 
     public async Task CreateCampaignAsync(HireAgentCampaign campaign)

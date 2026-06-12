@@ -317,18 +317,46 @@ def upsert_company(cur, item):
 
 def ensure_hr(auth_cur, profile_cur, company_id, company_name, role_id, password_hash):
     now = datetime.now(timezone.utc)
-    profile_cur.execute(
-        'SELECT "Id", "AppUserId" FROM "Customers" WHERE "CompanyId" = %s AND "Type" = %s AND "IsDeleted" = false LIMIT 1',
-        (company_id, "EMPLOYER"),
-    )
-    row = profile_cur.fetchone()
-    if row:
-        return row[0]
-
     hr_email = f"hr.{slug(company_name)}@jobhub.vn"
     hr_name = f"HR {company_name}"
-    auth_cur.execute('SELECT "Id" FROM "AppUsers" WHERE LOWER("Email") = LOWER(%s) LIMIT 1', (hr_email,))
+    auth_cur.execute(
+        '''
+        SELECT "Id"
+        FROM "AppUsers"
+        WHERE LOWER("Email") = LOWER(%s) AND "RoleId" = %s AND "IsDeleted" = false
+        LIMIT 1
+        ''',
+        (hr_email, role_id),
+    )
     row = auth_cur.fetchone()
+
+    # Keep compatibility with older seeds whose HR email slug differs, but only
+    # reuse an active HR account that is already linked to this exact company.
+    if not row:
+        profile_cur.execute(
+            '''
+            SELECT "AppUserId"
+            FROM "Customers"
+            WHERE "CompanyId" = %s AND "Type" = %s AND "IsDeleted" = false
+            ''',
+            (company_id, "EMPLOYER"),
+        )
+        company_user_ids = [item[0] for item in profile_cur.fetchall()]
+        if company_user_ids:
+            auth_cur.execute(
+                '''
+                SELECT "Id"
+                FROM "AppUsers"
+                WHERE "Id" = ANY(%s::uuid[]) AND "RoleId" = %s AND "IsDeleted" = false
+                ORDER BY
+                    CASE WHEN LOWER("Email") LIKE 'hr.%%@jobhub.vn' THEN 0 ELSE 1 END,
+                    "CreatedDate"
+                LIMIT 1
+                ''',
+                (company_user_ids, role_id),
+            )
+            row = auth_cur.fetchone()
+
     app_user_id = row[0] if row else stable_uuid(uuid.NAMESPACE_URL, f"jobhub-hr-user:{company_name}")
 
     if row:
@@ -347,21 +375,37 @@ def ensure_hr(auth_cur, profile_cur, company_id, company_name, role_id, password
             (app_user_id, hr_email, hr_name, password_hash, "Active", role_id, now, now, SEED_SOURCE, SEED_SOURCE),
         )
 
-    customer_id = stable_uuid(uuid.NAMESPACE_URL, f"jobhub-hr-customer:{company_name}")
-    profile_cur.execute(
-        '''
-        INSERT INTO "Customers" (
-            "Id", "AppUserId", "Type", "FullName", "Avatar", "Phone", "CompanyId", "Position",
-            "CreatedDate", "LastModifiedDate", "CreatedBy", "LastModifiedBy", "IsDeleted"
-        ) VALUES (%s,%s,%s,%s,NULL,NULL,%s,%s,%s,%s,%s,%s,false)
-        ON CONFLICT ("Id") DO UPDATE SET
-            "CompanyId"=EXCLUDED."CompanyId", "Type"=EXCLUDED."Type", "FullName"=EXCLUDED."FullName",
-            "Position"=EXCLUDED."Position", "LastModifiedDate"=EXCLUDED."LastModifiedDate",
-            "LastModifiedBy"=EXCLUDED."LastModifiedBy", "IsDeleted"=false
-        ''',
-        (customer_id, app_user_id, "EMPLOYER", hr_name, company_id, "Talent Acquisition Manager", now, now, SEED_SOURCE, SEED_SOURCE),
-    )
-    return customer_id
+    profile_cur.execute('SELECT "Id" FROM "Customers" WHERE "AppUserId" = %s LIMIT 1', (app_user_id,))
+    profile_row = profile_cur.fetchone()
+    if profile_row:
+        profile_cur.execute(
+            '''
+            UPDATE "Customers"
+            SET "CompanyId"=%s, "Type"=%s, "FullName"=%s, "Position"=%s,
+                "LastModifiedDate"=%s, "LastModifiedBy"=%s, "IsDeleted"=false
+            WHERE "AppUserId"=%s
+            ''',
+            (company_id, "EMPLOYER", hr_name, "Talent Acquisition Manager", now, SEED_SOURCE, app_user_id),
+        )
+    else:
+        customer_id = stable_uuid(uuid.NAMESPACE_URL, f"jobhub-hr-customer:{company_name}")
+        profile_cur.execute(
+            '''
+            INSERT INTO "Customers" (
+                "Id", "AppUserId", "Type", "FullName", "Avatar", "Phone", "CompanyId", "Position",
+                "CreatedDate", "LastModifiedDate", "CreatedBy", "LastModifiedBy", "IsDeleted"
+            ) VALUES (%s,%s,%s,%s,NULL,NULL,%s,%s,%s,%s,%s,%s,false)
+            ON CONFLICT ("Id") DO UPDATE SET
+                "AppUserId"=EXCLUDED."AppUserId", "CompanyId"=EXCLUDED."CompanyId",
+                "Type"=EXCLUDED."Type", "FullName"=EXCLUDED."FullName",
+                "Position"=EXCLUDED."Position", "LastModifiedDate"=EXCLUDED."LastModifiedDate",
+                "LastModifiedBy"=EXCLUDED."LastModifiedBy", "IsDeleted"=false
+            ''',
+            (customer_id, app_user_id, "EMPLOYER", hr_name, company_id, "Talent Acquisition Manager", now, now, SEED_SOURCE, SEED_SOURCE),
+        )
+
+    # Jobs.CustomerId follows the authenticated user's JWT subject (AppUsers.Id).
+    return app_user_id
 
 
 def sync_skills(job_cur):
@@ -381,7 +425,7 @@ def insert_jobs(job_cur, company_map, hr_map, skill_map):
     for company_name, title, level, years, skills, location, sal_min, sal_max, category, context in build_market_job_records():
         company = company_lookup[company_name]
         company_id = company_map[company_name]
-        customer_id = hr_map[company_name]
+        hr_user_id = hr_map[company_name]
         job_id = stable_uuid(uuid.NAMESPACE_URL, f"jobhub-job:{company_name}:{title}")
         description = (
             f"{company_name} is hiring {title} for {context}. "
@@ -396,7 +440,7 @@ def insert_jobs(job_cur, company_map, hr_map, skill_map):
         exp_text = f"{years}+ years of relevant experience"
 
         source_jobs.append((
-            job_id, customer_id, company_id, title, company_name, company["logo"], location,
+            job_id, hr_user_id, company_id, title, company_name, company["logo"], location,
             float(round(sal_min * VND_UNIT)), float(round(sal_max * VND_UNIT)), "VND", False, 1, level, job_type, exp_text,
             description, requirements, benefits, now, now + timedelta(days=45), 0, "PUBLISHED",
             category, now, now, SEED_SOURCE, SEED_SOURCE, False
@@ -487,7 +531,7 @@ def main():
         job_conn.commit()
 
         print(f"Companies upserted: {len(company_map)}")
-        print(f"Employer customers ready: {len(hr_map)}")
+        print(f"HR accounts ready: {len(hr_map)}")
         print(f"Jobs seeded: {jobs_count}")
         print(f"JobSkills linked: {job_skills_count}")
         print(f"Salary dataset records inserted for training: {salary_count}")

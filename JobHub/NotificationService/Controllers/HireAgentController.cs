@@ -74,12 +74,36 @@ public class HireAgentController : ControllerBase
         return Ok(campaign);
     }
 
+    /// <summary>HR đặt lịch đề xuất phỏng vấn → candidate nhận thông báo và xác nhận</summary>
     [HttpPost("campaigns/{campaignId:guid}/schedule")]
-    [ApiMessage("Đặt lịch hẹn phỏng vấn thành công")]
+    [ApiMessage("Đề xuất lịch hẹn phỏng vấn thành công")]
     public async Task<IActionResult> ScheduleInterview(Guid campaignId, [FromBody] ScheduleInterviewRequest request)
     {
+        // HR lấy candidateId từ request body vì HR đặt lịch cho candidate cụ thể
+        if (string.IsNullOrEmpty(request.CandidateId))
+            return BadRequest("CandidateId là bắt buộc.");
+
+        var conversation = await _hireAgentService.ScheduleInterviewAsync(campaignId, request.CandidateId, request.InterviewDate);
+        return Ok(conversation);
+    }
+
+    /// <summary>Candidate xác nhận đồng ý lịch phỏng vấn HR đề xuất</summary>
+    [HttpPost("campaigns/{campaignId:guid}/confirm")]
+    [ApiMessage("Xác nhận lịch hẹn phỏng vấn thành công")]
+    public async Task<IActionResult> ConfirmInterview(Guid campaignId)
+    {
         var candidateId = GetCurrentUserId();
-        var conversation = await _hireAgentService.ScheduleInterviewAsync(campaignId, candidateId, request.InterviewDate);
+        var conversation = await _hireAgentService.ConfirmInterviewAsync(campaignId, candidateId);
+        return Ok(conversation);
+    }
+
+    /// <summary>Candidate đề xuất đổi lịch → thông báo HR, reset về Passed</summary>
+    [HttpPost("campaigns/{campaignId:guid}/propose-reschedule")]
+    [ApiMessage("Đề xuất đổi lịch phỏng vấn thành công")]
+    public async Task<IActionResult> ProposeReschedule(Guid campaignId, [FromBody] ProposeRescheduleRequest request)
+    {
+        var candidateId = GetCurrentUserId();
+        var conversation = await _hireAgentService.ProposeRescheduleAsync(campaignId, candidateId, request.Message);
         return Ok(conversation);
     }
 
