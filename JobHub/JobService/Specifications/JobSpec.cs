@@ -13,8 +13,8 @@ public class JobFilterSpec : BaseSpecification<Job>
         Guid?      companyId,
         Guid?      customerId,
         string?    location,
-        JobLevel?  level,
-        JobType?   jobType,
+        List<JobLevel>? level,
+        List<JobType>?  jobType,
         JobStatus? status,
         double?    salaryMin,
         double?    salaryMax,
@@ -46,11 +46,11 @@ public class JobFilterSpec : BaseSpecification<Job>
             AddCriteria(j => j.Location != null && j.Location.ToLower().Contains(loc));
         }
 
-        if (level.HasValue)
-            AddCriteria(j => j.Level == level.Value);
+        if (level != null && level.Any())
+            AddCriteria(j => level.Contains(j.Level));
 
-        if (jobType.HasValue)
-            AddCriteria(j => j.JobType == jobType.Value);
+        if (jobType != null && jobType.Any())
+            AddCriteria(j => jobType.Contains(j.JobType));
 
         if (status.HasValue)
             AddCriteria(j => j.Status == status.Value);
@@ -96,8 +96,8 @@ public class JobFilterCountSpec : BaseSpecification<Job>
         Guid?      companyId,
         Guid?      customerId,
         string?    location,
-        JobLevel?  level,
-        JobType?   jobType,
+        List<JobLevel>? level,
+        List<JobType>?  jobType,
         JobStatus? status,
         double?    salaryMin,
         double?    salaryMax,
@@ -125,8 +125,8 @@ public class JobFilterCountSpec : BaseSpecification<Job>
             AddCriteria(j => j.Location != null && j.Location.ToLower().Contains(loc));
         }
 
-        if (level.HasValue)    AddCriteria(j => j.Level == level.Value);
-        if (jobType.HasValue)  AddCriteria(j => j.JobType == jobType.Value);
+        if (level != null && level.Any())      AddCriteria(j => level.Contains(j.Level));
+        if (jobType != null && jobType.Any())  AddCriteria(j => jobType.Contains(j.JobType));
 
         if (status.HasValue)
             AddCriteria(j => j.Status == status.Value);
@@ -168,8 +168,8 @@ public class AdminJobFilterSpec : BaseSpecification<Job>
         Guid?      companyId,
         Guid?      customerId,
         string?    location,
-        JobLevel?  level,
-        JobType?   jobType,
+        List<JobLevel>? level,
+        List<JobType>?  jobType,
         JobStatus? status,
         string?    sortBy,
         bool       isDescending,
@@ -195,8 +195,8 @@ public class AdminJobFilterSpec : BaseSpecification<Job>
             AddCriteria(j => j.Location != null && j.Location.ToLower().Contains(loc));
         }
 
-        if (level.HasValue)   AddCriteria(j => j.Level   == level.Value);
-        if (jobType.HasValue) AddCriteria(j => j.JobType == jobType.Value);
+        if (level != null && level.Any())     AddCriteria(j => level.Contains(j.Level));
+        if (jobType != null && jobType.Any()) AddCriteria(j => jobType.Contains(j.JobType));
         if (status.HasValue)  AddCriteria(j => j.Status  == status.Value);
         // Không ép PUBLISHED — admin thấy tất cả status
 
@@ -229,8 +229,8 @@ public class AdminJobCountSpec : BaseSpecification<Job>
         Guid?      companyId,
         Guid?      customerId,
         string?    location,
-        JobLevel?  level,
-        JobType?   jobType,
+        List<JobLevel>? level,
+        List<JobType>?  jobType,
         JobStatus? status)
     {
         AddCriteria(j => !j.IsDeleted);
@@ -252,8 +252,8 @@ public class AdminJobCountSpec : BaseSpecification<Job>
             AddCriteria(j => j.Location != null && j.Location.ToLower().Contains(loc));
         }
 
-        if (level.HasValue)   AddCriteria(j => j.Level   == level.Value);
-        if (jobType.HasValue) AddCriteria(j => j.JobType == jobType.Value);
+        if (level != null && level.Any())     AddCriteria(j => level.Contains(j.Level));
+        if (jobType != null && jobType.Any()) AddCriteria(j => jobType.Contains(j.JobType));
         if (status.HasValue)  AddCriteria(j => j.Status  == status.Value);
         // Không ép PUBLISHED
     }

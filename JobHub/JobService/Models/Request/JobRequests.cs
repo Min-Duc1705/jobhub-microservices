@@ -61,8 +61,8 @@ public class JobFilterRequest
     public Guid?     CompanyId   { get; set; }        // Lọc theo công ty
     public Guid?     CustomerId  { get; set; }        // Lọc theo HR đăng tin
     public string?   Location    { get; set; }        // Lọc theo địa điểm
-    public JobLevel? Level       { get; set; }
-    public JobType?  JobType     { get; set; }
+    public List<JobLevel>? Level { get; set; }
+    public List<JobType>?  JobType { get; set; }
     public JobStatus? Status     { get; set; }
     public double?   SalaryMin   { get; set; }        // Lương tối thiểu tìm kiếm
     public double?   SalaryMax   { get; set; }
@@ -80,8 +80,8 @@ public class AdminJobFilterRequest
     public Guid?      CompanyId   { get; set; }   // Lọc theo công ty
     public Guid?      CustomerId  { get; set; }   // Lọc theo HR đăng tin (tuỳ chọn)
     public string?    Location    { get; set; }   // Lọc theo địa điểm
-    public JobLevel?  Level       { get; set; }
-    public JobType?   JobType     { get; set; }
+    public List<JobLevel>? Level  { get; set; }
+    public List<JobType>?  JobType { get; set; }
     public JobStatus? Status      { get; set; }   // Không set = lấy tất cả status
     public string     SortBy      { get; set; } = "createdDate";
     public bool       IsDescending { get; set; } = true;
