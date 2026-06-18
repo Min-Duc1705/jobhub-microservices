@@ -40,7 +40,9 @@ public class HireAgentController : ControllerBase
             recruiterId,
             request.TargetCount,
             request.JobLocation,
-            request.JobType
+            request.JobType,
+            request.InterviewDate,
+            request.BackupInterviewDate
         );
         return Ok(campaign);
     }

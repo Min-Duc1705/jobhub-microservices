@@ -56,7 +56,10 @@ _CAPABILITY_MAP = {
     "create_hire_agent_campaign": "- Tạo một chiến dịch tuyển dụng bằng AI mới (HR)",
     "schedule_campaign_interview": "- Đặt lịch hẹn phỏng vấn cho ứng viên trong chiến dịch tuyển dụng AI",
     "broadcast_notification": "- Gửi thông báo hệ thống (broadcast) tới người dùng hoặc nhóm đối tượng",
-    "import_skills_to_my_profile": "- Thêm/import hàng loạt kỹ năng từ danh sách tên kỹ năng vào hồ sơ cá nhân của bạn"
+    "import_skills_to_my_profile": "- Thêm/import hàng loạt kỹ năng từ danh sách tên kỹ năng vào hồ sơ cá nhân của bạn",
+    "get_my_conversations": "- Xem danh sách các cuộc trò chuyện (chat) của bạn",
+    "get_chat_history": "- Xem chi tiết tin nhắn trong một cuộc hội thoại cụ thể",
+    "get_my_notifications": "- Xem các thông báo chưa đọc của bạn"
 }
 
 

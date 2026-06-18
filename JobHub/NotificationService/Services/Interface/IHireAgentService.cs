@@ -7,7 +7,7 @@ namespace NotificationService.Services.Interface;
 
 public interface IHireAgentService
 {
-    Task<HireAgentCampaign> CreateCampaignAsync(Guid jobId, string jobName, string jobDescription, string recruiterId, int targetCount, string? jobLocation = null, string? jobType = null);
+    Task<HireAgentCampaign> CreateCampaignAsync(Guid jobId, string jobName, string jobDescription, string recruiterId, int targetCount, string? jobLocation = null, string? jobType = null, DateTimeOffset? interviewDate = null, DateTimeOffset? backupInterviewDate = null);
     Task<List<HireAgentCampaign>> GetCampaignsByRecruiterAsync(string recruiterId);
     Task<List<HireAgentConversation>> GetConversationsByCampaignAsync(Guid campaignId);
     Task RunCampaignOutreachAsync(Guid campaignId);

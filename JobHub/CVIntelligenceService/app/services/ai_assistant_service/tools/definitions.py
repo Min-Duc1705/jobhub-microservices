@@ -958,4 +958,40 @@ _ALL_TOOL_DEFS = [
             "required": []
         }
     },
+    {
+        "name": "get_my_conversations",
+        "description": "Lấy danh sách các cuộc hội thoại chat của tôi. Dùng khi user hỏi có ai nhắn tin cho tôi không, hoặc muốn xem danh sách chat.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "get_chat_history",
+        "description": "Lấy lịch sử tin nhắn của một cuộc hội thoại cụ thể theo conversation_id. Hỗ trợ xem các tin nhắn cũ hơn.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {"type": "string", "description": "ID của cuộc hội thoại (UUID)"},
+                "limit": {"type": "integer", "description": "Số lượng tin nhắn cần lấy (mặc định 50)"}
+            },
+            "required": ["conversation_id"]
+        }
+    },
+    {
+        "name": "get_my_notifications",
+        "description": "Lấy danh sách tất cả các thông báo chưa đọc của tôi. Dùng khi user muốn xem thông báo hoặc kiểm tra tin nhắn hệ thống.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
 ]

@@ -42,7 +42,8 @@ from .admin_executor import (
 from .misc_executor import (
     execute_navigate_to_page, execute_predict_salary, execute_broadcast_notification,
     execute_get_my_saved_jobs, execute_save_job, execute_unsave_job,
-    execute_import_users, execute_import_skills, execute_import_companies, execute_import_jobs
+    execute_import_users, execute_import_skills, execute_import_companies, execute_import_jobs,
+    execute_get_my_conversations, execute_get_chat_history, execute_get_my_notifications
 )
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,9 @@ _TOOL_EXECUTOR_MAP = {
     "get_my_saved_jobs":        execute_get_my_saved_jobs,
     "save_job":                 execute_save_job,
     "unsave_job":               execute_unsave_job,
+    "get_my_conversations":     execute_get_my_conversations,
+    "get_chat_history":         execute_get_chat_history,
+    "get_my_notifications":     execute_get_my_notifications,
     # Admin — Users
     "get_all_users":        execute_get_all_users,
     "get_user_detail":      execute_get_user_detail,

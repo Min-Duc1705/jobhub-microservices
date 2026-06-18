@@ -154,3 +154,21 @@ async def execute_import_companies(args: dict, user_token: str) -> dict:
 
 async def execute_import_jobs(args: dict, user_token: str) -> dict:
     return _import_action("jobs", "Jobs", "/admin/jobs")
+
+
+async def execute_get_my_conversations(args: dict, user_token: str) -> dict:
+    url = "http://notificationservice:8080/api/v1/chat/conversations"
+    return await _call_api("GET", url, user_token)
+
+
+async def execute_get_chat_history(args: dict, user_token: str) -> dict:
+    conv_id = args.get("conversation_id", "")
+    limit = int(args.get("limit") or 50)
+    url = f"http://notificationservice:8080/api/v1/chat/conversations/{conv_id}/messages"
+    params = {"limit": limit}
+    return await _call_api("GET", url, user_token, params=params)
+
+
+async def execute_get_my_notifications(args: dict, user_token: str) -> dict:
+    url = "http://notificationservice:8080/api/v1/notifications"
+    return await _call_api("GET", url, user_token)

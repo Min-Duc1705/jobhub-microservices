@@ -258,6 +258,10 @@ using (var scope = app.Services.CreateScope())
         );
         ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
         ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamptz;
+        ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""JobLocation"" text;
+        ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""JobType"" text;
+        ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""InterviewDate"" timestamptz;
+        ALTER TABLE ""HireAgentCampaigns"" ADD COLUMN IF NOT EXISTS ""BackupInterviewDate"" timestamptz;
         CREATE INDEX IF NOT EXISTS ""IX_HireAgentCampaigns_JobId"" ON ""HireAgentCampaigns"" (""JobId"");
         CREATE INDEX IF NOT EXISTS ""IX_HireAgentCampaigns_Status"" ON ""HireAgentCampaigns"" (""Status"");
         CREATE INDEX IF NOT EXISTS ""IX_HireAgentCampaigns_IsDeleted"" ON ""HireAgentCampaigns"" (""IsDeleted"");

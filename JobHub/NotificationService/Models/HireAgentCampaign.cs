@@ -16,6 +16,8 @@ public class HireAgentCampaign : EntityBase<Guid>, ISoftDelete
     public string? JobLocation { get; set; }
     /// <summary>Loại hình: REMOTE/HYBRID/FULL_TIME/... (REMOTE+HYBRID = bỏ qua check location)</summary>
     public string? JobType { get; set; }
+    public DateTimeOffset? InterviewDate { get; set; }
+    public DateTimeOffset? BackupInterviewDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // ISoftDelete members

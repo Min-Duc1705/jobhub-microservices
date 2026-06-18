@@ -12,4 +12,6 @@ public class CreateHireAgentCampaignRequest
     public string? JobLocation { get; set; }
     /// <summary>Loại hình làm việc: REMOTE, HYBRID, FULL_TIME, PART_TIME, INTERNSHIP</summary>
     public string? JobType { get; set; }
+    public DateTimeOffset? InterviewDate { get; set; }
+    public DateTimeOffset? BackupInterviewDate { get; set; }
 }

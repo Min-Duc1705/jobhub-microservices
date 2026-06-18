@@ -20,7 +20,8 @@ public partial class HireAgentServiceImpl
 {
     public async Task<HireAgentCampaign> CreateCampaignAsync(
         Guid jobId, string jobName, string jobDescription, string recruiterId,
-        int targetCount, string? jobLocation = null, string? jobType = null)
+        int targetCount, string? jobLocation = null, string? jobType = null,
+        DateTimeOffset? interviewDate = null, DateTimeOffset? backupInterviewDate = null)
     {
         if (jobId == Guid.Empty || string.IsNullOrWhiteSpace(jobName)
             || string.IsNullOrWhiteSpace(jobDescription) || string.IsNullOrWhiteSpace(recruiterId))
@@ -37,6 +38,8 @@ public partial class HireAgentServiceImpl
             Status        = "Active",
             JobLocation   = jobLocation?.Trim(),
             JobType       = jobType?.Trim().ToUpper(),
+            InterviewDate = interviewDate,
+            BackupInterviewDate = backupInterviewDate,
             CreatedAt     = DateTimeOffset.UtcNow
         };
 
