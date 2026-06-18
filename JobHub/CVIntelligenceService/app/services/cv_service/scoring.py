@@ -150,30 +150,92 @@ def _compute_skill_penalty(jd_skills: list[str], cv_text: str) -> float:
 
 def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
     """
-    Áp dụng hình phạt nếu có sự lệch lớn về cấp bậc (Seniority Mismatch).
-    Đặc biệt là khi Job yêu cầu Senior/Leader/Manager mà CV chỉ ở mức Intern/Fresher.
+    Áp dụng hình phạt nếu có sự lệch cấp bậc giữa yêu cầu công việc (JD) và CV.
+    - Cấp 4: Senior+ (Senior, Lead, Manager, Architect, >=5 năm kinh nghiệm)
+    - Cấp 3: Middle (Middle, Mid, 3-4 năm kinh nghiệm)
+    - Cấp 2: Junior (Junior, 1-2 năm kinh nghiệm)
+    - Cấp 1: Intern/Fresher (Intern, Fresher, Thực tập, Chưa có kinh nghiệm, 0-1 năm)
+    
+    Nếu JD yêu cầu cấp cao hơn năng lực của ứng viên, áp dụng hình phạt:
+    - Lệch 1 cấp: phạt x0.8
+    - Lệch 2 cấp: phạt x0.5
+    - Lệch 3 cấp: phạt x0.35
     """
     jd_lower = jd_text.lower()
     cv_lower = cv_text.lower()
+    # Chỉ quét 600 ký tự đầu của CV để tránh match nhầm chức danh của người giới thiệu ở cuối trang
+    cv_header = cv_lower[:600]
 
-    high_level_patterns = [
+    # 1. Xác định cấp bậc yêu cầu của Job (JD)
+    jd_senior_patterns = [
         r"\bsenior\b", r"\blead\b", r"\btrưởng nhóm\b", r"\btrưởng phòng\b",
         r"\bquản lý\b", r"\bmanager\b", r"\btech lead\b", r"\bchủ chốt\b",
-        r"\barchitect\b", r"\bchuyên gia\b", r"\b3\s*năm kinh nghiệm\b",
-        r"\b5\s*năm kinh nghiệm\b", r"\b6\s*năm kinh nghiệm\b"
+        r"\barchitect\b", r"\bchuyên gia\b", r"\b5\s*năm kinh nghiệm\b",
+        r"\b6\s*năm kinh nghiệm\b", r"\b7\s*năm kinh nghiệm\b", r"\b8\s*năm kinh nghiệm\b",
+        r"\b10\s*năm kinh nghiệm\b"
     ]
-    is_job_high_level = any(re.search(pat, jd_lower) for pat in high_level_patterns)
-
-    fresher_patterns = [
+    jd_middle_patterns = [
+        r"\bmiddle\b", r"\bmid\b", r"\b3\s*năm kinh nghiệm\b", r"\b4\s*năm kinh nghiệm\b"
+    ]
+    jd_junior_patterns = [
+        r"\bjunior\b", r"\b1\s*năm kinh nghiệm\b", r"\b2\s*năm kinh nghiệm\b"
+    ]
+    jd_fresher_patterns = [
         r"\bintern\b", r"\bfresher\b", r"\bthực tập sinh\b", r"\bthực tập\b",
+        r"\b0\s*-\s*1\s*năm kinh nghiệm\b"
+    ]
+
+    jd_level = 2  # Mặc định là Junior
+    if any(re.search(pat, jd_lower) for pat in jd_senior_patterns):
+        jd_level = 4
+    elif any(re.search(pat, jd_lower) for pat in jd_middle_patterns):
+        jd_level = 3
+    elif any(re.search(pat, jd_lower) for pat in jd_junior_patterns):
+        jd_level = 2
+    elif any(re.search(pat, jd_lower) for pat in jd_fresher_patterns):
+        jd_level = 1
+
+    # 2. Xác định cấp bậc của ứng viên (CV) - hỗ trợ việc nối từ do lỗi trích xuất text
+    cv_senior_patterns = [
+        r"\w*senior\b", r"\w*lead\b", r"\w*leader\b", r"\btrưởng nhóm\b", r"\btrưởng phòng\b",
+        r"\bquản lý\b", r"\w*manager\b", r"\w*architect\b", r"\bchuyên gia\b"
+    ]
+    cv_middle_patterns = [
+        r"\w*middle\b", r"\w*mid\b"
+    ]
+    cv_junior_patterns = [
+        r"\w*junior\b"
+    ]
+    cv_fresher_patterns = [
+        r"\w*intern(?:ship)?\b", r"\w*fresher\b", r"\bthực tập sinh\b", r"\bthực tập\b",
         r"\bsinh viên năm\b", r"\bchưa có kinh nghiệm\b", r"\bmới ra trường\b",
         r"\bhọc việc\b", r"\b0\s*-\s*1\s*năm kinh nghiệm\b", r"\bchưa có kinh nghiệm thực tế\b"
     ]
-    is_candidate_fresher = any(re.search(pat, cv_lower) for pat in fresher_patterns)
 
-    if is_job_high_level and is_candidate_fresher:
-        logger.info("[SeniorityPenalty] Lệch cấp bậc: Senior JD vs Fresher CV. Phạt x0.35")
-        return 0.35
+    cv_level = 2  # Mặc định là Junior nếu không tìm thấy từ khóa đặc trưng
+    if any(re.search(pat, cv_header) for pat in cv_senior_patterns):
+        cv_level = 4
+    elif any(re.search(pat, cv_header) for pat in cv_middle_patterns):
+        cv_level = 3
+    elif any(re.search(pat, cv_header) for pat in cv_junior_patterns):
+        cv_level = 2
+    elif any(re.search(pat, cv_header) for pat in cv_fresher_patterns):
+        cv_level = 1
+
+    # 3. Tính toán hình phạt nếu lệch cấp bậc
+    if jd_level > cv_level:
+        diff = jd_level - cv_level
+        if diff == 1:
+            penalty = 0.8
+        elif diff == 2:
+            penalty = 0.5
+        else:
+            penalty = 0.35
+        logger.info(
+            f"[SeniorityPenalty] Lệch cấp bậc: JD Level {jd_level} vs CV Level {cv_level}. "
+            f"Phạt x{penalty}"
+        )
+        return penalty
 
     return 1.0
 
