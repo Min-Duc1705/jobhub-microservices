@@ -1,4 +1,5 @@
 using AutoMapper;
+using CommonService.Caching;
 using CommonService.Common;
 using CommonService.Exceptions;
 using CommonService.Import;
@@ -19,31 +20,50 @@ public class SkillServiceImpl : ISkillService
     private readonly IMapper                _mapper;
     private readonly IPublishEndpoint       _publishEndpoint;
     private readonly IExcelCsvImportService _importService;
+    private readonly ICacheService          _cacheService;
+    private const string CACHE_KEY_DROPDOWN = "skills:dropdown";
 
     public SkillServiceImpl(
         ISkillRepository skillRepo, 
         IMapper mapper, 
         IPublishEndpoint publishEndpoint,
-        IExcelCsvImportService importService)
+        IExcelCsvImportService importService,
+        ICacheService cacheService)
     {
         _skillRepo       = skillRepo;
         _mapper          = mapper;
         _publishEndpoint = publishEndpoint;
         _importService   = importService;
+        _cacheService    = cacheService;
     }
 
     public async Task<ResultPaginationDto<SkillResponse>> GetAllAsync(
         string? searchTerm, string? sortBy, bool isDescending, int pageNumber, int pageSize)
     {
+        bool isDropdown = string.IsNullOrEmpty(searchTerm) && pageNumber == 1 && pageSize == 0;
+        if (isDropdown)
+        {
+            var cached = await _cacheService.GetAsync<List<SkillResponse>>(CACHE_KEY_DROPDOWN);
+            if (cached != null)
+            {
+                return new ResultPaginationDto<SkillResponse>(cached, 1, 0, cached.Count);
+            }
+        }
+
         var spec      = new SkillFilterSpec(searchTerm, sortBy, isDescending, pageNumber, pageSize);
         var countSpec = new SkillFilterCountSpec(searchTerm);
 
         var items = await _skillRepo.ListAsync(spec);
         var total = await _skillRepo.CountAsync(countSpec);
 
-        return new ResultPaginationDto<SkillResponse>(
-            _mapper.Map<List<SkillResponse>>(items),
-            pageNumber, pageSize, total);
+        var resultList = _mapper.Map<List<SkillResponse>>(items);
+
+        if (isDropdown)
+        {
+            await _cacheService.SetAsync(CACHE_KEY_DROPDOWN, resultList, TimeSpan.FromHours(4));
+        }
+
+        return new ResultPaginationDto<SkillResponse>(resultList, pageNumber, pageSize, total);
     }
 
     public async Task<SkillResponse> GetByIdAsync(Guid id)
@@ -66,6 +86,8 @@ public class SkillServiceImpl : ISkillService
                 _skillRepo.Update(existing);
                 await _skillRepo.SaveChangesAsync();
 
+                await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
+
                 // Publish event to RabbitMQ for ProfileService to sync
                 await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
                 {
@@ -81,6 +103,8 @@ public class SkillServiceImpl : ISkillService
         var skill = _mapper.Map<Skill>(request);
         await _skillRepo.AddAsync(skill);
         await _skillRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
 
         // Publish event to RabbitMQ for ProfileService to sync
         await _publishEndpoint.Publish(new CommonService.Events.SkillCreatedEvent
@@ -106,6 +130,8 @@ public class SkillServiceImpl : ISkillService
         _skillRepo.Update(skill);
         await _skillRepo.SaveChangesAsync();
 
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
+
         // Publish event to RabbitMQ for ProfileService to sync
         await _publishEndpoint.Publish(new CommonService.Events.SkillUpdatedEvent
         {
@@ -124,6 +150,8 @@ public class SkillServiceImpl : ISkillService
 
         _skillRepo.Delete(skill);
         await _skillRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
 
         // Publish event to RabbitMQ for ProfileService to sync
         await _publishEndpoint.Publish(new CommonService.Events.SkillDeletedEvent
@@ -229,6 +257,8 @@ public class SkillServiceImpl : ISkillService
             }
         }
         await _skillRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
 
         importResult.Data = validatedList;
         return importResult;
