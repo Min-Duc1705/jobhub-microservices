@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 
 using Microsoft.AspNetCore.Http;
 using CommonService.Import;
+using CommonService.Caching;
 
 namespace JobService.Services;
 
@@ -27,6 +28,8 @@ public class JobServiceImpl : IJobService
     private readonly MinioSettings      _minioSettings;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IExcelCsvImportService _importService;
+    private readonly ICacheService          _cacheService;
+    private const string CACHE_KEY_STATS = "jobs:category-stats";
 
     public JobServiceImpl(
         IJobRepository jobRepo, 
@@ -35,7 +38,8 @@ public class JobServiceImpl : IJobService
         IPublishEndpoint publishEndpoint,
         IOptions<MinioSettings> minioSettings,
         IHttpContextAccessor httpContextAccessor,
-        IExcelCsvImportService importService)
+        IExcelCsvImportService importService,
+        ICacheService cacheService)
     {
         _jobRepo         = jobRepo;
         _skillRepo       = skillRepo;
@@ -44,6 +48,7 @@ public class JobServiceImpl : IJobService
         _minioSettings   = minioSettings.Value;
         _httpContextAccessor = httpContextAccessor;
         _importService   = importService;
+        _cacheService    = cacheService;
     }
 
     private JobResponse FormatUrls(JobResponse response)
@@ -119,6 +124,9 @@ public class JobServiceImpl : IJobService
 
     public async Task<List<JobCategoryStatResponse>> GetJobCategoryStatsAsync()
     {
+        var cached = await _cacheService.GetAsync<List<JobCategoryStatResponse>>(CACHE_KEY_STATS);
+        if (cached != null) return cached;
+
         var jobs = await _jobRepo.GetAllAsync();
         
         var publishedJobs = jobs.Where(j => j.Status == JobStatus.PUBLISHED).ToList();
@@ -139,6 +147,8 @@ public class JobServiceImpl : IJobService
             })
             .OrderByDescending(r => r.Count)
             .ToList();
+
+        await _cacheService.SetAsync(CACHE_KEY_STATS, result, TimeSpan.FromMinutes(30));
 
         return result;
     }
@@ -171,6 +181,8 @@ public class JobServiceImpl : IJobService
 
         await _jobRepo.AddAsync(job);
         await _jobRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_STATS);
 
         await PublishJobPublishedEventAsync(job.Id);
 
@@ -221,6 +233,8 @@ public class JobServiceImpl : IJobService
         _jobRepo.Update(job);
         await _jobRepo.SaveChangesAsync();
 
+        await _cacheService.RemoveAsync(CACHE_KEY_STATS);
+
         await PublishJobPublishedEventAsync(id);
 
         return await GetByIdAsync(id, incrementView: false);
@@ -234,6 +248,8 @@ public class JobServiceImpl : IJobService
 
         _jobRepo.Delete(job);
         await _jobRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_STATS);
     }
 
     public async Task<JobResponse> ChangeStatusAsync(Guid id, string status)
@@ -248,6 +264,8 @@ public class JobServiceImpl : IJobService
         job.Status = newStatus;
         _jobRepo.Update(job);
         await _jobRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_STATS);
 
         await PublishJobPublishedEventAsync(id);
 
@@ -527,6 +545,8 @@ public class JobServiceImpl : IJobService
             }
         }
         await _jobRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_STATS);
 
         // Trigger events for search indexing
         foreach (var (job, _) in mappedJobs)

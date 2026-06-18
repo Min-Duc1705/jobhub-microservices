@@ -1,4 +1,5 @@
 using CommonService.Events;
+using CommonService.Caching;
 using MassTransit;
 using ProfileService.Models;
 using ProfileService.Repositories.Interface;
@@ -8,11 +9,16 @@ namespace ProfileService.Consumers;
 public class SkillCreatedConsumer : IConsumer<SkillCreatedEvent>
 {
     private readonly ISkillRepository _skillRepository;
+    private readonly ICacheService    _cacheService;
     private readonly ILogger<SkillCreatedConsumer> _logger;
 
-    public SkillCreatedConsumer(ISkillRepository skillRepository, ILogger<SkillCreatedConsumer> logger)
+    public SkillCreatedConsumer(
+        ISkillRepository skillRepository, 
+        ICacheService cacheService,
+        ILogger<SkillCreatedConsumer> logger)
     {
         _skillRepository = skillRepository;
+        _cacheService    = cacheService;
         _logger          = logger;
     }
 
@@ -40,6 +46,9 @@ public class SkillCreatedConsumer : IConsumer<SkillCreatedEvent>
 
         await _skillRepository.AddAsync(newSkill);
         await _skillRepository.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync("profile_skills:dropdown");
+
         _logger.LogInformation("Đã đồng bộ kỹ năng mới: {Name}", message.Name);
     }
 }

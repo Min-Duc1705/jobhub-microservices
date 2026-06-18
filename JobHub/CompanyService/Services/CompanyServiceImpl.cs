@@ -11,6 +11,7 @@ using CompanyService.Specifications;
 using Microsoft.Extensions.Options;
 
 using CommonService.Import;
+using CommonService.Caching;
 
 namespace CompanyService.Services;
 
@@ -20,17 +21,20 @@ public class CompanyServiceImpl : ICompanyService
     private readonly IMapper                _mapper;
     private readonly MinioSettings          _minioSettings;
     private readonly IExcelCsvImportService _importService;
+    private readonly ICacheService          _cacheService;
 
     public CompanyServiceImpl(
         ICompanyRepository companyRepo, 
         IMapper mapper, 
         IOptions<MinioSettings> minioSettings,
-        IExcelCsvImportService importService)
+        IExcelCsvImportService importService,
+        ICacheService cacheService)
     {
         _companyRepo = companyRepo;
         _mapper      = mapper;
         _minioSettings = minioSettings.Value;
         _importService = importService;
+        _cacheService  = cacheService;
     }
 
     private CompanyResponse FormatUrls(CompanyResponse response)
@@ -75,11 +79,20 @@ public class CompanyServiceImpl : ICompanyService
     // ── GET theo ID ─────────────────────────────────────────────────────────
     public async Task<CompanyResponse> GetByIdAsync(Guid id)
     {
+        string cacheKey = $"companies:detail:{id}";
+        var cached = await _cacheService.GetAsync<CompanyResponse>(cacheKey);
+        if (cached != null)
+        {
+            return cached;
+        }
+
         var company = await _companyRepo.GetByIdAsync(id);
         if (company == null || company.IsDeleted)
             throw new NotFoundException($"Không tìm thấy công ty với ID: {id}");
 
-        return FormatUrls(_mapper.Map<CompanyResponse>(company));
+        var response = FormatUrls(_mapper.Map<CompanyResponse>(company));
+        await _cacheService.SetAsync(cacheKey, response, TimeSpan.FromHours(12));
+        return response;
     }
 
     // ── Tạo mới ─────────────────────────────────────────────────────────────
@@ -128,6 +141,8 @@ public class CompanyServiceImpl : ICompanyService
         _companyRepo.Update(company);
         await _companyRepo.SaveChangesAsync();
 
+        await _cacheService.RemoveAsync($"companies:detail:{id}");
+
         return FormatUrls(_mapper.Map<CompanyResponse>(company));
     }
 
@@ -140,6 +155,8 @@ public class CompanyServiceImpl : ICompanyService
 
         _companyRepo.Delete(company);          // soft delete từ GenericRepository
         await _companyRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync($"companies:detail:{id}");
     }
 
     // ── Admin xác minh doanh nghiệp ─────────────────────────────────────────
@@ -155,6 +172,8 @@ public class CompanyServiceImpl : ICompanyService
         company.IsVerified = true;
         _companyRepo.Update(company);
         await _companyRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync($"companies:detail:{id}");
 
         return FormatUrls(_mapper.Map<CompanyResponse>(company));
     }

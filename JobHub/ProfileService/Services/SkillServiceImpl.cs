@@ -7,6 +7,7 @@ using ProfileService.Models.Response;
 using ProfileService.Repositories.Interface;
 using ProfileService.Services.Interface;
 using ProfileService.Specifications;
+using CommonService.Caching;
 
 namespace ProfileService.Services;
 
@@ -15,12 +16,19 @@ public class SkillServiceImpl : ISkillService
     private readonly ISkillRepository    _skillRepo;
     private readonly ICustomerRepository _customerRepo;
     private readonly IMapper             _mapper;
+    private readonly ICacheService       _cacheService;
+    private const string CACHE_KEY_DROPDOWN = "profile_skills:dropdown";
 
-    public SkillServiceImpl(ISkillRepository skillRepo, ICustomerRepository customerRepo, IMapper mapper)
+    public SkillServiceImpl(
+        ISkillRepository skillRepo, 
+        ICustomerRepository customerRepo, 
+        IMapper mapper,
+        ICacheService cacheService)
     {
         _skillRepo    = skillRepo;
         _customerRepo = customerRepo;
         _mapper       = mapper;
+        _cacheService = cacheService;
     }
 
     public async Task<ResultPaginationDto<SkillResponse>> GetAllAsync(SkillFilterRequest filter)
@@ -38,9 +46,15 @@ public class SkillServiceImpl : ISkillService
 
     public async Task<List<SkillResponse>> GetDropdownAsync()
     {
+        var cached = await _cacheService.GetAsync<List<SkillResponse>>(CACHE_KEY_DROPDOWN);
+        if (cached != null) return cached;
+
         // GetAllAsync() của GenericRepository đã lọc IsDeleted = false rồi
         var skills = await _skillRepo.GetAllAsync();
-        return _mapper.Map<List<SkillResponse>>(skills);
+        var response = _mapper.Map<List<SkillResponse>>(skills);
+
+        await _cacheService.SetAsync(CACHE_KEY_DROPDOWN, response, TimeSpan.FromHours(4));
+        return response;
     }
 
     public async Task<SkillResponse> GetByIdAsync(Guid id)
@@ -67,6 +81,8 @@ public class SkillServiceImpl : ISkillService
         await _skillRepo.AddAsync(skill);
         await _skillRepo.SaveChangesAsync();
 
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
+
         return _mapper.Map<SkillResponse>(skill);
     }
 
@@ -86,6 +102,8 @@ public class SkillServiceImpl : ISkillService
         _skillRepo.Update(skill);
         await _skillRepo.SaveChangesAsync();
 
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
+
         return _mapper.Map<SkillResponse>(skill);
     }
 
@@ -98,6 +116,8 @@ public class SkillServiceImpl : ISkillService
         // Soft delete — GenericRepository.Delete() đánh dấu IsDeleted = true
         _skillRepo.Delete(skill);
         await _skillRepo.SaveChangesAsync();
+
+        await _cacheService.RemoveAsync(CACHE_KEY_DROPDOWN);
     }
 
     // ── Quản lý kỹ năng của Customer ────────────────────────────────────────
