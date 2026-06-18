@@ -234,6 +234,7 @@ public class JobServiceImpl : IJobService
         await _jobRepo.SaveChangesAsync();
 
         await _cacheService.RemoveAsync(CACHE_KEY_STATS);
+        await _cacheService.RemoveAsync($"job_skills:{id}");
 
         await PublishJobPublishedEventAsync(id);
 
@@ -250,6 +251,7 @@ public class JobServiceImpl : IJobService
         await _jobRepo.SaveChangesAsync();
 
         await _cacheService.RemoveAsync(CACHE_KEY_STATS);
+        await _cacheService.RemoveAsync($"job_skills:{id}");
     }
 
     public async Task<JobResponse> ChangeStatusAsync(Guid id, string status)
@@ -266,6 +268,7 @@ public class JobServiceImpl : IJobService
         await _jobRepo.SaveChangesAsync();
 
         await _cacheService.RemoveAsync(CACHE_KEY_STATS);
+        await _cacheService.RemoveAsync($"job_skills:{id}");
 
         await PublishJobPublishedEventAsync(id);
 

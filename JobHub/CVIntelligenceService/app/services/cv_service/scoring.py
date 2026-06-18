@@ -61,17 +61,31 @@ def _extract_tech_skills(text: str) -> list[str]:
     return [pat for pat in _TECH_SKILL_PATTERNS if re.search(pat, text_lower)]
 
 
-def _fetch_job_skills_from_api(job_id: str) -> list[str]:
+async def _fetch_job_skills_from_api(job_id: str) -> list[str]:
     """
     Gọi API của JobService để lấy danh sách kỹ năng thực tế của Job.
-    Hỗ trợ cả môi trường Docker và Local.
+    Sử dụng Redis cache để tối ưu hóa, hỗ trợ cả môi trường Docker và Local.
     """
     if not job_id:
         return []
+
+    redis_key = f"JobHubAuth_job_skills:{job_id}"
+    try:
+        from app.routers.assistant_router_helpers import redis_client
+        cached_data = await redis_client.get(redis_key)
+        if cached_data:
+            skills = json.loads(cached_data)
+            if isinstance(skills, list):
+                logger.info(f"[SkillsCache] Redis hit: Loaded {len(skills)} skills for job {job_id} from cache.")
+                return skills
+    except Exception as e:
+        logger.error(f"[SkillsCache] Failed to fetch/parse job skills from Redis: {e}")
+
     urls = [
         f"http://jobhub_jobservice:8080/api/v1/jobs/{job_id}/preview",
         f"http://localhost:5002/api/v1/jobs/{job_id}/preview"
     ]
+    skills = []
     for url in urls:
         try:
             with urllib.request.urlopen(url, timeout=3) as response:
@@ -82,10 +96,19 @@ def _fetch_job_skills_from_api(job_id: str) -> list[str]:
                         skills = [s.get("name") for s in job_data.get("skills", []) if s.get("name")]
                         if skills:
                             logger.info(f"[SkillsAPI] Fetched {len(skills)} skills for job {job_id} from {url}: {skills}")
-                            return skills
+                            break
         except Exception as e:
             logger.debug(f"[SkillsAPI] Failed to fetch from {url}: {e}")
-    return []
+
+    if skills:
+        try:
+            from app.routers.assistant_router_helpers import redis_client
+            await redis_client.set(redis_key, json.dumps(skills), ex=7200)  # cache 2 giờ
+            logger.info(f"[SkillsCache] Cached {len(skills)} skills for job {job_id} in Redis.")
+        except Exception as e:
+            logger.error(f"[SkillsCache] Failed to save job skills to Redis: {e}")
+
+    return skills
 
 
 def _compute_skill_penalty(jd_skills: list[str], cv_text: str) -> float:
@@ -182,7 +205,7 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     """
     jd_skills = []
     if req.job_id:
-        jd_skills = _fetch_job_skills_from_api(req.job_id)
+        jd_skills = await _fetch_job_skills_from_api(req.job_id)
         
     if not jd_skills:
         jd_skills = _extract_tech_skills(req.job_description)
@@ -232,7 +255,7 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
         
     jd_skills = []
     if job_id:
-        jd_skills = _fetch_job_skills_from_api(job_id)
+        jd_skills = await _fetch_job_skills_from_api(job_id)
         
     if not jd_skills:
         jd_skills = _extract_tech_skills(req.job_description)

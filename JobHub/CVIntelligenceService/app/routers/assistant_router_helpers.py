@@ -32,8 +32,8 @@ async def fetch_user_permissions_from_redis(email: str) -> Optional[list[dict]]:
     if not email:
         return None
     try:
-        redis_key = f"perm:{email}"
-        cached_data = await redis_client.get(redis_key)
+        redis_key = f"JobHubAuth_perm:{email}"
+        cached_data = await redis_client.hget(redis_key, "data")
         if cached_data:
             raw_perms = json.loads(cached_data)
             if isinstance(raw_perms, list):
