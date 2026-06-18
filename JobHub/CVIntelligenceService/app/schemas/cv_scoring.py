@@ -21,6 +21,7 @@ class SkillScoringRequest(BaseModel):
 
 class ScoringResult(BaseModel):
     application_id:  Optional[str] = None
+    customer_id:     Optional[str] = None
     matching_score:  float
     ai_feedback:     Optional[str] = None
     extracted_skills: List[str] = []

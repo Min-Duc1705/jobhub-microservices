@@ -122,7 +122,8 @@ public class ChatServiceImpl : IChatService
                                            lowerContent.Contains("hủy lịch") || 
                                            lowerContent.Contains("hủy hẹn") || 
                                            lowerContent.Contains("không tham gia") || 
-                                           lowerContent.Contains("từ chối") || 
+                                           lowerContent.Contains("từ chối phỏng vấn") || 
+                                           lowerContent.Contains("từ chối tham gia") || 
                                            lowerContent.Contains("rút hồ sơ") || 
                                            (lowerContent.Contains("đổi ý") && (lowerContent.Contains("không") || lowerContent.Contains("hủy")));
 
@@ -134,7 +135,7 @@ public class ChatServiceImpl : IChatService
                             .OrderByDescending(c => c.CreatedAt)
                             .FirstOrDefault();
 
-                        if (targetConv != null && (targetConv.Status == "Scheduled" || targetConv.Status == "Passed" || targetConv.Status == "Screening"))
+                        if (targetConv != null && (targetConv.Status == "Scheduled" || targetConv.Status == "Passed"))
                         {
                             var campaign = await hireAgentRepo.GetCampaignAsync(targetConv.CampaignId);
                             if (campaign != null)

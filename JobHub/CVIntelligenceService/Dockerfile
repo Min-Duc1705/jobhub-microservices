@@ -2,11 +2,11 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# ── Bước 1: Cài torch CPU-only TRƯỚC (tránh tải bản CUDA nặng ~2GB) ──────────
+# ── Bước 1: Cài torch với CUDA support (tận dụng GPU acceleration) ──────────
 # Tách thành layer riêng để Docker cache lại — chỉ re-download khi version thay đổi
 RUN pip install --no-cache-dir \
     torch==2.3.0 \
-    --index-url https://download.pytorch.org/whl/cpu
+    --index-url https://download.pytorch.org/whl/cu121
 
 # ── Bước 2: Cài các thư viện còn lại ─────────────────────────────────────────
 # --prefer-binary: ưu tiên dùng wheel đã build sẵn, tránh compile từ source

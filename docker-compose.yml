@@ -491,6 +491,13 @@ services:
       context: ./JobHub/CVIntelligenceService
       dockerfile: Dockerfile
     container_name: jobhub_cvintelligence
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped
     ports:
       - "5006:5006"

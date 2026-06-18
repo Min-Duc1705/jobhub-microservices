@@ -153,6 +153,52 @@ public partial class HireAgentServiceImpl
             bool isCompleted = jsonDoc.RootElement.GetProperty("is_completed").GetBoolean();
             bool isPassed    = jsonDoc.RootElement.GetProperty("is_passed").GetBoolean();
 
+            string intent = "continue";
+            if (jsonDoc.RootElement.TryGetProperty("intent", out var intentProp))
+            {
+                intent = intentProp.GetString() ?? "continue";
+            }
+
+            if (intent == "cancel")
+            {
+                // Chuyển trạng thái sang Failed (Không đạt)
+                agentConv.Status = "Failed";
+                agentConv.InterviewDate = null;
+                await _hireAgentRepo.UpdateConversationAsync(agentConv);
+
+                var cancelMsg = "[HỆ THỐNG] Đã ghi nhận yêu cầu hủy phỏng vấn và rút hồ sơ của bạn cho vị trí này. Trạng thái ứng tuyển đã chuyển sang Không đạt. Cảm ơn bạn và chúc bạn may mắn!";
+                var sysMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, cancelMsg, "text");
+                await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+
+                // Gửi thông báo AI đã rời cuộc trò chuyện
+                var leaveMsg = "[HỆ THỐNG] Trợ lý AI đã rời khỏi cuộc trò chuyện.";
+                var leaveMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, leaveMsg, "text");
+                await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                return;
+            }
+
+            if (intent == "reschedule")
+            {
+                // Reset trạng thái về Passed để có thể đặt lịch lại
+                agentConv.Status = "Passed";
+                agentConv.InterviewDate = null;
+                await _hireAgentRepo.UpdateConversationAsync(agentConv);
+
+                var rescheduleMsg = "[HỆ THỐNG] Đã ghi nhận yêu cầu thay đổi lịch hẹn phỏng vấn của bạn. Chúng tôi sẽ thông báo cho chuyên viên nhân sự để sắp xếp và đề xuất khung giờ mới.";
+                var sysMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, rescheduleMsg, "text");
+                await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+
+                // Gửi thông báo AI đã rời cuộc trò chuyện
+                var leaveMsg = "[HỆ THỐNG] Trợ lý AI đã rời khỏi cuộc trò chuyện để chuẩn bị sắp xếp lịch mới.";
+                var leaveMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, leaveMsg, "text");
+                await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                return;
+            }
+
             // 3. Gửi tin nhắn trả lời của Agent
             var chatMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, reply, "text");
             await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", chatMessageResponse);

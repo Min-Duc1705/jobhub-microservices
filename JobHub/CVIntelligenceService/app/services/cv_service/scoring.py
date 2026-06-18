@@ -58,7 +58,12 @@ _TECH_SKILL_PATTERNS = [
 def _extract_tech_skills(text: str) -> list[str]:
     """Trích xuất danh sách kỹ năng công nghệ cụ thể từ văn bản."""
     text_lower = text.lower()
-    return [pat for pat in _TECH_SKILL_PATTERNS if re.search(pat, text_lower)]
+    extracted = []
+    for pat in _TECH_SKILL_PATTERNS:
+        match = re.search(pat, text_lower)
+        if match:
+            extracted.append(match.group(0).strip())
+    return extracted
 
 
 async def _fetch_job_skills_from_api(job_id: str) -> list[str]:
@@ -169,7 +174,7 @@ def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
     # 1. Xác định cấp bậc yêu cầu của Job (JD)
     jd_senior_patterns = [
         r"\bsenior\b", r"\blead\b", r"\btrưởng nhóm\b", r"\btrưởng phòng\b",
-        r"\bquản lý\b", r"\bmanager\b", r"\btech lead\b", r"\bchủ chốt\b",
+        r"\bquản lý (?:nhóm|dự án|kỹ thuật|phòng|ban)\b", r"\bmanager\b", r"\btech lead\b", r"\bchủ chốt\b",
         r"\barchitect\b", r"\bchuyên gia\b", r"\b5\s*năm kinh nghiệm\b",
         r"\b6\s*năm kinh nghiệm\b", r"\b7\s*năm kinh nghiệm\b", r"\b8\s*năm kinh nghiệm\b",
         r"\b10\s*năm kinh nghiệm\b"
@@ -198,7 +203,7 @@ def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
     # 2. Xác định cấp bậc của ứng viên (CV) - hỗ trợ việc nối từ do lỗi trích xuất text
     cv_senior_patterns = [
         r"\w*senior\b", r"\w*lead\b", r"\w*leader\b", r"\btrưởng nhóm\b", r"\btrưởng phòng\b",
-        r"\bquản lý\b", r"\w*manager\b", r"\w*architect\b", r"\bchuyên gia\b"
+        r"\bquản lý (?:nhóm|dự án|kỹ thuật|phòng|ban)\b", r"\w*manager\b", r"\w*architect\b", r"\bchuyên gia\b"
     ]
     cv_middle_patterns = [
         r"\w*middle\b", r"\w*mid\b"
@@ -297,7 +302,12 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
             "ai_feedback": llm_feedback.get("ai_feedback", None)
         })
 
-    result = ScoringResult(application_id=req.application_id, matching_score=score, **feedback_data)
+    result = ScoringResult(
+        application_id=req.application_id,
+        customer_id=req.customer_id,
+        matching_score=score,
+        **feedback_data
+    )
 
     if req.application_id and req.job_id and req.customer_id:
         await _save_analysis(req, result)
@@ -344,6 +354,7 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
 
         res_item = ScoringResult(
             application_id=cv_item.get("application_id"),
+            customer_id=cv_item.get("customer_id"),
             matching_score=score,
             **feedback_data,
         )

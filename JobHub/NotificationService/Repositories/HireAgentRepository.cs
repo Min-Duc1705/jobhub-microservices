@@ -68,6 +68,11 @@ public class HireAgentRepository : GenericRepository<NotificationDbContext, Hire
 
     public async Task UpdateCampaignAsync(HireAgentCampaign campaign)
     {
+        var local = _dbContext.Set<HireAgentCampaign>().Local.FirstOrDefault(entry => entry.Id.Equals(campaign.Id));
+        if (local != null)
+        {
+            _dbContext.Entry(local).State = EntityState.Detached;
+        }
         _dbSet.Update(campaign);
         await _dbContext.SaveChangesAsync();
     }
@@ -80,6 +85,11 @@ public class HireAgentRepository : GenericRepository<NotificationDbContext, Hire
 
     public async Task UpdateConversationAsync(HireAgentConversation conversation)
     {
+        var local = _dbContext.Set<HireAgentConversation>().Local.FirstOrDefault(entry => entry.Id.Equals(conversation.Id));
+        if (local != null)
+        {
+            _dbContext.Entry(local).State = EntityState.Detached;
+        }
         _dbContext.HireAgentConversations.Update(conversation);
         await _dbContext.SaveChangesAsync();
     }

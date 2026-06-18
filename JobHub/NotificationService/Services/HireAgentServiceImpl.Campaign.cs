@@ -122,6 +122,7 @@ public partial class HireAgentServiceImpl
                         uniqueResumes.Add(resume);
                 }
 
+                var eligibleCandidates = new List<(JsonElement Resume, string CandidateId, string CvText)>();
                 var semaphore = new System.Threading.SemaphoreSlim(15);
                 var tasks = uniqueResumes.Select(async resume =>
                 {
@@ -191,34 +192,73 @@ public partial class HireAgentServiceImpl
                         cvText = jsonVal.GetString();
                     if (string.IsNullOrWhiteSpace(cvText)) return;
 
-                    // Chấm điểm CV qua CVIntelligenceService
-                    var scorePayload = new { job_description = campaign.JobDescription, cv_text = cvText, generate_feedback = false, job_id = campaign.JobId };
-                    var scoreReq = new HttpRequestMessage(HttpMethod.Post, "http://cvintelligenceservice:5006/api/v1/cv/score");
-                    scoreReq.Content = new StringContent(JsonSerializer.Serialize(scorePayload), Encoding.UTF8, "application/json");
-
-                    await semaphore.WaitAsync();
-                    try
+                    lock (eligibleCandidates)
                     {
-                        var scoreRes = await _httpClient.SendAsync(scoreReq);
-                        if (!scoreRes.IsSuccessStatusCode) return;
-
-                        var scoreDoc = JsonDocument.Parse(await scoreRes.Content.ReadAsStringAsync());
-                        double matchingScore = scoreDoc.RootElement.GetProperty("data").GetProperty("matching_score").GetDouble();
-                        Console.WriteLine($"[HireAgent-Score] {candidateId}: {matchingScore:F1} điểm");
-
-                        if (matchingScore >= 50.0)
-                            lock (candidateScores) { candidateScores.Add((resume, matchingScore)); }
-                        else
-                            Console.WriteLine($"[HireAgent-Score] Loại {candidateId}: điểm {matchingScore:F1} < 50");
+                        eligibleCandidates.Add((resume, candidateId, cvText));
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[HireAgent-Score] Lỗi chấm điểm {candidateId}: {ex.Message}");
-                    }
-                    finally { semaphore.Release(); }
                 });
 
                 await Task.WhenAll(tasks);
+
+                // Chấm điểm hàng loạt qua CVIntelligenceService
+                if (eligibleCandidates.Any())
+                {
+                    try
+                    {
+                        var cvListPayload = eligibleCandidates.Select(x => new
+                        {
+                            customer_id = x.CandidateId,
+                            cv_text = x.CvText
+                        }).ToList();
+
+                        var scorePayload = new
+                        {
+                            job_description = campaign.JobDescription,
+                            cv_list = cvListPayload
+                        };
+
+                        var scoreReq = new HttpRequestMessage(HttpMethod.Post, "http://cvintelligenceservice:5006/api/v1/cv/score/batch?top_n=2000");
+                        scoreReq.Content = new StringContent(JsonSerializer.Serialize(scorePayload), Encoding.UTF8, "application/json");
+
+                        var scoreRes = await _httpClient.SendAsync(scoreReq);
+                        if (scoreRes.IsSuccessStatusCode)
+                        {
+                            var scoreDoc = JsonDocument.Parse(await scoreRes.Content.ReadAsStringAsync());
+                            var resultsElement = scoreDoc.RootElement.GetProperty("data").GetProperty("results");
+                            
+                            foreach (var resItem in resultsElement.EnumerateArray())
+                            {
+                                var candId = resItem.GetProperty("customer_id").GetString();
+                                double matchingScore = resItem.GetProperty("matching_score").GetDouble();
+                                
+                                if (matchingScore >= 50.0)
+                                {
+                                    var orig = eligibleCandidates.FirstOrDefault(x => x.CandidateId == candId);
+                                    if (orig.Resume.ValueKind != JsonValueKind.Undefined)
+                                    {
+                                        lock (candidateScores)
+                                        {
+                                            candidateScores.Add((orig.Resume, matchingScore));
+                                        }
+                                        Console.WriteLine($"[HireAgent-Score] {candId}: {matchingScore:F1} điểm");
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[HireAgent-Score] Loại {candId}: điểm {matchingScore:F1} < 50");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[HireAgent-Score] Lỗi gọi Batch Scoring API: {scoreRes.StatusCode}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[HireAgent-Score] Lỗi trong quá trình chấm điểm hàng loạt: {ex.Message}");
+                    }
+                }
 
                 // 4. Sort giảm dần, lấy top targetCount
                 var sortedCandidates = candidateScores
