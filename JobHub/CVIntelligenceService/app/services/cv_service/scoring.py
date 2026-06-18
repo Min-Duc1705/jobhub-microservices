@@ -44,6 +44,12 @@ _TECH_SKILL_PATTERNS = [
     r"\bs3\b", r"\bminio\b",
     # Spring
     r"\bspring\b", r"\bspring boot\b", r"\bhibernate\b",
+    # Embedded / Systems Programming
+    r"\bc\b", r"\bc\+\+\b", r"\bcpp\b", r"\blinux\b", r"\bembedded\b", r"\bnhúng\b",
+    r"\bspi\b", r"\bi2c\b", r"\buart\b", r"\bcan bus\b",
+    r"\barm\b", r"\bcortex\b", r"\bstm32\b", r"\besp32\b",
+    r"\brtos\b", r"\bfree rtos\b", r"\bfreertos\b",
+    r"\bfirmware\b", r"\bmicrocontroller\b", r"\bvi điều khiển\b",
 ]
 
 
