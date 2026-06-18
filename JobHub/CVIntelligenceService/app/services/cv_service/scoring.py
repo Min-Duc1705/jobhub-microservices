@@ -4,6 +4,8 @@ CV Scoring service: SBERT-based scoring, penalty computation và lưu kết qu�
 """
 import logging
 import re
+import urllib.request
+import json
 
 from app.core.database import get_resume_analysis_col
 from app.ml.sbert_scorer import score_cv, batch_score_cvs
@@ -59,6 +61,33 @@ def _extract_tech_skills(text: str) -> list[str]:
     return [pat for pat in _TECH_SKILL_PATTERNS if re.search(pat, text_lower)]
 
 
+def _fetch_job_skills_from_api(job_id: str) -> list[str]:
+    """
+    Gọi API của JobService để lấy danh sách kỹ năng thực tế của Job.
+    Hỗ trợ cả môi trường Docker và Local.
+    """
+    if not job_id:
+        return []
+    urls = [
+        f"http://jobhub_jobservice:8080/api/v1/jobs/{job_id}/preview",
+        f"http://localhost:5002/api/v1/jobs/{job_id}/preview"
+    ]
+    for url in urls:
+        try:
+            with urllib.request.urlopen(url, timeout=3) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+                    job_data = data.get("data", {})
+                    if job_data:
+                        skills = [s.get("name") for s in job_data.get("skills", []) if s.get("name")]
+                        if skills:
+                            logger.info(f"[SkillsAPI] Fetched {len(skills)} skills for job {job_id} from {url}: {skills}")
+                            return skills
+        except Exception as e:
+            logger.debug(f"[SkillsAPI] Failed to fetch from {url}: {e}")
+    return []
+
+
 def _compute_skill_penalty(jd_skills: list[str], cv_text: str) -> float:
     """
     Tính hệ số phạt dựa trên tỉ lệ kỹ năng JD xuất hiện trong CV.
@@ -70,7 +99,20 @@ def _compute_skill_penalty(jd_skills: list[str], cv_text: str) -> float:
     if not jd_skills:
         return 1.0
     cv_lower = cv_text.lower()
-    matched = [s for s in jd_skills if re.search(s, cv_lower)]
+    
+    matched = []
+    for skill in jd_skills:
+        skill_lower = skill.lower().strip()
+        if not skill_lower:
+            continue
+        if skill_lower.startswith("."):
+            pattern = re.escape(skill_lower) + r"(?!\w)"
+        else:
+            pattern = r"(?<!\w)" + re.escape(skill_lower) + r"(?!\w)"
+            
+        if re.search(pattern, cv_lower):
+            matched.append(skill)
+            
     ratio = len(matched) / len(jd_skills)
 
     if ratio >= 0.5:
@@ -138,9 +180,14 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     Bước 1.5: Áp dụng Hard Skill Penalty & Seniority Penalty.
     Bước 2 (tuỳ chọn): Nếu có application_id → sinh feedback bằng LLM và lưu vào MongoDB.
     """
-    raw_score = score_cv(req.job_description, req.cv_text)
+    jd_skills = []
+    if req.job_id:
+        jd_skills = _fetch_job_skills_from_api(req.job_id)
+        
+    if not jd_skills:
+        jd_skills = _extract_tech_skills(req.job_description)
 
-    jd_skills = _extract_tech_skills(req.job_description)
+    raw_score = score_cv(req.job_description, req.cv_text)
     skill_penalty = _compute_skill_penalty(jd_skills, req.cv_text)
     seniority_penalty = _compute_seniority_penalty(req.job_description, req.cv_text)
 
@@ -154,10 +201,16 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
             f"seniority_penalty={seniority_penalty} → final={score:.1f}"
         )
 
-    feedback_data = {"extracted_skills": [], "strengths": [], "weaknesses": [], "ai_feedback": None}
+    feedback_data = {"extracted_skills": jd_skills, "strengths": [], "weaknesses": [], "ai_feedback": None}
 
     if req.generate_feedback and score >= 50.0:
-        feedback_data = await generate_feedback(req.job_description, req.cv_text)
+        # Vẫn sử dụng JD gốc để LLM phân tích chi tiết thế mạnh/điểm yếu
+        llm_feedback = await generate_feedback(req.job_description, req.cv_text)
+        feedback_data.update({
+            "strengths": llm_feedback.get("strengths", []),
+            "weaknesses": llm_feedback.get("weaknesses", []),
+            "ai_feedback": llm_feedback.get("ai_feedback", None)
+        })
 
     result = ScoringResult(application_id=req.application_id, matching_score=score, **feedback_data)
 
@@ -173,10 +226,20 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
     Bước 1: SBERT chấm hàng loạt tất cả CVs — cực nhanh (GPU).
     Bước 2: Chỉ top_n CV điểm cao nhất mới gọi LLM sinh nhận xét chi tiết.
     """
+    job_id = None
+    if req.cv_list:
+        job_id = req.cv_list[0].get("job_id")
+        
+    jd_skills = []
+    if job_id:
+        jd_skills = _fetch_job_skills_from_api(job_id)
+        
+    if not jd_skills:
+        jd_skills = _extract_tech_skills(req.job_description)
+
     cv_texts = [item["cv_text"] for item in req.cv_list]
     raw_scores = batch_score_cvs(req.job_description, cv_texts)
 
-    jd_skills = _extract_tech_skills(req.job_description)
     final_scores = []
     for cv_text, raw_score in zip(cv_texts, raw_scores):
         skill_penalty = _compute_skill_penalty(jd_skills, cv_text)
@@ -188,7 +251,7 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
 
     results = []
     for idx, (cv_item, score) in enumerate(scored):
-        feedback_data = {"extracted_skills": [], "strengths": [], "weaknesses": [], "ai_feedback": None}
+        feedback_data = {"extracted_skills": jd_skills, "strengths": [], "weaknesses": [], "ai_feedback": None}
 
         # Không sinh feedback tự động bằng LLM ở đây để tránh làm chậm và tốn quota.
         # Feedback chi tiết sẽ được sinh on-demand (khi NTD click xem chi tiết ứng viên).
@@ -202,14 +265,14 @@ async def batch_score(req: SkillScoringRequest, top_n: int = 10) -> BatchScoring
         results.append(res_item)
 
         app_id = cv_item.get("application_id")
-        job_id = cv_item.get("job_id")
+        curr_job_id = cv_item.get("job_id") or job_id
         cust_id = cv_item.get("customer_id")
-        if app_id and job_id and cust_id:
+        if app_id and curr_job_id and cust_id:
             fake_req = CvScoringRequest(
                 job_description=req.job_description,
                 cv_text=cv_item["cv_text"],
                 application_id=app_id,
-                job_id=job_id,
+                job_id=curr_job_id,
                 customer_id=cust_id
             )
             await _save_analysis(fake_req, res_item)

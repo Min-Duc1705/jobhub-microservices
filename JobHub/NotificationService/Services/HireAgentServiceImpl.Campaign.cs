@@ -192,7 +192,7 @@ public partial class HireAgentServiceImpl
                     if (string.IsNullOrWhiteSpace(cvText)) return;
 
                     // Chấm điểm CV qua CVIntelligenceService
-                    var scorePayload = new { job_description = campaign.JobDescription, cv_text = cvText, generate_feedback = false };
+                    var scorePayload = new { job_description = campaign.JobDescription, cv_text = cvText, generate_feedback = false, job_id = campaign.JobId };
                     var scoreReq = new HttpRequestMessage(HttpMethod.Post, "http://cvintelligenceservice:5006/api/v1/cv/score");
                     scoreReq.Content = new StringContent(JsonSerializer.Serialize(scorePayload), Encoding.UTF8, "application/json");
 
