@@ -156,22 +156,27 @@ public class TelegramBotService : ITelegramBotService
                         var match = System.Text.RegularExpressions.Regex.Match(message.ReplyToMessage.Text, @"Ref:\s*([a-fA-F0-9-]{36})");
                         if (match.Success && Guid.TryParse(match.Groups[1].Value, out Guid partnerId))
                         {
-                            // Send reply to partner
                             var replyMsgResponse = await _chatService.SendMessageAsync(binding.UserId.ToString(), partnerId.ToString(), text, "text");
-                            
-                            // Send SignalR real-time for both the sender and partner so their Web UIs update
                             await _hubContext.Clients.Group(binding.UserId.ToString().ToLower()).SendAsync("ReceiveMessage", replyMsgResponse);
                             await _hubContext.Clients.Group(partnerId.ToString().ToLower()).SendAsync("ReceiveMessage", replyMsgResponse);
-
                             await activeClient.SendTextMessageAsync(chatId, $"✅ Đã gửi phản hồi thành công.");
                             return;
                         }
+                    }
+
+                    // ── NLP: Phát hiện ý định đặt lịch trong ngôn ngữ tự nhiên ──────────
+                    // Ví dụ: "thông báo job react mỗi 1h", "cứ 30 phút gửi cho tôi ứng viên mới"
+                    if (TryParseNaturalScheduleIntent(text, out string? nlpType, out string? nlpKeyword, out int nlpInterval))
+                    {
+                        await HandleNaturalScheduleAsync(chatId, binding.UserId, nlpType!, nlpKeyword, nlpInterval, binding.BotToken ?? botToken);
+                        return;
                     }
 
                     // Route standard messages to AI Assistant via ChatService!
                     // Pass "telegram" as the type so ChatServiceImpl knows to reply back to Telegram
                     await _chatService.SendMessageAsync(binding.UserId.ToString(), "ai_assistant", text, "telegram");
                 }
+
             }
         }
         catch (Exception ex)
@@ -971,5 +976,210 @@ public class TelegramBotService : ITelegramBotService
         id = 0;
         var parts = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         return parts.Length >= 2 && int.TryParse(parts[1], out id);
+    }
+
+    private bool TryParseNaturalScheduleIntent(string text, out string? type, out string? keyword, out int intervalMinutes)
+    {
+        type = null;
+        keyword = null;
+        intervalMinutes = 0;
+
+        var lowerText = text.ToLower().Trim();
+
+        // Check if the message indicates a schedule intent
+        bool hasScheduleIndicator = lowerText.Contains("thông báo") ||
+                                    lowerText.Contains("đặt lịch") ||
+                                    lowerText.Contains("nhắc nhở") ||
+                                    lowerText.Contains("gửi cho tôi") ||
+                                    lowerText.Contains("subscribe") ||
+                                    lowerText.Contains("đăng ký") ||
+                                    lowerText.Contains("cứ") ||
+                                    lowerText.Contains("mỗi") ||
+                                    lowerText.Contains("every");
+
+        if (!hasScheduleIndicator)
+        {
+            return false;
+        }
+
+        // Extract Interval
+        int parsedInterval = 0;
+        bool foundInterval = false;
+
+        // Match: (cứ|mỗi|every|sau)\s*(\d+)\s*(phút|giờ|tiếng|h|m|min)
+        var matchInterval = System.Text.RegularExpressions.Regex.Match(lowerText, @"(?:cứ|mỗi|every|sau)\s*(\d+)\s*(phút|giờ|tiếng|h|m|min|s|second|minute|hour)");
+        if (matchInterval.Success)
+        {
+            int val = int.Parse(matchInterval.Groups[1].Value);
+            string unit = matchInterval.Groups[2].Value;
+
+            if (unit.StartsWith("phút") || unit.StartsWith("m") || unit.StartsWith("min"))
+            {
+                parsedInterval = val;
+            }
+            else if (unit.StartsWith("giờ") || unit.StartsWith("tiếng") || unit.StartsWith("h") || unit.StartsWith("hour"))
+            {
+                parsedInterval = val * 60;
+            }
+            foundInterval = true;
+        }
+        else
+        {
+            // Check for shorthand like "1h", "30m", "15m" directly
+            var matchShort = System.Text.RegularExpressions.Regex.Match(lowerText, @"\b(\d+)\s*(h|m|min|phút|giờ)\b");
+            if (matchShort.Success)
+            {
+                int val = int.Parse(matchShort.Groups[1].Value);
+                string unit = matchShort.Groups[2].Value;
+
+                if (unit.StartsWith("phút") || unit.StartsWith("m") || unit.StartsWith("min"))
+                {
+                    parsedInterval = val;
+                }
+                else if (unit.StartsWith("giờ") || unit.StartsWith("tiếng") || unit.StartsWith("h"))
+                {
+                    parsedInterval = val * 60;
+                }
+                foundInterval = true;
+            }
+            else if (lowerText.Contains("mỗi giờ") || lowerText.Contains("hằng giờ") || lowerText.Contains("hàng giờ") || lowerText.Contains("mỗi tiếng") || lowerText.Contains("hằng tiếng"))
+            {
+                parsedInterval = 60;
+                foundInterval = true;
+            }
+            else if (lowerText.Contains("mỗi ngày") || lowerText.Contains("hằng ngày") || lowerText.Contains("hàng ngày"))
+            {
+                parsedInterval = 1440;
+                foundInterval = true;
+            }
+        }
+
+        // Determine Type
+        type = "jobs"; // Default to jobs
+        
+        if (lowerText.Contains("ứng viên") || lowerText.Contains("hồ sơ") || lowerText.Contains("ứng tuyển") || lowerText.Contains("cv") || lowerText.Contains("application"))
+        {
+            type = "applications";
+        }
+        else if (lowerText.Contains("phỏng vấn") || lowerText.Contains("lịch hẹn") || lowerText.Contains("interview"))
+        {
+            type = "interviews";
+        }
+        else if (lowerText.Contains("chiến dịch") || lowerText.Contains("campaign"))
+        {
+            type = "campaigns";
+        }
+        else if (lowerText.Contains("thông báo") && !lowerText.Contains("job") && !lowerText.Contains("việc làm") && !lowerText.Contains("tuyển"))
+        {
+            type = "notifications";
+        }
+
+        // Extract Keyword (only for type="jobs")
+        if (type == "jobs")
+        {
+            var matchKeyword = System.Text.RegularExpressions.Regex.Match(lowerText, @"(?:job|việc làm|tuyển dụng|tuyển|keyword|từ khóa)\s+([a-zA-Z0-9#+\.\s\-]+?)(?:\s+(?:mới|mới nhất|cứ|mỗi|mọi|every|sau|cho tôi|hằng|hàng|$))");
+            if (matchKeyword.Success)
+            {
+                keyword = matchKeyword.Groups[1].Value.Trim();
+            }
+            else
+            {
+                var temp = lowerText;
+                var stopWords = new[] {
+                    "tôi muốn", "muốn", "thông báo", "cho tôi", "gửi cho tôi", "đăng ký", "subscribe", 
+                    "mới nhất", "mới", "cứ", "mỗi", "hằng", "hàng", "every", "sau", "tuyển dụng", "tuyển", 
+                    "việc làm", "job", "jobs", "phút", "giờ", "tiếng", "h", "m", "ngày", "lịch"
+                };
+                foreach (var sw in stopWords)
+                {
+                    temp = temp.Replace(sw, "");
+                }
+                
+                temp = System.Text.RegularExpressions.Regex.Replace(temp, @"[^\w\s#+-]", " ");
+                temp = System.Text.RegularExpressions.Regex.Replace(temp, @"\s+", " ").Trim();
+                
+                if (!string.IsNullOrEmpty(temp) && temp.Length < 30)
+                {
+                    keyword = temp;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                keyword = keyword.Trim();
+            }
+        }
+
+        intervalMinutes = parsedInterval;
+        return foundInterval || lowerText.Contains("thông báo") || lowerText.Contains("đăng ký") || lowerText.Contains("subscribe");
+    }
+
+    private async Task HandleNaturalScheduleAsync(long chatId, Guid userId, string type, string? keyword, int intervalMinutes, string? botToken = null)
+    {
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
+
+        var existingCount = await _dbContext.UserCronSchedules
+            .CountAsync(s => s.UserId == userId && s.IsActive);
+        if (existingCount >= 5)
+        {
+            await activeClient.SendTextMessageAsync(chatId,
+                "⚠️ Bạn đã có tối đa *5 lịch tự động* đang chạy.\n\nDùng `/list` để xem và `/delete <id>` để xoá bớt trước khi thêm mới.",
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            return;
+        }
+
+        int finalInterval = 60; // Default to 1h
+        if (intervalMinutes > 0)
+        {
+            if (intervalMinutes <= 22) finalInterval = 15;
+            else if (intervalMinutes <= 45) finalInterval = 30;
+            else if (intervalMinutes <= 90) finalInterval = 60;
+            else if (intervalMinutes <= 180) finalInterval = 120;
+            else if (intervalMinutes <= 300) finalInterval = 240;
+            else if (intervalMinutes <= 540) finalInterval = 360;
+            else if (intervalMinutes <= 1080) finalInterval = 720;
+            else finalInterval = 1440;
+        }
+
+        var schedule = new UserCronSchedule
+        {
+            UserId          = userId,
+            TelegramChatId  = chatId,
+            BotToken        = botToken,
+            Type            = type,
+            Keyword         = keyword,
+            IntervalMinutes = finalInterval,
+            IsActive        = true,
+            CreatedAt       = DateTimeOffset.UtcNow,
+            NextRunAt       = DateTimeOffset.UtcNow.AddMinutes(finalInterval)
+        };
+
+        _dbContext.UserCronSchedules.Add(schedule);
+        await _dbContext.SaveChangesAsync();
+
+        var keywordText = keyword != null ? $" theo keyword *{keyword}*" : "";
+        var intervalText = CronSchedulerWorker.FormatInterval(finalInterval);
+        
+        var note = "";
+        if (intervalMinutes == 0)
+        {
+            note = "\n\n_(Tôi đã đặt chu kỳ mặc định là **1 giờ** vì chưa nhận rõ khoảng thời gian. Bạn có thể thay đổi bằng lệnh `/subscribe` hoặc xóa đi đặt lại.)_";
+        }
+        else if (intervalMinutes != finalInterval)
+        {
+            note = $"\n\n_(Lưu ý: Chu kỳ được làm tròn thành **{intervalText}** là khoảng thời gian hệ thống hỗ trợ gần nhất.)_";
+        }
+
+        await activeClient.SendTextMessageAsync(chatId,
+            $"🎯 *Đã tự động đặt lịch #{schedule.Id} thành công!*\n\n" +
+            $"📌 Loại: `{type}`{keywordText}\n" +
+            $"⏰ Chu kỳ: mỗi *{intervalText}*\n" +
+            $"🕐 Lần đầu gửi: {schedule.NextRunAt.ToOffset(TimeSpan.FromHours(7)):dd/MM HH:mm} (ICT){note}\n\n" +
+            $"💡 Bạn có thể quản lý lịch bằng các lệnh:\n" +
+            $"• `/list` - Xem tất cả lịch\n" +
+            $"• `/pause {schedule.Id}` - Tạm dừng\n" +
+            $"• `/delete {schedule.Id}` - Xoá lịch",
+            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
 }
