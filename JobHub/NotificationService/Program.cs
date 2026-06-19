@@ -45,6 +45,7 @@ builder.Services.AddScoped<IContactService, ContactServiceImpl>();
 builder.Services.AddScoped<IHireAgentService, HireAgentServiceImpl>();
 builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
 builder.Services.AddHostedService<HireAgentWorker>();
+builder.Services.AddHostedService<CronSchedulerWorker>();
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(NotificationService.Mapping.NotificationMappingProfile).Assembly));
@@ -302,6 +303,24 @@ using (var scope = app.Services.CreateScope())
         ALTER TABLE ""UserTelegramBindings"" ADD COLUMN IF NOT EXISTS ""BotUsername"" text;
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_UserId"" ON ""UserTelegramBindings"" (""UserId"");
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_TelegramChatId"" ON ""UserTelegramBindings"" (""TelegramChatId"") WHERE ""TelegramChatId"" IS NOT NULL;
+
+        CREATE TABLE IF NOT EXISTS ""UserCronSchedules"" (
+            ""Id""              serial        NOT NULL,
+            ""UserId""          uuid          NOT NULL,
+            ""TelegramChatId"" bigint        NOT NULL,
+            ""BotToken""        text,
+            ""Type""            text          NOT NULL,
+            ""Keyword""         text,
+            ""IntervalMinutes"" integer       NOT NULL,
+            ""IsActive""        boolean       NOT NULL DEFAULT TRUE,
+            ""CreatedAt""       timestamptz   NOT NULL DEFAULT NOW(),
+            ""LastRunAt""       timestamptz,
+            ""NextRunAt""       timestamptz   NOT NULL,
+            CONSTRAINT ""PK_UserCronSchedules"" PRIMARY KEY (""Id"")
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_UserCronSchedules_UserId"" ON ""UserCronSchedules"" (""UserId"");
+        CREATE INDEX IF NOT EXISTS ""IX_UserCronSchedules_TelegramChatId"" ON ""UserCronSchedules"" (""TelegramChatId"");
+        CREATE INDEX IF NOT EXISTS ""IX_UserCronSchedules_Active_NextRun"" ON ""UserCronSchedules"" (""IsActive"", ""NextRunAt"") WHERE ""IsActive"" = TRUE;
     ";
     await cmd.ExecuteNonQueryAsync();
     await conn.CloseAsync();

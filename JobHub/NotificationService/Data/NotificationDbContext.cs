@@ -23,6 +23,7 @@ public class NotificationDbContext : DbContext
     public DbSet<HireAgentCampaign> HireAgentCampaigns { get; set; } = null!;
     public DbSet<HireAgentConversation> HireAgentConversations { get; set; } = null!;
     public DbSet<UserTelegramBinding> UserTelegramBindings { get; set; } = null!;
+    public DbSet<UserCronSchedule> UserCronSchedules { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +78,14 @@ public class NotificationDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(m => m.ConversationId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserCronSchedule>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.HasIndex(s => s.UserId).HasDatabaseName("IX_UserCronSchedules_UserId");
+            entity.HasIndex(s => s.TelegramChatId).HasDatabaseName("IX_UserCronSchedules_TelegramChatId");
+            entity.HasIndex(s => new { s.IsActive, s.NextRunAt }).HasDatabaseName("IX_UserCronSchedules_Active_NextRun");
         });
     }
 
