@@ -9,6 +9,7 @@ import base64
 import time
 
 import google.generativeai as genai
+from app.config import settings
 from app.ml.llm_generator import _load_api_keys
 from app.schemas.assistant import (
     AssistantChatRequest, AssistantChatResponse, ActionItem
