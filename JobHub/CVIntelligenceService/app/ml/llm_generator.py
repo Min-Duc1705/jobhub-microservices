@@ -89,8 +89,7 @@ async def generate_feedback(
     model_name: str = None,
 ) -> dict:
     """
-    Sinh nhận xét chuyên sâu bằng Google Gemini LLM.
-    Tự động xoay vòng API key và thử các model khác nhau nếu gặp lỗi hết quota (429) hoặc model không khả dụng.
+    Sinh nhận xét chuyên sâu bằng Google Gemini LLM hoặc Local AI (Ollama).
     """
     default_empty = {
         "extracted_skills": [],
@@ -99,15 +98,40 @@ async def generate_feedback(
         "ai_feedback": None,
     }
 
-    keys = _load_api_keys()
-    if not keys:
-        logger.warning("[LLM] Không có API Key nào được cấu hình — bỏ qua bước sinh nhận xét.")
-        return default_empty
-
     prompt = _PROMPT_TEMPLATE.format(
         job_description=job_description,
         cv_text=cv_text,
     )
+
+    if settings.USE_LOCAL_AI:
+        import httpx
+        try:
+            logger.info(f"[LLM-Local] Đang gọi local Ollama model {settings.LOCAL_AI_MODEL}...")
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                res = await client.post(
+                    f"{settings.LOCAL_AI_URL.rstrip('/')}/api/chat",
+                    json={
+                        "model": settings.LOCAL_AI_MODEL,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "stream": False,
+                        "options": {"temperature": 0.3}
+                    }
+                )
+                if res.status_code == 200:
+                    reply_text = res.json()["message"]["content"]
+                    import re
+                    clean_match = re.search(r"\{.*\}", reply_text, re.DOTALL)
+                    if clean_match:
+                        reply_text = clean_match.group(0)
+                    result = json.loads(reply_text)
+                    return result
+                else:
+                    logger.warning(f"[LLM-Local] Gọi Ollama thất bại: HTTP {res.status_code}")
+        except Exception as local_ex:
+            logger.error(f"[LLM-Local] Lỗi gọi Ollama: {local_ex}")
+        return default_empty
+
+    keys = _load_api_keys()
 
     models_to_try = [model_name] if model_name else GEMINI_MODELS
     

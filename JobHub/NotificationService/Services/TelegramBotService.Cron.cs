@@ -67,10 +67,22 @@ public partial class TelegramBotService
         }
 
         var intervalStr = parts[^1].ToLower();
-        if (!_validIntervals.TryGetValue(intervalStr, out int intervalMinutes))
+        int intervalMinutes = 0;
+        if (!_validIntervals.TryGetValue(intervalStr, out intervalMinutes))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(intervalStr, @"^(\d+)(m|h)$");
+            if (match.Success)
+            {
+                int val = int.Parse(match.Groups[1].Value);
+                string unit = match.Groups[2].Value;
+                intervalMinutes = unit == "m" ? val : val * 60;
+            }
+        }
+
+        if (intervalMinutes < 5)
         {
             await activeClient.SendTextMessageAsync(chatId,
-                $"❌ Chu kỳ `{intervalStr}` không hợp lệ.\n\nChu kỳ hỗ trợ: `15m` · `30m` · `1h` · `2h` · `4h` · `6h` · `12h` · `24h`",
+                $"❌ Chu kỳ `{intervalStr}` không hợp lệ hoặc quá ngắn.\n\n⚠️ Hệ thống hỗ trợ chu kỳ tùy chọn từ *5 phút trở lên* (ví dụ: `5m`, `10m`, `30m`, `1h`, `2h`, v.v.).",
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             return;
         }
@@ -277,14 +289,14 @@ public partial class TelegramBotService
         int parsedInterval = 0;
         bool foundInterval = false;
 
-        // Match: (cứ|mỗi|every|sau)\s*(\d+)\s*(phút|giờ|tiếng|h|m|min)
-        var matchInterval = System.Text.RegularExpressions.Regex.Match(lowerText, @"(?:cứ|mỗi|every|sau)\s*(\d+)\s*(phút|giờ|tiếng|h|m|min|s|second|minute|hour)");
+        // Match: (cứ|mỗi|every|sau)\s*(\d+)\s*(phút|ph|p|giờ|tiếng|h|m|min)
+        var matchInterval = System.Text.RegularExpressions.Regex.Match(lowerText, @"(?:cứ|mỗi|every|sau)\s*(\d+)\s*(phút|ph|p|giờ|tiếng|h|m|min|s|second|minute|hour)");
         if (matchInterval.Success)
         {
             int val = int.Parse(matchInterval.Groups[1].Value);
             string unit = matchInterval.Groups[2].Value;
 
-            if (unit.StartsWith("phút") || unit.StartsWith("m") || unit.StartsWith("min"))
+            if (unit.StartsWith("phút") || unit.StartsWith("m") || unit.StartsWith("min") || unit == "p" || unit == "ph")
             {
                 parsedInterval = val;
             }
@@ -297,13 +309,13 @@ public partial class TelegramBotService
         else
         {
             // Check for shorthand like "1h", "30m", "15m" directly
-            var matchShort = System.Text.RegularExpressions.Regex.Match(lowerText, @"\b(\d+)\s*(h|m|min|phút|giờ)\b");
+            var matchShort = System.Text.RegularExpressions.Regex.Match(lowerText, @"\b(\d+)\s*(h|m|min|phút|ph|p|giờ)\b");
             if (matchShort.Success)
             {
                 int val = int.Parse(matchShort.Groups[1].Value);
                 string unit = matchShort.Groups[2].Value;
 
-                if (unit.StartsWith("phút") || unit.StartsWith("m") || unit.StartsWith("min"))
+                if (unit.StartsWith("phút") || unit.StartsWith("m") || unit.StartsWith("min") || unit == "p" || unit == "ph")
                 {
                     parsedInterval = val;
                 }
@@ -401,16 +413,22 @@ public partial class TelegramBotService
         }
 
         int finalInterval = 60; // Default to 1h
+        var note = "";
         if (intervalMinutes > 0)
         {
-            if (intervalMinutes <= 22) finalInterval = 15;
-            else if (intervalMinutes <= 45) finalInterval = 30;
-            else if (intervalMinutes <= 90) finalInterval = 60;
-            else if (intervalMinutes <= 180) finalInterval = 120;
-            else if (intervalMinutes <= 300) finalInterval = 240;
-            else if (intervalMinutes <= 540) finalInterval = 360;
-            else if (intervalMinutes <= 1080) finalInterval = 720;
-            else finalInterval = 1440;
+            if (intervalMinutes < 5)
+            {
+                finalInterval = 5;
+                note = $"\n\n_(Lưu ý: Hệ thống đã đặt chu kỳ tối thiểu là **5 phút** thay vì {intervalMinutes} phút do giới hạn hệ thống.)_";
+            }
+            else
+            {
+                finalInterval = intervalMinutes;
+            }
+        }
+        else
+        {
+            note = "\n\n_(Tôi đã đặt chu kỳ mặc định là **1 giờ** vì chưa nhận rõ khoảng thời gian. Bạn có thể thay đổi bằng lệnh `/subscribe` hoặc xóa đi đặt lại.)_";
         }
 
         var schedule = new UserCronSchedule
@@ -431,16 +449,6 @@ public partial class TelegramBotService
 
         var keywordText = keyword != null ? $" theo keyword *{keyword}*" : "";
         var intervalText = CronSchedulerWorker.FormatInterval(finalInterval);
-        
-        var note = "";
-        if (intervalMinutes == 0)
-        {
-            note = "\n\n_(Tôi đã đặt chu kỳ mặc định là **1 giờ** vì chưa nhận rõ khoảng thời gian. Bạn có thể thay đổi bằng lệnh `/subscribe` hoặc xóa đi đặt lại.)_";
-        }
-        else if (intervalMinutes != finalInterval)
-        {
-            note = $"\n\n_(Lưu ý: Chu kỳ được làm tròn thành **{intervalText}** là khoảng thời gian hệ thống hỗ trợ gần nhất.)_";
-        }
 
         await activeClient.SendTextMessageAsync(chatId,
             $"🎯 *Đã tự động đặt lịch #{schedule.Id} thành công!*\n\n" +

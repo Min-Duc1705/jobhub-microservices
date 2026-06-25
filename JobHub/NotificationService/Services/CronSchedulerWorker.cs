@@ -80,7 +80,14 @@ public class CronSchedulerWorker : BackgroundService
 
                 // Cập nhật thời gian chạy
                 schedule.LastRunAt = now;
-                schedule.NextRunAt = now.AddMinutes(schedule.IntervalMinutes);
+                if (schedule.IntervalMinutes <= 0)
+                {
+                    schedule.IsActive = false;
+                }
+                else
+                {
+                    schedule.NextRunAt = now.AddMinutes(schedule.IntervalMinutes);
+                }
                 db.UserCronSchedules.Update(schedule);
             }
             catch (Exception ex)
@@ -108,6 +115,7 @@ public class CronSchedulerWorker : BackgroundService
             "applications"  => await BuildApplicationsMessageAsync(schedule, config),
             "interviews"    => await BuildInterviewsMessageAsync(schedule, db),
             "campaigns"     => await BuildCampaignsMessageAsync(schedule, db),
+            "reminder"      => $"⏰ <b>Nhắc nhở:</b> {schedule.Keyword}",
             _               => null
         };
 
@@ -138,8 +146,8 @@ public class CronSchedulerWorker : BackgroundService
             var since = schedule.LastRunAt ?? DateTimeOffset.UtcNow.AddMinutes(-schedule.IntervalMinutes);
 
             var url = string.IsNullOrEmpty(schedule.Keyword)
-                ? $"http://jobservice:8080/api/v1/jobs?pageSize=5&status=PUBLISHED&sortBy=createdAt&sortDirection=desc"
-                : $"http://jobservice:8080/api/v1/jobs?keyword={Uri.EscapeDataString(schedule.Keyword)}&pageSize=5&status=PUBLISHED&sortBy=createdAt&sortDirection=desc";
+                ? $"http://jobservice:8080/api/v1/jobs?pageSize=5&status=PUBLISHED&sortBy=createdDate&sortDirection=desc"
+                : $"http://jobservice:8080/api/v1/jobs?searchTerm={Uri.EscapeDataString(schedule.Keyword)}&pageSize=5&status=PUBLISHED&sortBy=createdDate&sortDirection=desc";
 
             var req = new HttpRequestMessage(HttpMethod.Get, url);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -183,7 +191,7 @@ public class CronSchedulerWorker : BackgroundService
             foreach (var job in jobs.Take(5))
             {
                 var name     = job.TryGetProperty("name",     out var np) ? np.GetString() : "N/A";
-                var company  = job.TryGetProperty("company",  out var cp) && cp.TryGetProperty("name", out var cnp) ? cnp.GetString() : "N/A";
+                var company  = job.TryGetProperty("companyName", out var cp) ? cp.GetString() : "N/A";
                 var location = job.TryGetProperty("location", out var lp) && lp.ValueKind != JsonValueKind.Null ? lp.GetString() : "N/A";
                 var id       = job.TryGetProperty("id",       out var ip) ? ip.GetString() : null;
 
@@ -389,15 +397,10 @@ public class CronSchedulerWorker : BackgroundService
         return InternalTokenGenerator.GenerateInternalToken(secretKey, issuer, audience);
     }
 
-    public static string FormatInterval(int minutes) => minutes switch
+    public static string FormatInterval(int minutes)
     {
-        < 60  => $"{minutes} phút",
-        60    => "1 giờ",
-        120   => "2 giờ",
-        240   => "4 giờ",
-        360   => "6 giờ",
-        720   => "12 giờ",
-        1440  => "24 giờ",
-        _     => $"{minutes / 60} giờ"
-    };
+        if (minutes < 60) return $"{minutes} phút";
+        if (minutes % 60 == 0) return $"{minutes / 60} giờ";
+        return $"{minutes / 60} giờ {minutes % 60} phút";
+    }
 }

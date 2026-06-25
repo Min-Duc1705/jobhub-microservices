@@ -59,7 +59,12 @@ _CAPABILITY_MAP = {
     "import_skills_to_my_profile": "- Thêm/import hàng loạt kỹ năng từ danh sách tên kỹ năng vào hồ sơ cá nhân của bạn",
     "get_my_conversations": "- Xem danh sách các cuộc trò chuyện (chat) của bạn",
     "get_chat_history": "- Xem chi tiết tin nhắn trong một cuộc hội thoại cụ thể",
-    "get_my_notifications": "- Xem các thông báo chưa đọc của bạn"
+    "get_my_notifications": "- Xem các thông báo chưa đọc của bạn",
+    "telegram_subscribe": "- Đặt lịch tự động nhận thông báo gửi qua Telegram",
+    "telegram_list_subscriptions": "- Xem danh sách lịch nhận thông báo Telegram của bạn",
+    "telegram_delete_subscription": "- Xóa lịch nhận thông báo Telegram",
+    "telegram_pause_subscription": "- Tạm dừng lịch nhận thông báo Telegram",
+    "telegram_resume_subscription": "- Tiếp tục lịch nhận thông báo Telegram"
 }
 
 
@@ -112,6 +117,15 @@ async def process_assistant_message(
         available_tools=", ".join(tool_names) if tool_names else "Không có công cụ nào",
         capabilities=capabilities_str
     )
+
+    from datetime import datetime, timezone, timedelta
+    ict_tz = timezone(timedelta(hours=7))
+    now_ict = datetime.now(ict_tz)
+    now_str = now_ict.strftime("%Y-%m-%dT%H:%M:%S%z")
+    days = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
+    day_of_week = days[now_ict.weekday()]
+    time_instruction = f"\n\n## 🕐 Thời gian hiện tại\nThời gian hiện tại của hệ thống: **{now_str}** ({day_of_week}, ngày {now_ict.strftime('%d/%m/%Y %H:%M:%S')}). Hãy sử dụng mốc thời gian này để tính toán target_time chính xác cho nhắc nhở/báo thức một lần."
+    system_prompt += time_instruction
 
     # Load Gemini API keys
     keys = _load_api_keys()
@@ -277,40 +291,17 @@ async def process_assistant_message(
                         )
                     )
 
-                # Send tool results back to Gemini (with key rotation on failure)
-                success_sending = False
-                send_attempts = 0
-                max_send_attempts = num_keys
-                last_send_err_str = ""
-
-                while send_attempts < max_send_attempts:
-                    try:
-                        response = await chat.send_message_async(
-                            genai.protos.Content(parts=fn_responses, role="tool"),
-                            generation_config=genai.types.GenerationConfig(
-                                temperature=0.1,
-                                max_output_tokens=2048,
-                            )
-                        )
-                        success_sending = True
-                        break
-                    except Exception as send_err:
-                        last_send_err_str = str(send_err)
-                        logger.warning(
-                            f"[AIAssistant] Failed to send tool response (key {curr_key_idx}): {last_send_err_str}"
-                        )
-                        send_attempts += 1
-                        curr_key_idx = (curr_key_idx + 1) % num_keys
-                        genai.configure(api_key=keys[curr_key_idx])
-                        model = genai.GenerativeModel(
-                            model_name=model_name,
-                            tools=gemini_tools if gemini_tools else None,
-                            system_instruction=system_prompt,
-                        )
-                        chat = model.start_chat(history=chat.history)
-
-                if not success_sending:
-                    raise Exception(f"All keys failed to send tool response. Last error: {last_send_err_str}")
+                # Gửi kết quả tool về cho Gemini.
+                # Nếu gặp lỗi (như Rate Limit 429), exception sẽ được ném ra ngoài để vòng lặp lớn bắt lấy.
+                # Vòng lặp lớn sẽ tự động đổi sang API Key/Model mới và chạy lại toàn bộ lượt chat từ đầu,
+                # đảm bảo giữ nguyên ngữ cảnh hội thoại nhất quán 100%.
+                response = await chat.send_message_async(
+                    genai.protos.Content(parts=fn_responses, role="tool"),
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.1,
+                        max_output_tokens=2048,
+                    )
+                )
 
             # ── Extract final text response ──
             final_text = "".join(

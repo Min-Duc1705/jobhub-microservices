@@ -293,7 +293,7 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
 
     feedback_data = {"extracted_skills": jd_skills, "strengths": [], "weaknesses": [], "ai_feedback": None}
 
-    if req.generate_feedback and score >= 50.0:
+    if req.generate_feedback:
         # Vẫn sử dụng JD gốc để LLM phân tích chi tiết thế mạnh/điểm yếu
         llm_feedback = await generate_feedback(req.job_description, req.cv_text)
         feedback_data.update({

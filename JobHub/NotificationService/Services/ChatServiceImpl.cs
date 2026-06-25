@@ -317,7 +317,8 @@ public class ChatServiceImpl : IChatService
                         // g. Nếu nguồn từ Telegram, gửi tin nhắn đến Telegram của User
                         if (type == "telegram")
                         {
-                            await telegramBotService.SendTextMessageAsync(Guid.Parse(senderId), aiReply);
+                            var decoratedReply = BeautifyAiResponse(aiReply);
+                            await telegramBotService.SendTextMessageAsync(Guid.Parse(senderId), decoratedReply);
                         }
                     }
                 }
@@ -372,7 +373,57 @@ public class ChatServiceImpl : IChatService
                         {
                             var frontendUrl = config["FrontendUrl"] ?? "https://jobhub-frontend-two.vercel.app";
                             var title = $"💬 Tin nhắn mới từ {senderName}";
-                            var messageText = $"{content}\n\n👉 [Mở Chat để trả lời]({frontendUrl.TrimEnd('/')}/chat)\n✍️ Trả lời (Reply) tin nhắn này để chat trực tiếp\n\nRef: {senderId}";
+                            
+                            // Lấy 5 tin nhắn gần đây nhất để hiển thị ngữ cảnh
+                            var chatRepo = scope.ServiceProvider.GetRequiredService<IChatRepository>();
+                            var recentMessages = await chatRepo.GetMessagesForConversationAsync(conv.Id, 5, null);
+                            recentMessages.Reverse();
+
+                            var contextLines = new List<string>();
+                            for (int idx = 0; idx < recentMessages.Count; idx++)
+                            {
+                                var msg = recentMessages[idx];
+                                bool isLast = (idx == recentMessages.Count - 1);
+                                
+                                string senderDisplayName;
+                                if (msg.SenderId.Equals(senderId, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    senderDisplayName = senderName;
+                                }
+                                else if (msg.SenderId.Equals(receiverId, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    senderDisplayName = "Bạn";
+                                }
+                                else if (msg.SenderId.Equals("ai_assistant", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    senderDisplayName = "🤖 Trợ lý AI";
+                                }
+                                else
+                                {
+                                    senderDisplayName = "Người dùng";
+                                }
+
+                                var displayContent = msg.Content;
+                                if (displayContent.Length > 100)
+                                {
+                                    displayContent = displayContent.Substring(0, 97) + "...";
+                                }
+
+                                if (isLast)
+                                {
+                                    // Làm nổi bật tin nhắn mới nhất
+                                    contextLines.Add($"🔴 **{senderDisplayName} (Mới nhất)**: **{displayContent}**");
+                                }
+                                else
+                                {
+                                    // Emoji phân biệt người gửi trước đó
+                                    string prefixEmoji = msg.SenderId.Equals(receiverId, StringComparison.OrdinalIgnoreCase) ? "💬" : "✉️";
+                                    contextLines.Add($"{prefixEmoji} **{senderDisplayName}**: {displayContent}");
+                                }
+                            }
+                            var contextText = string.Join("\n", contextLines);
+
+                            var messageText = $"💬 **Ngữ cảnh tin nhắn gần đây:**\n{contextText}\n\n👉 [Mở Chat để trả lời]({frontendUrl.TrimEnd('/')}/chat)\n✍️ Trả lời (Reply) tin nhắn này để chat trực tiếp\n\nRef: {senderId}";
                             await telegramBotService.SendPushNotificationAsync(receiverGuid, title, messageText);
                         }
                     }
@@ -431,5 +482,85 @@ public class ChatServiceImpl : IChatService
             throw new BadRequestException("Bạn không có quyền cập nhật cuộc hội thoại này.");
 
         await _chatRepo.MarkMessagesAsReadAsync(conversationId, userId);
+    }
+
+    private string BeautifyAiResponse(string reply)
+    {
+        if (string.IsNullOrEmpty(reply)) return reply;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("🤖 *Trợ lý AI JobHub*");
+        sb.AppendLine("━━━━━━━━━━━━━━━━━━━━");
+
+        var lines = reply.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            var trimmed = line.TrimStart();
+
+            if (trimmed.StartsWith("- ") || trimmed.StartsWith("• ") || trimmed.StartsWith("* "))
+            {
+                var content = trimmed.Substring(2).Trim();
+                var leadingSpaces = line.Substring(0, line.Length - trimmed.Length);
+
+                string emoji = "🔹";
+                var lowerContent = content.ToLower();
+                if (lowerContent.Contains("kinh nghiệm") || lowerContent.Contains("năm kinh nghiệm") || lowerContent.Contains("kinh nghiệm làm việc"))
+                {
+                    emoji = "⏳";
+                }
+                else if (lowerContent.Contains("ứng viên") || lowerContent.Contains("tài khoản") || lowerContent.Contains("user"))
+                {
+                    emoji = "👤";
+                }
+                else if (lowerContent.Contains("vị trí") || lowerContent.Contains("tuyển dụng") || lowerContent.Contains("job") || lowerContent.Contains("công việc"))
+                {
+                    emoji = "💼";
+                }
+                else if (lowerContent.Contains("lương") || lowerContent.Contains("vnd") || lowerContent.Contains("usd") || lowerContent.Contains("thu nhập") || lowerContent.Contains("salary"))
+                {
+                    emoji = "💰";
+                }
+                else if (lowerContent.Contains("kỹ năng") || lowerContent.Contains("skill") || lowerContent.Contains("yêu cầu") || lowerContent.Contains("tiêu chí"))
+                {
+                    emoji = "🎯";
+                }
+                else if (lowerContent.Contains("công ty") || lowerContent.Contains("doanh nghiệp") || lowerContent.Contains("tổ chức"))
+                {
+                    emoji = "🏢";
+                }
+                else if (lowerContent.Contains("địa điểm") || lowerContent.Contains("địa chỉ") || lowerContent.Contains("quận") || lowerContent.Contains("thành phố") || lowerContent.Contains("nơi làm việc"))
+                {
+                    emoji = "📍";
+                }
+                else if (lowerContent.Contains("email") || lowerContent.Contains("thư điện tử"))
+                {
+                    emoji = "📧";
+                }
+                else if (lowerContent.Contains("phỏng vấn") || lowerContent.Contains("lịch hẹn") || lowerContent.Contains("thời gian") || lowerContent.Contains("ngày"))
+                {
+                    emoji = "📅";
+                }
+                else if (lowerContent.Contains("trạng thái") || lowerContent.Contains("kết quả"))
+                {
+                    emoji = "📊";
+                }
+
+                lines[i] = $"{leadingSpaces}{emoji} {content}";
+            }
+            else if (trimmed.StartsWith("Lưu ý:") || trimmed.StartsWith("Chú ý:") || trimmed.StartsWith("Lưu ý chính:"))
+            {
+                lines[i] = $"💡 _{trimmed}_";
+            }
+            else if (trimmed.Contains("được tự động tạo từ dữ liệu truy vấn vì kết nối AI chính bị gián đoạn"))
+            {
+                lines[i] = $"\n⚠️ _{trimmed.Trim('(', ')', '*')}_";
+            }
+        }
+
+        sb.Append(string.Join("\n", lines));
+        sb.AppendLine();
+        sb.AppendLine("━━━━━━━━━━━━━━━━━━━━");
+        return sb.ToString();
     }
 }

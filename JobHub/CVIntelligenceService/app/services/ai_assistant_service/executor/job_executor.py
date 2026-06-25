@@ -17,6 +17,8 @@ async def execute_search_jobs(args: dict, user_token: str) -> dict:
     params = {"pageSize": int(args.get("pageSize", 10))}
     if args.get("keyword"):
         params["searchTerm"] = args["keyword"]
+    elif args.get("skills") and len(args["skills"]) > 0:
+        params["searchTerm"] = args["skills"][0]
     if args.get("level"):
         lvl = args["level"].upper()
         if lvl in ["INTERN", "JUNIOR", "MIDDLE", "SENIOR", "LEAD", "DIRECTOR"]:
@@ -114,6 +116,24 @@ async def execute_preview_create_job(args: dict, user_token: str) -> dict:
         if salary_min is None and salary_max is None:
             is_negotiable = True
 
+    # Resolve skill names to clean system names for preview
+    resolved_names = []
+    skill_names = args.get("skill_names", [])
+    if skill_names:
+        try:
+            skills_resp = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/skills/dropdown", user_token)
+            skills_list = skills_resp.get("data") if isinstance(skills_resp, dict) and "data" in skills_resp else skills_resp
+            if isinstance(skills_list, list):
+                from ..job_confirm_service import resolve_skills
+                _, resolved_names = resolve_skills(skill_names, skills_list)
+            else:
+                resolved_names = skill_names
+        except Exception as e:
+            logger.warning(f"[JobExecutor] Failed to resolve skills in preview: {e}")
+            resolved_names = skill_names
+    else:
+        resolved_names = []
+
     return {
         "preview": True,
         "job_data": {
@@ -129,7 +149,7 @@ async def execute_preview_create_job(args: dict, user_token: str) -> dict:
             "level": inferred_lvl,
             "quantity": args.get("quantity", 1),
             "deadline": args.get("deadline", ""),
-            "skill_names": args.get("skill_names", []),
+            "skill_names": resolved_names,
             "experience_required": exp_req,
             "category": normalize_category(args.get("category", ""))
         },
@@ -171,7 +191,17 @@ async def execute_update_job(args: dict, user_token: str) -> dict:
     if args.get("is_salary_negotiable") is not None:
         payload["isSalaryNegotiable"] = args["is_salary_negotiable"]
     if args.get("skill_names"):
-        payload["skillNames"] = args["skill_names"]
+        try:
+            skills_resp = await _call_api("GET", "http://jobhub_jobservice:8080/api/v1/skills/dropdown", user_token)
+            skills_list = skills_resp.get("data") if isinstance(skills_resp, dict) and "data" in skills_resp else skills_resp
+            if isinstance(skills_list, list):
+                from ..job_confirm_service import resolve_skills
+                skill_ids, _ = resolve_skills(args["skill_names"], skills_list)
+                payload["skillIds"] = skill_ids
+            else:
+                logger.warning("[JobExecutor] Failed to fetch skills dropdown list for update_job")
+        except Exception as e:
+            logger.error(f"[JobExecutor] Failed to resolve skill IDs in update_job: {e}")
     if args.get("category"):
         payload["category"] = normalize_category(args["category"])
 

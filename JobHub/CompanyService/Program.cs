@@ -13,6 +13,8 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MassTransit;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,28 @@ builder.Services.AddScoped<ICompanyService, CompanyServiceImpl>();
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(cfg =>
     cfg.AddMaps(typeof(CompanyService.Mapping.CompanyMappingProfile).Assembly));
+
+// ── MassTransit & RabbitMQ (Publisher) ───────────────────────────────────────
+builder.Services.AddMassTransit(x =>
+{
+    x.SetKebabCaseEndpointNameFormatter();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(
+            builder.Configuration["RabbitMQ:Host"] ?? "localhost",
+            ushort.Parse(builder.Configuration["RabbitMQ:Port"] ?? "5672"),
+            "/",
+            h =>
+            {
+                h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
+                h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+            });
+
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
 
 // ── Exception Handler ─────────────────────────────────────────────────────────
 builder.Services.AddCommonApiServices();

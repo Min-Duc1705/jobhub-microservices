@@ -49,6 +49,8 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<ApplicationSubmittedConsumer>();
     x.AddConsumer<ApplicationStatusChangedConsumer>();
     x.AddConsumer<JobUserDeletedConsumer>();
+    x.AddConsumer<CompanyUpdatedConsumer>();
+
 
     x.UsingRabbitMq((context, cfg) =>
     {

@@ -172,3 +172,64 @@ async def execute_get_chat_history(args: dict, user_token: str) -> dict:
 async def execute_get_my_notifications(args: dict, user_token: str) -> dict:
     url = "http://notificationservice:8080/api/v1/notifications"
     return await _call_api("GET", url, user_token)
+
+
+async def execute_telegram_subscribe(args: dict, user_token: str) -> dict:
+    payload = {
+        "type": args.get("type"),
+        "keyword": args.get("keyword"),
+        "intervalMinutes": int(args.get("interval_minutes") or 60)
+    }
+    return await _call_api(
+        "POST", "http://notificationservice:8080/api/v1/telegram/subscriptions",
+        user_token, json_data=payload
+    )
+
+
+async def execute_telegram_list_subscriptions(args: dict, user_token: str) -> dict:
+    return await _call_api(
+        "GET", "http://notificationservice:8080/api/v1/telegram/subscriptions",
+        user_token
+    )
+
+
+async def execute_telegram_delete_subscription(args: dict, user_token: str) -> dict:
+    raw_id = args.get("subscription_id")
+    sub_id = int(float(raw_id)) if raw_id is not None else 0
+    return await _call_api(
+        "DELETE", f"http://notificationservice:8080/api/v1/telegram/subscriptions/{sub_id}",
+        user_token
+    )
+
+
+async def execute_telegram_pause_subscription(args: dict, user_token: str) -> dict:
+    raw_id = args.get("subscription_id")
+    sub_id = int(float(raw_id)) if raw_id is not None else 0
+    return await _call_api(
+        "POST", f"http://notificationservice:8080/api/v1/telegram/subscriptions/{sub_id}/pause",
+        user_token
+    )
+
+
+async def execute_telegram_resume_subscription(args: dict, user_token: str) -> dict:
+    raw_id = args.get("subscription_id")
+    sub_id = int(float(raw_id)) if raw_id is not None else 0
+    return await _call_api(
+        "POST", f"http://notificationservice:8080/api/v1/telegram/subscriptions/{sub_id}/resume",
+        user_token
+    )
+
+
+async def execute_telegram_set_reminder(args: dict, user_token: str) -> dict:
+    payload = {
+        "type": "reminder",
+        "keyword": args.get("message"),
+        "intervalMinutes": 0,
+        "nextRunAt": args.get("target_time")
+    }
+    return await _call_api(
+        "POST", "http://notificationservice:8080/api/v1/telegram/subscriptions",
+        user_token, json_data=payload
+    )
+
+

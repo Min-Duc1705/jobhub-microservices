@@ -12,6 +12,9 @@ using Microsoft.Extensions.Options;
 
 using CommonService.Import;
 using CommonService.Caching;
+using CommonService.Events;
+using MassTransit;
+
 
 namespace CompanyService.Services;
 
@@ -22,20 +25,24 @@ public class CompanyServiceImpl : ICompanyService
     private readonly MinioSettings          _minioSettings;
     private readonly IExcelCsvImportService _importService;
     private readonly ICacheService          _cacheService;
+    private readonly IPublishEndpoint       _publishEndpoint;
 
     public CompanyServiceImpl(
         ICompanyRepository companyRepo, 
         IMapper mapper, 
         IOptions<MinioSettings> minioSettings,
         IExcelCsvImportService importService,
-        ICacheService cacheService)
+        ICacheService cacheService,
+        IPublishEndpoint publishEndpoint)
     {
         _companyRepo = companyRepo;
         _mapper      = mapper;
         _minioSettings = minioSettings.Value;
         _importService = importService;
         _cacheService  = cacheService;
+        _publishEndpoint = publishEndpoint;
     }
+
 
     private CompanyResponse FormatUrls(CompanyResponse response)
     {
@@ -143,7 +150,16 @@ public class CompanyServiceImpl : ICompanyService
 
         await _cacheService.RemoveAsync($"companies:detail:{id}");
 
+        // Publish event to sync denormalized company data (e.g. in JobService)
+        await _publishEndpoint.Publish(new CompanyUpdatedEvent
+        {
+            Id = company.Id,
+            Name = company.Name,
+            Logo = company.Logo
+        });
+
         return FormatUrls(_mapper.Map<CompanyResponse>(company));
+
     }
 
     // ── Xóa mềm ────────────────────────────────────────────────────────────

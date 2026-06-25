@@ -23,10 +23,11 @@ public static class MinioUrlHelper
         var scheme = settings.Secure ? "https" : "http";
         var endpoint = string.IsNullOrEmpty(settings.ExternalEndpoint) ? settings.Endpoint : settings.ExternalEndpoint;
 
-        // Nâng cấp lên https cho các domain ngrok/cloudflare tránh lỗi Mixed Content
+        // Nâng cấp lên https cho các domain ngrok/cloudflare/dpdns tránh lỗi Mixed Content
         if (endpoint.Contains("ngrok-free.dev") || 
             endpoint.Contains("ngrok-free.app") || 
-            endpoint.Contains("trycloudflare.com"))
+            endpoint.Contains("trycloudflare.com") ||
+            endpoint.Contains("dpdns.org"))
         {
             scheme = "https";
         }

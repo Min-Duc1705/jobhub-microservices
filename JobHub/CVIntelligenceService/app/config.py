@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
 
+    # Local AI Settings
+    USE_LOCAL_AI: bool = False
+    LOCAL_AI_URL: str = "http://host.docker.internal:11434"
+    LOCAL_AI_MODEL: str = "gemma4:e4b"
+
     # SBERT Model - dùng đa ngữ vì dữ liệu có thể là tiếng Việt
     # paraphrase-multilingual-mpnet-base-v2: support tiếng Việt, chính xác cao
     SBERT_MODEL: str = "paraphrase-multilingual-mpnet-base-v2"

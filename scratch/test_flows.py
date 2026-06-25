@@ -5,8 +5,8 @@ from playwright.sync_api import sync_playwright
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-ARTIFACT_DIR = r"C:\Users\ACER\.gemini\antigravity\brain\ee0d145f-13ae-434d-b8e1-c48496708331"
-BASE_URL = "http://localhost:5174"
+ARTIFACT_DIR = r"C:\Users\ACER\.gemini\antigravity\brain\9df9c7f2-702c-4bc7-b09a-043db92964d3"
+BASE_URL = "http://localhost:5173"
 
 def main():
     if not os.path.exists(ARTIFACT_DIR):

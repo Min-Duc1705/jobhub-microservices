@@ -43,7 +43,10 @@ from .misc_executor import (
     execute_navigate_to_page, execute_predict_salary, execute_broadcast_notification,
     execute_get_my_saved_jobs, execute_save_job, execute_unsave_job,
     execute_import_users, execute_import_skills, execute_import_companies, execute_import_jobs,
-    execute_get_my_conversations, execute_get_chat_history, execute_get_my_notifications
+    execute_get_my_conversations, execute_get_chat_history, execute_get_my_notifications,
+    execute_telegram_subscribe, execute_telegram_list_subscriptions,
+    execute_telegram_delete_subscription, execute_telegram_pause_subscription,
+    execute_telegram_resume_subscription, execute_telegram_set_reminder
 )
 
 logger = logging.getLogger(__name__)
@@ -100,6 +103,12 @@ _TOOL_EXECUTOR_MAP = {
     "get_my_conversations":     execute_get_my_conversations,
     "get_chat_history":         execute_get_chat_history,
     "get_my_notifications":     execute_get_my_notifications,
+    "telegram_subscribe":       execute_telegram_subscribe,
+    "telegram_list_subscriptions": execute_telegram_list_subscriptions,
+    "telegram_delete_subscription": execute_telegram_delete_subscription,
+    "telegram_pause_subscription": execute_telegram_pause_subscription,
+    "telegram_resume_subscription": execute_telegram_resume_subscription,
+    "telegram_set_reminder":    execute_telegram_set_reminder,
     # Admin — Users
     "get_all_users":        execute_get_all_users,
     "get_user_detail":      execute_get_user_detail,

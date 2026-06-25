@@ -108,7 +108,7 @@ public partial class TelegramBotService
                   "  `/pause <id>` - Tạm dừng lịch\n" +
                   "  `/resume <id>` - Tiếp tục lịch\n" +
                   "  `/delete <id>` - Xoá lịch\n\n" +
-                  "⏱ *Thời gian hỗ trợ:* `15m` `30m` `1h` `2h` `4h` `6h` `12h` `24h`\n\n" +
+                  "⏱ *Thời gian hỗ trợ:* Hỗ trợ tùy chọn từ `5m` trở lên (ví dụ: `5m`, `10m`, `30m`, `1h`, `2h`, v.v.)\n\n" +
                   "💬 Nhắn tin bất kỳ để trò chuyện với Trợ lý AI!";
 
         await activeClient.SendTextMessageAsync(chatId, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);

@@ -5,6 +5,7 @@ Xử lý xác nhận tạo/xóa Job và trích xuất thông tin Job từ ảnh.
 import json
 import logging
 import base64
+import re
 
 import google.generativeai as genai
 from app.ml.llm_generator import _load_api_keys
@@ -13,6 +14,124 @@ from .executor.category_utils import normalize_category
 from .executor.level_utils import infer_level_smart
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_skills(skill_names: list[str], skills_list: list[dict]) -> tuple[list[str], list[str]]:
+    """
+    So khớp các tên skill do LLM trích xuất (ví dụ: ['ReactJS', 'NodeJS']) với danh sách skill thực tế trong hệ thống.
+    Trả về tuple (skill_ids, resolved_names).
+    Tránh trùng lặp và khớp nhầm do substring quá ngắn (ví dụ: 'c', 'd', 'r').
+    """
+    matched_ids = []
+    resolved_names = []
+    
+    # Chuẩn hóa danh sách skill hệ thống
+    skill_map = {}
+    for s in skills_list:
+        name = s.get("name", "")
+        sid = s.get("id")
+        if name and sid:
+            skill_map[name.lower().strip()] = (sid, name)
+            
+    # Hàm dọn dẹp/chuẩn hóa tên để so khớp tương đối
+    def clean_name(n: str) -> str:
+        n = n.lower().strip()
+        # Loại bỏ các hậu tố phổ biến như 'js', '.js' nếu từ gốc đủ dài
+        for suffix in ["js", ".js"]:
+            if n.endswith(suffix) and len(n) > len(suffix):
+                n = n[:-len(suffix)]
+        return n.replace(" ", "").replace("-", "").replace(".", "")
+
+    # Xây dựng map đã chuẩn hóa để tra cứu tương đối
+    normalized_skill_map = {}
+    for k, (sid, name) in skill_map.items():
+        norm_k = clean_name(k)
+        if norm_k:
+            normalized_skill_map[norm_k] = (sid, name)
+
+    for name in skill_names:
+        name_lower = name.lower().strip()
+        if not name_lower:
+            continue
+            
+        # 1. Khớp chính xác hoàn toàn (case-insensitive)
+        if name_lower in skill_map:
+            sid, orig_name = skill_map[name_lower]
+            if sid not in matched_ids:
+                matched_ids.append(sid)
+                resolved_names.append(orig_name)
+            continue
+            
+        # 2. Khớp sau khi chuẩn hóa (ví dụ: reactjs -> react, node.js -> node)
+        norm_name = clean_name(name_lower)
+        if norm_name in normalized_skill_map:
+            sid, orig_name = normalized_skill_map[norm_name]
+            if sid not in matched_ids:
+                matched_ids.append(sid)
+                resolved_names.append(orig_name)
+            continue
+            
+        # 3. Khớp substring/superstring dạng nguyên bản (sử dụng regex để kiểm tra ranh giới từ)
+        # Bỏ qua các skill name quá ngắn (<= 2 ký tự) để tránh khớp nhầm trừ khi khớp hoàn toàn
+        found = False
+        for k, (sid, orig_name) in skill_map.items():
+            if len(k) <= 2:
+                continue
+            
+            # Kiểm tra xem name_lower có là một từ trọn vẹn trong k không
+            try:
+                if re.search(r'\b' + re.escape(name_lower) + r'\b', k):
+                    if sid not in matched_ids:
+                        matched_ids.append(sid)
+                        resolved_names.append(orig_name)
+                    found = True
+                    break
+            except Exception:
+                pass
+                
+            # Kiểm tra ngược lại xem k có là một từ trọn vẹn trong name_lower không
+            try:
+                if re.search(r'\b' + re.escape(k) + r'\b', name_lower):
+                    if sid not in matched_ids:
+                        matched_ids.append(sid)
+                        resolved_names.append(orig_name)
+                    found = True
+                    break
+            except Exception:
+                pass
+                
+        if found:
+            continue
+            
+        # 4. Khớp substring/superstring dạng chuẩn hóa (sử dụng regex để kiểm tra ranh giới từ)
+        for norm_k, (sid, orig_name) in normalized_skill_map.items():
+            if len(norm_k) <= 2:
+                continue
+                
+            try:
+                if re.search(r'\b' + re.escape(norm_name) + r'\b', norm_k):
+                    if sid not in matched_ids:
+                        matched_ids.append(sid)
+                        resolved_names.append(orig_name)
+                    found = True
+                    break
+            except Exception:
+                pass
+                
+            try:
+                if re.search(r'\b' + re.escape(norm_k) + r'\b', norm_name):
+                    if sid not in matched_ids:
+                        matched_ids.append(sid)
+                        resolved_names.append(orig_name)
+                    found = True
+                    break
+            except Exception:
+                pass
+                
+        if found:
+            continue
+
+    return matched_ids, resolved_names
 
 
 async def confirm_create_job(
@@ -71,19 +190,7 @@ async def confirm_create_job(
                 if not isinstance(skills_list, list):
                     skills_list = []
 
-                skill_map = {s.get("name", "").lower().strip(): s.get("id") for s in skills_list if s.get("name") and s.get("id")}
-
-                for name in skill_names:
-                    name_lower = name.lower().strip()
-                    if name_lower in skill_map:
-                        skill_ids.append(skill_map[name_lower])
-                    else:
-                        for k, v in skill_map.items():
-                            if name_lower in k or k in name_lower:
-                                skill_ids.append(v)
-                                break
-                        else:
-                            logger.warning(f"[JobConfirm] Skill not found in dropdown: {name}")
+                skill_ids, resolved_names = resolve_skills(skill_names, skills_list)
             except Exception as e:
                 logger.error(f"[JobConfirm] Failed to resolve skill IDs: {e}")
 

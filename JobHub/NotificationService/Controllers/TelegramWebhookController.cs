@@ -199,9 +199,181 @@ public class TelegramWebhookController : ControllerBase
             return BadRequest(new { message = $"Không thể kết nối Telegram Bot. Lỗi: {ex.Message}" });
         }
     }
+
+    [HttpPost("subscriptions")]
+    [Authorize]
+    public async Task<IActionResult> Subscribe([FromBody] SubscribeRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Type))
+        {
+            return BadRequest(new { message = "Loại subscription không hợp lệ." });
+        }
+
+        try
+        {
+            var userId = GetCurrentUserId();
+            var binding = await _dbContext.UserTelegramBindings
+                .FirstOrDefaultAsync(x => x.UserId == userId);
+
+            if (binding == null)
+            {
+                return BadRequest(new { message = "Tài khoản của bạn chưa kết nối Telegram Bot." });
+            }
+
+            var interval = request.IntervalMinutes;
+            if (request.Type.ToLower() != "reminder" && interval < 5 && interval > 0)
+            {
+                interval = 5;
+            }
+
+            var existingCount = await _dbContext.UserCronSchedules
+                .CountAsync(s => s.UserId == userId && s.IsActive);
+            if (existingCount >= 5)
+            {
+                return BadRequest(new { message = "Bạn đã có tối đa 5 lịch tự động đang chạy." });
+            }
+
+            var nextRun = (request.NextRunAt ?? DateTimeOffset.UtcNow.AddMinutes(interval <= 0 ? 5 : interval)).ToUniversalTime();
+
+            var schedule = new UserCronSchedule
+            {
+                UserId          = userId,
+                TelegramChatId  = binding.TelegramChatId ?? 0,
+                BotToken        = binding.BotToken,
+                Type            = request.Type.ToLower(),
+                Keyword         = request.Keyword,
+                IntervalMinutes = interval,
+                IsActive        = true,
+                CreatedAt       = DateTimeOffset.UtcNow,
+                NextRunAt       = nextRun
+            };
+
+            _dbContext.UserCronSchedules.Add(schedule);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { 
+                success = true, 
+                id = schedule.Id, 
+                type = schedule.Type,
+                keyword = schedule.Keyword,
+                intervalMinutes = schedule.IntervalMinutes 
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Không thể tạo đặt lịch: {ex.Message}" });
+        }
+    }
+
+    [HttpGet("subscriptions")]
+    [Authorize]
+    public async Task<IActionResult> GetSubscriptions()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var list = await _dbContext.UserCronSchedules
+                .Where(x => x.UserId == userId)
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+
+            return Ok(new { success = true, data = list });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Không thể lấy danh sách đặt lịch: {ex.Message}" });
+        }
+    }
+
+    [HttpDelete("subscriptions/{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteSubscription(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var schedule = await _dbContext.UserCronSchedules
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+
+            if (schedule == null)
+            {
+                return NotFound(new { message = $"Không tìm thấy lịch #{id}." });
+            }
+
+            _dbContext.UserCronSchedules.Remove(schedule);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Không thể xóa lịch: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("subscriptions/{id}/pause")]
+    [Authorize]
+    public async Task<IActionResult> PauseSubscription(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var schedule = await _dbContext.UserCronSchedules
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+
+            if (schedule == null)
+            {
+                return NotFound(new { message = $"Không tìm thấy lịch #{id}." });
+            }
+
+            schedule.IsActive = false;
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Không thể tạm dừng lịch: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("subscriptions/{id}/resume")]
+    [Authorize]
+    public async Task<IActionResult> ResumeSubscription(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var schedule = await _dbContext.UserCronSchedules
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+
+            if (schedule == null)
+            {
+                return NotFound(new { message = $"Không tìm thấy lịch #{id}." });
+            }
+
+            schedule.IsActive = true;
+            schedule.NextRunAt = DateTimeOffset.UtcNow.AddMinutes(schedule.IntervalMinutes);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Không thể tiếp tục lịch: {ex.Message}" });
+        }
+    }
 }
 
 public class BindCustomBotRequest
 {
     public string BotToken { get; set; } = string.Empty;
+}
+
+public class SubscribeRequest
+{
+    public string Type { get; set; } = string.Empty;
+    public string? Keyword { get; set; }
+    public int IntervalMinutes { get; set; }
+    public DateTimeOffset? NextRunAt { get; set; }
 }

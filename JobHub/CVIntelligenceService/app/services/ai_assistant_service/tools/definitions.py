@@ -994,4 +994,83 @@ _ALL_TOOL_DEFS = [
             "required": []
         }
     },
+    {
+        "name": "telegram_subscribe",
+        "description": "Đặt lịch tự động nhận thông báo gửi qua Telegram (jobs, notifications, applications, interviews, campaigns) định kỳ.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "description": "Loại thông báo cần đặt lịch, một trong các giá trị: 'jobs', 'notifications', 'applications', 'interviews', 'campaigns'."},
+                "keyword": {"type": "string", "description": "Từ khóa tìm kiếm (chỉ áp dụng cho loại 'jobs', ví dụ: 'react', 'java')."},
+                "interval_minutes": {"type": "integer", "description": "Chu kỳ gửi thông báo bằng phút (tối thiểu là 5 phút). Ví dụ: 5, 10, 30, 60 (cho 1h), 120 (cho 2h)."}
+            },
+            "required": ["type", "interval_minutes"]
+        }
+    },
+    {
+        "name": "telegram_set_reminder",
+        "description": "Đặt nhắc nhở hoặc báo thức một lần qua Telegram tại một thời điểm hoặc sau một khoảng thời gian nhất định.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "message": {"type": "string", "description": "Nội dung lời nhắc nhở cần gửi (ví dụ: 'Phỏng vấn ứng viên Nguyễn Văn A', 'Xem lại hồ sơ CV của các job tuyển', ...)."},
+                "target_time": {"type": "string", "description": "Thời điểm gửi nhắc nhở ở định dạng ISO 8601 kèm múi giờ (ví dụ: '2026-06-20T21:15:00+07:00'). AI cần tính toán thời điểm này dựa trên thời gian hiện tại được cung cấp trong context."}
+            },
+            "required": ["message", "target_time"]
+        }
+    },
+    {
+        "name": "telegram_list_subscriptions",
+        "description": "Liệt kê danh sách các lịch nhận thông báo Telegram đã đăng ký của bạn.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "telegram_delete_subscription",
+        "description": "Xóa lịch tự động nhận thông báo Telegram theo ID.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "subscription_id": {"type": "integer", "description": "ID của lịch cần xóa."}
+            },
+            "required": ["subscription_id"]
+        }
+    },
+    {
+        "name": "telegram_pause_subscription",
+        "description": "Tạm dừng lịch nhận thông báo Telegram theo ID.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "subscription_id": {"type": "integer", "description": "ID của lịch cần tạm dừng."}
+            },
+            "required": ["subscription_id"]
+        }
+    },
+    {
+        "name": "telegram_resume_subscription",
+        "description": "Tiếp tục lịch nhận thông báo Telegram đã bị tạm dừng theo ID.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "subscription_id": {"type": "integer", "description": "ID của lịch cần tiếp tục."}
+            },
+            "required": ["subscription_id"]
+        }
+    },
 ]
