@@ -270,8 +270,7 @@ public partial class TelegramBotService
         var lowerText = text.ToLower().Trim();
 
         // Check if the message indicates a schedule intent
-        bool hasScheduleIndicator = lowerText.Contains("thông báo") ||
-                                    lowerText.Contains("đặt lịch") ||
+        bool hasScheduleIndicator = lowerText.Contains("đặt lịch") ||
                                     lowerText.Contains("nhắc nhở") ||
                                     lowerText.Contains("gửi cho tôi") ||
                                     lowerText.Contains("subscribe") ||
@@ -394,7 +393,15 @@ public partial class TelegramBotService
         }
 
         intervalMinutes = parsedInterval;
-        return foundInterval || lowerText.Contains("thông báo") || lowerText.Contains("đăng ký") || lowerText.Contains("subscribe");
+
+        // Chỉ chấp nhận là đặt lịch tự động khi:
+        // 1. Có chu kỳ rõ ràng (ví dụ: foundInterval = true)
+        // 2. HOẶC có hành động đăng ký/subscribe/đặt lịch chủ động đi kèm các loại dữ liệu cụ thể
+        bool hasExplicitSubscribe = lowerText.Contains("đăng ký") || 
+                                    lowerText.Contains("subscribe") || 
+                                    lowerText.Contains("đặt lịch");
+
+        return foundInterval || (hasExplicitSubscribe && (lowerText.Contains("notification") || lowerText.Contains("thông báo") || lowerText.Contains("job") || lowerText.Contains("việc làm")));
     }
 
     private async Task HandleNaturalScheduleAsync(long chatId, Guid userId, string type, string? keyword, int intervalMinutes, string? botToken = null)
