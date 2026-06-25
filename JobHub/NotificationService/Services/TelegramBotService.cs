@@ -164,12 +164,7 @@ public partial class TelegramBotService : ITelegramBotService
                         }
                     }
 
-                    // ── NLP: Phát hiện ý định đặt lịch trong ngôn ngữ tự nhiên ──────────
-                    if (TryParseNaturalScheduleIntent(text, out string? nlpType, out string? nlpKeyword, out int nlpInterval))
-                    {
-                        await HandleNaturalScheduleAsync(chatId, binding.UserId, nlpType!, nlpKeyword, nlpInterval, binding.BotToken ?? botToken);
-                        return;
-                    }
+
 
                     // Route standard messages to AI Assistant via ChatService!
                     await _chatService.SendMessageAsync(binding.UserId.ToString(), "ai_assistant", text, "telegram");
