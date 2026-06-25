@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     LOCAL_AI_URL: str = "http://host.docker.internal:11434"
     LOCAL_AI_MODEL: str = "gemma4:e4b"
 
+    # Vertex AI Settings
+    USE_VERTEX_AI: bool = False
+    VERTEX_PROJECT_ID: str = ""
+    VERTEX_LOCATION: str = "us-central1"
+    VERTEX_CREDENTIALS_JSON: str = ""
+
     # SBERT Model - dùng đa ngữ vì dữ liệu có thể là tiếng Việt
     # paraphrase-multilingual-mpnet-base-v2: support tiếng Việt, chính xác cao
     SBERT_MODEL: str = "paraphrase-multilingual-mpnet-base-v2"

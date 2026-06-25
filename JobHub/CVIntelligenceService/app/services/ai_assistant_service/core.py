@@ -127,6 +127,179 @@ async def process_assistant_message(
     time_instruction = f"\n\n## 🕐 Thời gian hiện tại\nThời gian hiện tại của hệ thống: **{now_str}** ({day_of_week}, ngày {now_ict.strftime('%d/%m/%Y %H:%M:%S')}). Hãy sử dụng mốc thời gian này để tính toán target_time chính xác cho nhắc nhở/báo thức một lần."
     system_prompt += time_instruction
 
+    # --- VERTEX AI PAID BRANCH ---
+    if settings.USE_VERTEX_AI:
+        from app.services.ai_assistant_service.vertex_initializer import _init_vertex_ai
+        from app.services.ai_assistant_service.tools.vertex_builder import _build_vertex_tools
+        from vertexai.generative_models import GenerativeModel, Tool, FunctionDeclaration, Content, Part, GenerationConfig
+        
+        try:
+            # Initialize Vertex AI
+            _init_vertex_ai()
+            
+            # Map tools
+            vertex_tools = _build_vertex_tools(available_tool_defs)
+            
+            # Use default settings model (e.g. gemini-2.5-flash-lite)
+            target_model = settings.GEMINI_MODEL.replace("models/", "")
+            
+            # Initialize model
+            model = GenerativeModel(
+                model_name=target_model,
+                tools=vertex_tools if vertex_tools else None,
+                system_instruction=system_prompt,
+            )
+            
+            # Map chat history
+            history_for_vertex = [
+                Content(role="user" if msg["role"] == "user" else "model", parts=[Part.from_text(msg["content"])])
+                for msg in session_history[-8:]
+            ]
+            
+            chat = model.start_chat(history=history_for_vertex)
+            
+            # Map user parts
+            vertex_user_parts = []
+            if request.image_base64:
+                image_data = base64.b64decode(request.image_base64)
+                vertex_user_parts.append(
+                    Part.from_bytes(data=image_data, mime_type="image/jpeg")
+                )
+            if request.file_content:
+                vertex_user_parts.append(
+                    Part.from_text(
+                        f"[Nội dung file đính kèm]:\n{request.file_content[:3000]}\n\n"
+                        f"[Yêu cầu của người dùng]: {request.message}"
+                    )
+                )
+            else:
+                vertex_user_parts.append(request.message)
+                
+            response = await chat.send_message_async(
+                vertex_user_parts,
+                generation_config=GenerationConfig(
+                    temperature=0.1,
+                    max_output_tokens=2048,
+                )
+            )
+            
+            # Loop for tool calling (max 5 iterations)
+            max_iterations = 5
+            iteration = 0
+            actions_taken = []
+            pending_action = None
+            
+            while iteration < max_iterations:
+                iteration += 1
+                
+                # Collect function calls
+                fn_calls = []
+                if response.candidates and response.candidates[0].function_calls:
+                    for fc in response.candidates[0].function_calls:
+                        if fc.name:
+                            fn_calls.append(fc)
+                            
+                if not fn_calls:
+                    break
+                    
+                # Helper to run tool
+                async def run_single_tool(fc):
+                    t_name = fc.name
+                    r_args = dict(fc.args) if fc.args else {}
+                    # Normalize list types
+                    norm_args = {}
+                    for k, v in r_args.items():
+                        if hasattr(v, '__iter__') and not isinstance(v, (str, dict)):
+                            norm_args[k] = list(v)
+                        else:
+                            norm_args[k] = v
+                    logger.info(f"[VertexAI] Calling tool in parallel: {t_name}({norm_args})")
+                    res = await _execute_tool(t_name, norm_args, user_token)
+                    return t_name, norm_args, res
+                    
+                import asyncio
+                tasks = [run_single_tool(fc) for fc in fn_calls]
+                tool_results = await asyncio.gather(*tasks)
+                
+                fn_responses = []
+                for tool_name, args, result in tool_results:
+                    tool_def = next((t for t in available_tool_defs if t["name"] == tool_name), None)
+                    if tool_def and tool_def.get("action_type") == "preview":
+                        action_type = "create_job" if tool_name == "preview_create_job" else "delete_job"
+                        description = (
+                            f"Tạo tin tuyển dụng: {args.get('name', 'N/A')}"
+                            if tool_name == "preview_create_job"
+                            else f"Xóa tin tuyển dụng: {args.get('job_name', 'Không rõ tên')}"
+                        )
+                        pending_action = ActionItem(
+                            action_type=action_type,
+                            description=description,
+                            data=result.get("job_data"),
+                            requires_confirmation=True,
+                            tool_name=tool_name
+                        )
+                    else:
+                        actions_taken.append(ActionItem(
+                            action_type=f"tool_{tool_name}",
+                            description=f"Đã truy vấn: {tool_name}",
+                            data=result,
+                            requires_confirmation=False,
+                            tool_name=tool_name
+                        ))
+                        
+                    serialized_res = json.dumps(result, ensure_ascii=False)
+                    if len(serialized_res) > 15000:
+                        serialized_res = serialized_res[:15000] + "... [TRUNCATED]"
+                        
+                    fn_responses.append(
+                        Part.from_function_response(
+                            name=tool_name,
+                            response={"result": serialized_res}
+                        )
+                    )
+                    
+                response = await chat.send_message_async(
+                    fn_responses,
+                    generation_config=GenerationConfig(
+                        temperature=0.1,
+                        max_output_tokens=2048,
+                    )
+                )
+                
+            final_text = response.text
+            
+            # Fallback if no valid text
+            if not final_text or final_text.strip() == "Tôi đã xử lý yêu cầu của bạn.":
+                fallback_msg = build_fallback_message(actions_taken)
+                if fallback_msg:
+                    final_text = (
+                        fallback_msg
+                        + "\n\n*(Lưu ý: Phản hồi này được tự động tạo từ dữ liệu truy vấn "
+                        "vì kết nối AI chính bị gián đoạn hoặc quá tải)*"
+                    )
+                else:
+                    final_text = (
+                        "Tôi đã xử lý yêu cầu của bạn nhưng không nhận được phản hồi từ AI. "
+                        "Vui lòng thử lại sau ít phút hoặc dùng câu hỏi khác."
+                    )
+                    
+            save_to_session(session_id, request.message, final_text)
+            suggestions = _generate_suggestions(user_role, actions_taken)
+            
+            return AssistantChatResponse(
+                reply=final_text,
+                actions_taken=actions_taken,
+                pending_action=pending_action,
+                suggestions=suggestions
+            )
+            
+        except Exception as e:
+            logger.error(f"[VertexAI] Thất bại khi xử lý tin nhắn Vertex AI: {e}")
+            return AssistantChatResponse(
+                reply="Xin lỗi, AI Assistant (Vertex AI) đang gặp sự cố kỹ thuật. Vui lòng thử lại sau ít phút.",
+                error=f"Vertex AI failed: {str(e)}"
+            )
+
     # Load Gemini API keys
     keys = _load_api_keys()
     if not keys:

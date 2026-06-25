@@ -131,6 +131,28 @@ async def generate_feedback(
             logger.error(f"[LLM-Local] Lỗi gọi Ollama: {local_ex}")
         return default_empty
 
+    if settings.USE_VERTEX_AI:
+        try:
+            from app.services.ai_assistant_service.vertex_initializer import _init_vertex_ai
+            from vertexai.generative_models import GenerativeModel, GenerationConfig
+            _init_vertex_ai()
+            target_model = model_name if model_name else settings.GEMINI_MODEL
+            logger.info(f"[LLM] Đang gọi Vertex AI (Model: {target_model})...")
+            clean_model = target_model.replace("models/", "")
+            model = GenerativeModel(clean_model)
+            response = await model.generate_content_async(
+                contents=prompt,
+                generation_config=GenerationConfig(
+                    temperature=0.3,
+                    response_mime_type="application/json",
+                ),
+            )
+            result = json.loads(response.text)
+            return result
+        except Exception as vertex_ex:
+            logger.error(f"[LLM] Lỗi gọi Vertex AI: {vertex_ex}")
+            return default_empty
+
     keys = _load_api_keys()
 
     models_to_try = [model_name] if model_name else GEMINI_MODELS
