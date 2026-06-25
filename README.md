@@ -2,7 +2,7 @@
   
   # 🚀 JobHub - Enterprise Recruitment Microservices System
   
-  **Hệ Sinh Thái Tuyển Dụng Thông Minh Tích Hợp AI Mức Độ Chuyên Sâu**
+  **Hệ Sinh Thái Tuyển Dụng Thông Minh Tích Hợp AI Mức Độ Chuyên Sâu & Telegram Bot**
   
   [![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
   [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?style=for-the-badge&logo=python)](https://python.org)
@@ -14,7 +14,7 @@
 ---
 
 ## 📖 Giới Thiệu
-**JobHub Backend** là trái tim của hệ thống tuyển dụng thế hệ mới, được thiết kế theo kiến trúc **Microservices** tiên tiến. Hệ thống phân rã các miền nghiệp vụ thành các dịch vụ độc lập, giúp dễ dàng mở rộng, bảo trì và triển khai. Đặc biệt, JobHub tiên phong ứng dụng các thuật toán **Học Sâu (Deep Learning)** và **Mô hình Ngôn ngữ Lớn (LLM)** vào quy trình sàng lọc kỹ năng và gợi ý việc làm.
+**JobHub Backend** là trái tim của hệ thống tuyển dụng thế hệ mới, được thiết kế theo kiến trúc **Microservices** tiên tiến. Hệ thống phân rã các miền nghiệp vụ thành các dịch vụ độc lập, giúp dễ dàng mở rộng, bảo trì và triển khai. Đặc biệt, JobHub tiên phong ứng dụng các thuật toán **Học Sâu (Deep Learning)** và **Mô hình Ngôn ngữ Lớn (LLM)** vào quy trình sàng lọc kỹ năng, gợi ý việc làm, phỏng vấn tự động bằng AI, và hỗ trợ tương tác đẩy đa kênh qua Telegram Bot.
 
 ## 🏗️ Kiến Trúc Hệ Thống (Architecture)
 
@@ -26,6 +26,7 @@ flowchart LR
     API_Gateway -->|Routing| Job
     API_Gateway -->|Routing| Resume
     API_Gateway -->|Routing| Company
+    API_Gateway -->|Routing| Notification
     API_Gateway -->|Routing| CVI
     API_Gateway -->|Routing| DA
     
@@ -34,6 +35,7 @@ flowchart LR
         Job["Job Service (Post/Search)"]
         Resume["Resume Service (Profile/Files)"]
         Company["Company Service (Employers)"]
+        Notification["Notification Service (Email/Telegram Bot)"]
     end
     
     subgraph AI_Microservices ["AI Microservices (Python/FastAPI)"]
@@ -45,6 +47,7 @@ flowchart LR
     Job -.-> RabbitMQ
     Resume -.-> RabbitMQ
     Company -.-> RabbitMQ
+    Notification -.-> RabbitMQ
     CVI -.-> RabbitMQ
     DA -.-> RabbitMQ
     
@@ -62,6 +65,11 @@ Các dịch vụ lõi đảm nhiệm vận hành các nghiệp vụ cơ bản, g
 * **`JobService`**: Quản lý vòng đời bài tuyển dụng. Hỗ trợ tìm kiếm toàn văn bản (Full-text search), lọc nâng cao theo kỹ năng, địa điểm.
 * **`ResumeService`**: Quản lý hồ sơ số. Xử lý lưu trữ an toàn các file PDF/Word, chuẩn hóa data đầu vào.
 * **`CompanyService`**: Quản lý thông tin doanh nghiệp, xác thực đăng ký nhà tuyển dụng, cấp phép đăng bài.
+* **`NotificationService`**: Trung tâm thông báo đẩy đa kênh (Email, SignalR, Telegram Bot).
+  * **Liên kết Telegram Bot**: Người dùng liên kết tài khoản để nhận thông báo đẩy nhanh (tin nhắn mới, cập nhật chiến dịch tuyển dụng, phỏng vấn).
+  * **Hộp thoại Ngữ cảnh thông minh**: Khi có tin nhắn mới, Telegram push sẽ hiển thị 5 tin nhắn gần đây để người nhận hiểu ngữ cảnh mà không cần mở web chat. Tin nhắn mới nhất được đánh dấu bằng emoji đỏ `🔴` kèm nhãn `(Mới nhất)` và in đậm.
+  * **Đặt lịch cron job bằng ngôn ngữ tự nhiên**: Hỗ trợ ra lệnh cho Bot đặt lịch nhận thông báo định kỳ (ví dụ: `/subscribe jobs react every 1h` hoặc trò chuyện tự nhiên).
+  * **Tương tác AI trực tiếp**: Forward tin nhắn của người dùng tới AI Assistant (qua `CVIntelligenceService`) để phản hồi trực tiếp trên Telegram. Phản hồi AI được trang trí chuyên nghiệp với các emoji thích hợp cho từng chủ đề (kinh nghiệm -> `⏳`, lương -> `💰`, kỹ năng -> `🎯`, v.v.).
 
 ### 2. 🧠 AI & Data Services (Python FastAPI)
 Module thông minh tạo ra sự khác biệt (USP) cho nền tảng.
@@ -69,10 +77,17 @@ Module thông minh tạo ra sự khác biệt (USP) cho nền tảng.
 * **`CV Intelligence Service`**: Trái tim AI của hệ thống.
   * **Chấm điểm & Khớp JD (Semantic Scoring):** Sử dụng mô hình *SBERT/Siamese Network* kết hợp kỹ thuật truy xuất `Cosine Similarity` để đo độ phù hợp ngữ nghĩa chứ không chỉ so khớp từ khóa. Tốc độ <2s cho hàng ngàn CV.
   * **Sinh Nhận xét (LLM Feedback):** Pipeline 2-Stage. Gửi Top CV tiềm năng qua Prompt Engineering với GPT-4/Llama-3 để sinh báo cáo chuyên sâu tự động gửi tới bộ phận nhân sự.
+  * **Xoay vòng API Keys (Key Rotation)**: Tích hợp cơ chế xoay vòng thông minh các API keys của Gemini khi gọi AI Assistant, giúp ngăn ngừa lỗi Rate Limit/Quota 429 một cách triệt để.
 * **`Data Analytics Service`**:
   * **Gợi ý việc làm (Recommendation):** Lọc cộng tác bằng Matrix Factorization (SVD) kết hợp Lọc theo nội dung.
   * **Dự báo mức lương (Salary Prediction):** Áp dụng mô hình Cây quyết định *XGBoost/Random Forest* để ước lượng lương realtime theo kinh nghiệm & location.
   * **Dự báo xu hướng (Trend Forecasting):** Ứng dụng mô hình chuỗi thời gian phân tích độ "hot" của công nghệ theo các Quý.
+
+### 3. 🤖 AI Hire Agent & AI Interview (Tuyển dụng Tự động)
+Hệ thống tích hợp quy trình tuyển dụng tự động hoàn chỉnh bằng AI:
+* **Chiến dịch Tuyển dụng AI (Hire Agent Campaign)**: Nhà tuyển dụng tạo chiến dịch và đặt mục tiêu số lượng. AI Assistant sẽ đóng vai trò là nhà tuyển dụng ảo, tự động mời ứng viên phù hợp tham gia phỏng vấn qua phòng chat riêng.
+* **Phỏng vấn thông minh (AI Interview)**: AI Assistant trò chuyện, phỏng vấn ứng viên theo JD của công việc, tự động chấm điểm và đánh giá hồ sơ.
+* **Xử lý hội thoại thông minh**: Nhận diện ý định đổi lịch phỏng vấn (Reschedule) hoặc từ chối/hủy hẹn (Cancel) của ứng viên qua ngôn ngữ tự nhiên để tự động cập nhật trạng thái phỏng vấn (Passed, Failed, Scheduled) trong database.
 
 ---
 
@@ -106,7 +121,7 @@ Mở Terminal/CMD tải thư mục gốc dự án và chạy:
 cd /path/to/TryHard_IT_Project/Final/Backend
 
 # Khởi chạy hệ thống nền (Database, RabbitMQ)
-docker-compose up -d postgresql rabbitmq mongodb
+docker-compose up -d postgresql rabbitmq mongodb redis
 
 # Đợi 10 giây để DB sẵn sàng, sau đó khởi chạy toàn bộ Hệ thống Microservices
 docker-compose up -d --build
@@ -132,6 +147,7 @@ Backend/
 │   ├── CompanyService/
 │   ├── JobService/
 │   ├── ResumeService/
+│   ├── NotificationService/     # Microservice Quản lý Thông báo & Telegram Bot
 │   ├── CVIntelligenceService/   # Python AI Module 1
 │   ├── DataAnalyticsService/    # Python AI Module 2
 │   └── JobHub.slnx          # File quản lý Solution tổng
