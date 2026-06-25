@@ -167,10 +167,10 @@ async def process_assistant_message(
         try:
             genai.configure(api_key=api_key)
 
-            # Build conversation history (last 20 messages)
+            # Build conversation history (last 8 messages)
             history_for_gemini = [
                 {"role": msg["role"], "parts": [msg["content"]]}
-                for msg in session_history[-20:]
+                for msg in session_history[-8:]
             ]
 
             # Build user message parts
