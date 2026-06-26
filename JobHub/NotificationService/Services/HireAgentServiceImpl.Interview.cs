@@ -309,7 +309,7 @@ public partial class HireAgentServiceImpl
             ?? throw new NotFoundException("Không tìm thấy hội thoại tuyển dụng AI của ứng viên.");
 
         conversation.Status        = "PendingCandidateConfirm";
-        conversation.InterviewDate = interviewDate;
+        conversation.InterviewDate = interviewDate.ToUniversalTime();
         await _hireAgentRepo.UpdateConversationAsync(conversation);
 
         var campaign = await _hireAgentRepo.GetCampaignAsync(campaignId);

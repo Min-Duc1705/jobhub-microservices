@@ -38,8 +38,8 @@ public partial class HireAgentServiceImpl
             Status        = "Active",
             JobLocation   = jobLocation?.Trim(),
             JobType       = jobType?.Trim().ToUpper(),
-            InterviewDate = interviewDate,
-            BackupInterviewDate = backupInterviewDate,
+            InterviewDate = interviewDate?.ToUniversalTime(),
+            BackupInterviewDate = backupInterviewDate?.ToUniversalTime(),
             CreatedAt     = DateTimeOffset.UtcNow
         };
 
