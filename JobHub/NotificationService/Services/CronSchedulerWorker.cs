@@ -76,7 +76,7 @@ public class CronSchedulerWorker : BackgroundService
         {
             try
             {
-                await ExecuteScheduleAsync(schedule, db, config);
+                await ExecuteScheduleAsync(schedule, db, config, scope.ServiceProvider);
 
                 // Cập nhật thời gian chạy
                 schedule.LastRunAt = now;
@@ -99,13 +99,37 @@ public class CronSchedulerWorker : BackgroundService
         await db.SaveChangesAsync();
     }
 
-    private async Task ExecuteScheduleAsync(UserCronSchedule schedule, NotificationDbContext db, IConfiguration config)
+    private async Task ExecuteScheduleAsync(UserCronSchedule schedule, NotificationDbContext db, IConfiguration config, IServiceProvider serviceProvider)
     {
         var activeClient = GetBotClient(schedule.BotToken, config);
         if (activeClient == null)
         {
             _logger.LogWarning("[CronSchedulerWorker] Không có BotClient cho schedule {Id}.", schedule.Id);
             return;
+        }
+
+        // Tự động kích hoạt tác vụ qua AI Assistant nếu keyword bắt đầu bằng EXECUTE_TASK:
+        if (schedule.Type == "reminder" && schedule.Keyword != null && schedule.Keyword.StartsWith("EXECUTE_TASK:"))
+        {
+            try
+            {
+                var taskContent = schedule.Keyword.Substring("EXECUTE_TASK:".Length).Trim();
+                var chatService = serviceProvider.GetRequiredService<IChatService>();
+                
+                // Gửi tin nhắn chứa nội dung file đến ChatService dưới quyền của người dùng (Telegram)
+                await chatService.SendMessageAsync(schedule.UserId.ToString(), "ai_assistant", taskContent, "telegram");
+                
+                // Gửi một thông báo nhỏ cho user biết hệ thống bắt đầu chạy
+                await activeClient.SendTextMessageAsync(
+                    schedule.TelegramChatId,
+                    "⏰ <b>[Hệ thống]</b> Bắt đầu tự động thực hiện các tác vụ trong phiếu giao việc của bạn...",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CronSchedulerWorker] Lỗi khi tự động kích hoạt tác vụ cho schedule {Id}", schedule.Id);
+            }
         }
 
         var message = schedule.Type switch
