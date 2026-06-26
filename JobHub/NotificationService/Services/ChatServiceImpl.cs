@@ -209,6 +209,9 @@ public class ChatServiceImpl : IChatService
                         var dbContext = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
                         var telegramBotService = scope.ServiceProvider.GetRequiredService<ITelegramBotService>();
 
+                        // Gửi tín hiệu 'typing...' cho Telegram khi bắt đầu xử lý tin nhắn
+                        await telegramBotService.SendChatActionAsync(Guid.Parse(senderId), "typing");
+
                         // a. Lấy profile từ AuthService
                         var secretKey = config["Jwt:SecretKey"] ?? "JobHubSuperSecretKeyMinimum64CharactersLongToSupportHS512Algorithm!!";
                         var issuer = config["Jwt:Issuer"] ?? "JobHub";
@@ -276,6 +279,9 @@ public class ChatServiceImpl : IChatService
                         aiReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
                         aiReq.Headers.Add("X-Session-Id", xSessionId);
                         aiReq.Content = new StringContent(JsonSerializer.Serialize(aiRequestPayload), Encoding.UTF8, "application/json");
+
+                        // Gửi tiếp tín hiệu 'typing...' trước khi bắt đầu gọi AI Assistant
+                        await telegramBotService.SendChatActionAsync(Guid.Parse(senderId), "typing");
 
                         var aiRes = await _httpClient.SendAsync(aiReq);
                         string aiReply = "Xin lỗi, đã xảy ra lỗi kết nối với AI Assistant. Vui lòng thử lại sau.";

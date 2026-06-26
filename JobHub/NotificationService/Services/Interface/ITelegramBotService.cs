@@ -10,4 +10,5 @@ public interface ITelegramBotService
     Task SendPushNotificationAsync(Guid userId, string title, string message);
     Task SendTextMessageAsync(Guid userId, string message);
     Task<string?> GetSystemBotUsernameAsync();
+    Task SendChatActionAsync(Guid userId, string action);
 }

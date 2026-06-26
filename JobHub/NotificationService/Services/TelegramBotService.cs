@@ -518,4 +518,34 @@ public partial class TelegramBotService : ITelegramBotService
             _logger.LogWarning(ex, "Không thể thả tim tin nhắn {MessageId} ở chat {ChatId}", messageId, chatId);
         }
     }
+
+    public async Task SendChatActionAsync(Guid userId, string action)
+    {
+        try
+        {
+            var binding = await _dbContext.UserTelegramBindings
+                .FirstOrDefaultAsync(x => x.UserId == userId);
+
+            if (binding != null && binding.TelegramChatId.HasValue)
+            {
+                var tokenToUse = binding.BotToken ?? _configuration["Telegram:BotToken"];
+                if (string.IsNullOrEmpty(tokenToUse)) return;
+
+                var url = $"https://api.telegram.org/bot{tokenToUse}/sendChatAction";
+                var payload = new
+                {
+                    chat_id = binding.TelegramChatId.Value,
+                    action = action
+                };
+
+                var json = JsonSerializer.Serialize(payload);
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                await _httpClient.PostAsync(url, content);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gửi ChatAction {Action} cho user {UserId}", action, userId);
+        }
+    }
 }
