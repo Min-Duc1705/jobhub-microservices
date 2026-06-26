@@ -1073,4 +1073,19 @@ _ALL_TOOL_DEFS = [
             "required": ["subscription_id"]
         }
     },
+    {
+        "name": "send_chat_message",
+        "description": "Gửi tin nhắn chat trực tiếp cho một cuộc hội thoại (theo conversation_id) hoặc người dùng khác (theo receiver_id) qua hệ thống JobHub.",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {"type": "string", "description": "ID của cuộc hội thoại (UUID). Nên ưu tiên truyền tham số này nếu đã biết cuộc hội thoại."},
+                "receiver_id": {"type": "string", "description": "ID người nhận tin nhắn (UUID). Chỉ dùng khi chưa có cuộc hội thoại với người này."},
+                "content": {"type": "string", "description": "Nội dung tin nhắn cần gửi."}
+            },
+            "required": ["content"]
+        }
+    },
 ]

@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Models;
 using Telegram.Bot;
@@ -93,6 +94,7 @@ public partial class TelegramBotService
                   "📌 `/jobs` - (HR) Xem danh sách tin tuyển dụng\n" +
                   "📌 `/campaigns` - (HR) Xem chiến dịch tuyển dụng AI\n" +
                   "📌 `/interviews` - (Ứng viên) Xem lịch phỏng vấn AI\n" +
+                  "📌 `/send <ID_người_nhận> <nội dung>` - Gửi tin nhắn chat tới người dùng khác\n" +
                   "📌 `/help` - Xem hướng dẫn này\n\n" +
                   "⏰ *Lệnh đặt lịch tự động:*\n" +
                   "`/subscribe <loại> [từ khoá] every <thời gian>`\n\n" +
@@ -361,5 +363,45 @@ public partial class TelegramBotService
         }
 
         await activeClient.SendTextMessageAsync(chatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+    }
+
+    private async Task HandleSendChatCommandAsync(long chatId, Guid userId, string text, string? botToken = null)
+    {
+        var activeClient = GetBotClient(botToken);
+        if (activeClient == null) return;
+
+        var parts = text.Split(' ', 3);
+        if (parts.Length < 3)
+        {
+            await activeClient.SendTextMessageAsync(chatId,
+                "⚠️ *Cú pháp không hợp lệ.*\n\nVui lòng sử dụng cú pháp: `/send <ID_người_nhận> <nội dung>` hoặc `/chat <ID_người_nhận> <nội dung>`.",
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            return;
+        }
+
+        var receiverIdStr = parts[1].Trim();
+        var content = parts[2].Trim();
+
+        if (!Guid.TryParse(receiverIdStr, out Guid receiverId))
+        {
+            await activeClient.SendTextMessageAsync(chatId, "❌ *Lỗi:* ID người nhận không đúng định dạng UUID.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            return;
+        }
+
+        try
+        {
+            var replyMsgResponse = await _chatService.SendMessageAsync(userId.ToString(), receiverId.ToString(), content, "text");
+            
+            // Phát SignalR real-time cho cả 2 phía để cập nhật UI Web Chat
+            await _hubContext.Clients.Group(userId.ToString().ToLower()).SendAsync("ReceiveMessage", replyMsgResponse);
+            await _hubContext.Clients.Group(receiverId.ToString().ToLower()).SendAsync("ReceiveMessage", replyMsgResponse);
+
+            await activeClient.SendTextMessageAsync(chatId, "✅ Đã gửi tin nhắn thành công!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gửi tin nhắn từ Telegram Bot: {Text}", text);
+            await activeClient.SendTextMessageAsync(chatId, $"❌ Gửi tin nhắn thất bại: {ex.Message}");
+        }
     }
 }

@@ -71,6 +71,18 @@ public class ChatController : ControllerBase
         var result = await _chatService.SendMessageAsync(userId, request.ReceiverId, request.Content, request.Type);
         return Ok(result);
     }
+
+    // POST /api/v1/chat/conversations/{conversationId}/messages
+    [HttpPost("conversations/{conversationId:guid}/messages")]
+    [ApiMessage("Gửi tin nhắn thành công")]
+    public async Task<ActionResult<MessageResponse>> SendMessageToConversation(
+        Guid conversationId,
+        [FromBody] SendMessageToConversationRequest request)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _chatService.SendMessageToConversationAsync(userId, conversationId, request.Content, request.Type);
+        return Ok(result);
+    }
 }
 
 public class GetOrCreateConversationRequest
@@ -81,6 +93,12 @@ public class GetOrCreateConversationRequest
 public class SendMessageRequest
 {
     public string ReceiverId { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string Type { get; set; } = "text";
+}
+
+public class SendMessageToConversationRequest
+{
     public string Content { get; set; } = string.Empty;
     public string Type { get; set; } = "text";
 }

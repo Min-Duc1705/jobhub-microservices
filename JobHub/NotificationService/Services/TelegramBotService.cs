@@ -148,6 +148,10 @@ public partial class TelegramBotService : ITelegramBotService
                 {
                     await HandleProfileCommandAsync(chatId, binding.UserId, binding, botToken);
                 }
+                else if (text.StartsWith("/send") || text.StartsWith("/chat"))
+                {
+                    await HandleSendChatCommandAsync(chatId, binding.UserId, text, botToken);
+                }
                 else
                 {
                     // Check if this is a reply to a previous message with a Ref GUID

@@ -233,3 +233,28 @@ async def execute_telegram_set_reminder(args: dict, user_token: str) -> dict:
     )
 
 
+async def execute_send_chat_message(args: dict, user_token: str) -> dict:
+    conversation_id = args.get("conversation_id")
+    receiver_id = args.get("receiver_id")
+    content = args.get("content")
+
+    if conversation_id:
+        url = f"http://notificationservice:8080/api/v1/chat/conversations/{conversation_id}/messages"
+        payload = {
+            "content": content,
+            "type": "text"
+        }
+        return await _call_api("POST", url, user_token, json_data=payload)
+    elif receiver_id:
+        url = "http://notificationservice:8080/api/v1/chat/messages"
+        payload = {
+            "receiverId": receiver_id,
+            "content": content,
+            "type": "text"
+        }
+        return await _call_api("POST", url, user_token, json_data=payload)
+    else:
+        return {"error": "Cần cung cấp conversation_id hoặc receiver_id"}
+
+
+

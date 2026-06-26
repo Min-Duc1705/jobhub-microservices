@@ -563,4 +563,22 @@ public class ChatServiceImpl : IChatService
         sb.AppendLine("━━━━━━━━━━━━━━━━━━━━");
         return sb.ToString();
     }
+
+    public async Task<MessageResponse> SendMessageToConversationAsync(string senderId, Guid conversationId, string content, string type = "text")
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            throw new CommonService.Exceptions.BadRequestException("Nội dung tin nhắn không được trống.");
+
+        var conv = await _chatRepo.GetConversationAsync(conversationId);
+        if (conv == null)
+            throw new CommonService.Exceptions.NotFoundException("Không tìm thấy cuộc hội thoại.");
+
+        var uid = senderId.ToLower();
+        if (conv.ParticipantA.ToLower() != uid && conv.ParticipantB.ToLower() != uid)
+            throw new CommonService.Exceptions.BadRequestException("Bạn không có quyền gửi tin nhắn vào cuộc hội thoại này.");
+
+        var receiverId = conv.ParticipantA.ToLower() == uid ? conv.ParticipantB : conv.ParticipantA;
+
+        return await SendMessageAsync(senderId, receiverId, content, type);
+    }
 }

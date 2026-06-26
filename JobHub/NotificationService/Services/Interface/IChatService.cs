@@ -12,4 +12,5 @@ public interface IChatService
     Task<List<MessageResponse>> GetChatHistoryAsync(string userId, Guid conversationId, int limit = 50, DateTimeOffset? before = null);
     Task MarkAsReadAsync(string userId, Guid conversationId);
     Task<ConversationResponse> GetOrCreateConversationAsync(string participantA, string participantB);
+    Task<MessageResponse> SendMessageToConversationAsync(string senderId, Guid conversationId, string content, string type = "text");
 }
