@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -16,6 +17,8 @@ using NotificationService.Models;
 using NotificationService.Services.Interface;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using UglyToad.PdfPig;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace NotificationService.Services;
 
@@ -66,13 +69,99 @@ public partial class TelegramBotService : ITelegramBotService
     public async Task ProcessUpdateAsync(Update update, string? botToken = null)
     {
         var activeClient = GetBotClient(botToken);
-        if (activeClient == null || update.Message == null || string.IsNullOrEmpty(update.Message.Text))
+        if (activeClient == null || update.Message == null)
             return;
 
         var message = update.Message;
         var chatId = message.Chat.Id;
-        var text = message.Text.Trim();
         var username = message.Chat.Username;
+
+        string text = "";
+        if (!string.IsNullOrEmpty(message.Text))
+        {
+            text = message.Text.Trim();
+        }
+        else if (!string.IsNullOrEmpty(message.Caption))
+        {
+            text = message.Caption.Trim();
+        }
+
+        if (string.IsNullOrEmpty(text) && message.Document == null)
+            return;
+
+        // Tải và đọc file đính kèm nếu có
+        if (message.Document != null)
+        {
+            var doc = message.Document;
+            var fileName = doc.FileName ?? "file.txt";
+            var isSupportedFile = fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) ||
+                                  fileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ||
+                                  fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ||
+                                  fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) ||
+                                  fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
+                                  fileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+
+            if (!isSupportedFile)
+            {
+                await activeClient.SendTextMessageAsync(chatId, "⚠️ Bot hiện tại chỉ hỗ trợ xử lý các file văn bản dạng `.txt`, `.md`, `.json`, `.csv`, `.pdf`, hoặc `.docx`.");
+                return;
+            }
+
+            try
+            {
+                var file = await activeClient.GetFileAsync(doc.FileId);
+                if (!string.IsNullOrEmpty(file.FilePath))
+                {
+                    using var ms = new MemoryStream();
+                    await activeClient.DownloadFileAsync(file.FilePath, ms);
+                    ms.Position = 0;
+
+                    string fileContent = "";
+                    var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+                    if (ext == ".pdf")
+                    {
+                        using var pdfDoc = PdfDocument.Open(ms);
+                        var sb = new StringBuilder();
+                        foreach (var page in pdfDoc.GetPages())
+                        {
+                            sb.AppendLine(page.Text);
+                        }
+                        fileContent = sb.ToString();
+                    }
+                    else if (ext == ".docx")
+                    {
+                        using var wordDoc = WordprocessingDocument.Open(ms, false);
+                        var body = wordDoc.MainDocumentPart?.Document.Body;
+                        if (body != null)
+                        {
+                            var sb = new StringBuilder();
+                            foreach (var paragraph in body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
+                            {
+                                var runTexts = paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(t => t.Text);
+                                var pText = string.Join(" ", runTexts);
+                                if (!string.IsNullOrWhiteSpace(pText))
+                                    sb.AppendLine(pText);
+                            }
+                            fileContent = sb.ToString();
+                        }
+                    }
+                    else
+                    {
+                        fileContent = Encoding.UTF8.GetString(ms.ToArray());
+                    }
+                    
+                    var prefix = !string.IsNullOrEmpty(text) ? $"{text}\n\n" : "";
+                    text = $"{prefix}[Nội dung file đính kèm '{fileName}']:\n{fileContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải file từ Telegram: {FileId}", doc.FileId);
+                await activeClient.SendTextMessageAsync(chatId, "⚠️ Đã xảy ra lỗi khi tải và đọc nội dung file từ Telegram.");
+                return;
+            }
+        }
 
         try
         {
