@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Models;
 using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace NotificationService.Services;
 
@@ -77,10 +79,26 @@ public partial class TelegramBotService
             }
         }
 
+        var frontendUrl = _configuration["FrontendUrl"]?.TrimEnd('/') ?? "https://jobhub-frontend-two.vercel.app";
+        var loginUrl = $"{frontendUrl}/login?telegramChatId={chatId}";
+
+        var inlineKeyboard = new InlineKeyboardMarkup(new[]
+        {
+            new[]
+            {
+                InlineKeyboardButton.WithWebApp("🔑 Đăng nhập / Liên kết ngay", new WebAppInfo { Url = loginUrl })
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithUrl("🌐 Mở bằng trình duyệt", loginUrl)
+            }
+        });
+
         await activeClient.SendTextMessageAsync(chatId,
-            "👋 Chào mừng bạn đến với *JobHub Bot*!\n\n" +
-            "Để nhận thông báo đẩy và sử dụng các tính năng điều khiển, vui lòng vào trang *Cài đặt cá nhân* của JobHub trên trình duyệt web và click nút *Kết nối Telegram*.",
-            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            "👋 <b>Chào mừng bạn đến với JobHub Bot!</b>\n\n" +
+            "Để nhận thông báo đẩy và sử dụng các tính năng điều khiển, vui lòng đăng nhập hoặc đăng ký tài khoản JobHub để đồng bộ hóa ngay lập tức:",
+            parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+            replyMarkup: inlineKeyboard);
     }
 
     private async Task HandleHelpCommandAsync(long chatId, string? botToken = null)

@@ -17,6 +17,7 @@ using NotificationService.Models;
 using NotificationService.Services.Interface;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using UglyToad.PdfPig;
 using DocumentFormat.OpenXml.Packaging;
 
@@ -75,6 +76,9 @@ public partial class TelegramBotService : ITelegramBotService
         var message = update.Message;
         var chatId = message.Chat.Id;
         var username = message.Chat.Username;
+
+        // Thả tim ❤️ để biểu thị bot đã nhận tin nhắn và đang xử lý
+        _ = ReactWithHeartAsync(chatId, message.MessageId, botToken);
 
         string text = "";
         if (!string.IsNullOrEmpty(message.Text))
@@ -186,10 +190,27 @@ public partial class TelegramBotService : ITelegramBotService
 
                 if (binding == null)
                 {
+                    var frontendUrl = _configuration["FrontendUrl"]?.TrimEnd('/') ?? "https://jobhub-frontend-two.vercel.app";
+                    var loginUrl = $"{frontendUrl}/login?telegramChatId={chatId}";
+
+                    var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                    {
+                        new[]
+                        {
+                            InlineKeyboardButton.WithWebApp("🔑 Đăng nhập / Liên kết ngay", new WebAppInfo { Url = loginUrl })
+                        },
+                        new[]
+                        {
+                            InlineKeyboardButton.WithUrl("🌐 Mở bằng trình duyệt", loginUrl)
+                        }
+                    });
+
                     await activeClient.SendTextMessageAsync(chatId,
-                        "⚠️ Tài khoản của bạn chưa được liên kết với JobHub.\n\n" +
-                        "Vui lòng truy cập trang *Cài đặt cá nhân* trên website JobHub và nhấn nút *Kết nối Telegram* để thực hiện liên kết.",
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                        "👋 <b>Chào mừng bạn đến với JobHub Bot!</b>\n\n" +
+                        "Tài khoản Telegram của bạn chưa được liên kết với hệ thống JobHub.\n\n" +
+                        "👉 Hãy đăng nhập hoặc đăng ký tài khoản JobHub để đồng bộ hóa và nhận thông báo tự động:",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        replyMarkup: inlineKeyboard);
                     return;
                 }
 
@@ -462,6 +483,39 @@ public partial class TelegramBotService : ITelegramBotService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi khi đăng ký Webhook cho System Bot");
+        }
+    }
+
+    private async Task ReactWithHeartAsync(long chatId, int messageId, string? botToken)
+    {
+        try
+        {
+            var tokenToUse = botToken ?? _configuration["Telegram:BotToken"];
+            if (string.IsNullOrEmpty(tokenToUse)) return;
+
+            var url = $"https://api.telegram.org/bot{tokenToUse}/setMessageReaction";
+            var payload = new
+            {
+                chat_id = chatId,
+                message_id = messageId,
+                reaction = new[]
+                {
+                    new { type = "emoji", emoji = "❤️" }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Thả tim thất bại. Status: {Status}, Content: {Content}", response.StatusCode, responseContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Không thể thả tim tin nhắn {MessageId} ở chat {ChatId}", messageId, chatId);
         }
     }
 }
