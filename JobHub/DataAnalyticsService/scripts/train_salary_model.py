@@ -39,8 +39,8 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import motor.motor_asyncio
 
 # ── Config ────────────────────────────────────────────────────────────────────
-MONGO_URL   = "mongodb://root:root@localhost:27017/?authSource=admin"
-MONGO_DB    = "DataAnalyticsDB"
+MONGO_URL   = os.getenv("MONGO_URL", "mongodb://root:root@localhost:27017/?authSource=admin")
+MONGO_DB    = os.getenv("MONGO_DB", "DataAnalyticsDB")
 OUTPUT_PATH = "app/ml/artifacts/salary_model.pkl"
 
 # Phải đồng bộ với salary_predictor.py
