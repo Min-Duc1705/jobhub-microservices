@@ -20,7 +20,9 @@ async def execute_create_hire_agent_campaign(args: dict, user_token: str) -> dic
         "jobDescription": args.get("job_description", ""),
         "targetCount": args.get("target_count", 5),
         "jobLocation": args.get("job_location"),
-        "jobType": args.get("job_type")
+        "jobType": args.get("job_type"),
+        "interviewDate": args.get("interview_date"),
+        "backupInterviewDate": args.get("backup_interview_date")
     }
     return await _call_api(
         "POST", "http://notificationservice:8080/api/v1/hire-agent/campaigns",

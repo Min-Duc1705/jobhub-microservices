@@ -441,7 +441,9 @@ _ALL_TOOL_DEFS = [
                 "job_description": {"type": "string", "description": "Mô tả yêu cầu tuyển dụng chi tiết"},
                 "target_count": {"type": "integer", "description": "Số lượng ứng viên muốn liên hệ sàng lọc (mặc định 5)"},
                 "job_location": {"type": "string", "description": "Địa điểm tuyển dụng (tỉnh/thành phố)"},
-                "job_type": {"type": "string", "description": "Loại hình công việc. Chỉ nhận: 'REMOTE', 'HYBRID', 'FULL_TIME', 'PART_TIME', hoặc 'INTERNSHIP'"}
+                "job_type": {"type": "string", "description": "Loại hình công việc. Chỉ nhận: 'REMOTE', 'HYBRID', 'FULL_TIME', 'PART_TIME', hoặc 'INTERNSHIP'"},
+                "interview_date": {"type": "string", "description": "Thời gian phỏng vấn chính thức dạng ISO 8601 kèm múi giờ (ví dụ: '2026-06-15T09:00:00+07:00')"},
+                "backup_interview_date": {"type": "string", "description": "Thời gian phỏng vấn dự phòng dạng ISO 8601 kèm múi giờ (ví dụ: '2026-06-16T14:00:00+07:00')"}
             },
             "required": ["job_id", "job_name", "job_description"]
         }
