@@ -18,7 +18,7 @@ async def execute_create_hire_agent_campaign(args: dict, user_token: str) -> dic
         "jobId": args.get("job_id", ""),
         "jobName": args.get("job_name", ""),
         "jobDescription": args.get("job_description", ""),
-        "targetCount": args.get("target_count", 5),
+        "targetCount": int(float(args.get("target_count") or 5)),
         "jobLocation": args.get("job_location"),
         "jobType": args.get("job_type"),
         "interviewDate": args.get("interview_date"),
