@@ -331,6 +331,15 @@ public class ChatServiceImpl : IChatService
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[ChatServiceImpl-AI] Lỗi xử lý AI Assistant: {ex.Message}");
+                    try
+                    {
+                        using (var scope = _scopeFactory.CreateScope())
+                        {
+                            var telegramBotService = scope.ServiceProvider.GetRequiredService<ITelegramBotService>();
+                            await telegramBotService.SendTextMessageAsync(Guid.Parse(senderId), "⚠️ Đã xảy ra lỗi kết nối với Trợ lý AI hoặc xử lý tác vụ thất bại. Vui lòng thử lại sau.");
+                        }
+                    }
+                    catch { }
                 }
             });
         }
