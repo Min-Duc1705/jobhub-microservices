@@ -91,6 +91,23 @@ public static class DatabaseSeeder
                     await context.SaveChangesAsync();
                     Console.WriteLine("[Seeder] ℹ️ Đã gỡ bỏ permission broadcast khỏi HR role.");
                 }
+
+                // Đảm bảo HR có đủ các quyền Google Calendar
+                var googleCalendarPerms = await context.Permissions
+                    .Where(p => p.Module == "GOOGLE_CALENDAR")
+                    .ToListAsync();
+
+                var missingHrPerms = googleCalendarPerms
+                    .Where(p => !hrRole.Permissions.Any(rp => rp.Id == p.Id))
+                    .ToList();
+
+                if (missingHrPerms.Count > 0)
+                {
+                    foreach (var p in missingHrPerms)
+                        hrRole.Permissions.Add(p);
+                    await context.SaveChangesAsync();
+                    Console.WriteLine($"[Seeder] ✅ Đã bổ sung {missingHrPerms.Count} Permissions mới cho HR role.");
+                }
             }
         }
 
