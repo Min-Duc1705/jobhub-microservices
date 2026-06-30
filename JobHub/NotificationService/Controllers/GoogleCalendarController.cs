@@ -10,6 +10,7 @@ namespace NotificationService.Controllers;
 
 [ApiController]
 [Route("api/v1/google-calendar")]
+[Authorize(Roles = "ADMIN,HR")]
 public class GoogleCalendarController : ControllerBase
 {
     private readonly IGoogleCalendarService _googleCalendarService;
@@ -29,7 +30,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpGet("auth-url")]
-    [Authorize]
+
     public IActionResult GetAuthUrl([FromQuery] string? origin = null)
     {
         try
@@ -94,7 +95,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpGet("status")]
-    [Authorize]
+
     public async Task<IActionResult> GetStatus()
     {
         try
@@ -111,7 +112,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpPost("disconnect")]
-    [Authorize]
+
     public async Task<IActionResult> Disconnect()
     {
         try
@@ -127,7 +128,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpPost("sync-existing")]
-    [Authorize]
+
     public async Task<IActionResult> SyncExisting()
     {
         try
