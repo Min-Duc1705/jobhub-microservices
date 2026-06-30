@@ -477,6 +477,17 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "get_my_interviews",
+        "description": "Lấy danh sách tất cả các lịch hẹn phỏng vấn truyền thống/thủ công (bao gồm tên ứng viên, vị trí tuyển dụng, thời gian và trạng thái) của người dùng hiện tại",
+        "permissions_required": [],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
         "name": "broadcast_notification",
         "description": "Gửi thông báo hệ thống (broadcast) tới toàn bộ người dùng hoặc một nhóm đối tượng cụ thể (HR, Candidate)",
         "permissions_required": [("POST", "/api/v1/users/notifications/broadcast")],

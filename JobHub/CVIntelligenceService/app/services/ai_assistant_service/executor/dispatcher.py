@@ -28,7 +28,8 @@ from .skill_executor import (
 )
 from .hire_agent_executor import (
     execute_get_my_hire_agent_campaigns, execute_create_hire_agent_campaign,
-    execute_schedule_campaign_interview, execute_get_campaign_conversations
+    execute_schedule_campaign_interview, execute_get_campaign_conversations,
+    execute_get_my_interviews
 )
 from .admin_executor import (
     execute_get_all_users, execute_get_user_detail, execute_update_user,
@@ -95,6 +96,7 @@ _TOOL_EXECUTOR_MAP = {
     "create_hire_agent_campaign":   execute_create_hire_agent_campaign,
     "schedule_campaign_interview":  execute_schedule_campaign_interview,
     "get_campaign_conversations":   execute_get_campaign_conversations,
+    "get_my_interviews":            execute_get_my_interviews,
     # Misc tools
     "navigate_to_page":         execute_navigate_to_page,
     "predict_salary":           execute_predict_salary,
