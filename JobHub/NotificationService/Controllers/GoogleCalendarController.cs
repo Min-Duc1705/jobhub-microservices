@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CommonService.Filters;
 using Microsoft.Extensions.Configuration;
 using NotificationService.Services.Interface;
 using System;
@@ -10,7 +11,7 @@ namespace NotificationService.Controllers;
 
 [ApiController]
 [Route("api/v1/google-calendar")]
-[Authorize(Roles = "ADMIN,HR")]
+[Authorize]
 public class GoogleCalendarController : ControllerBase
 {
     private readonly IGoogleCalendarService _googleCalendarService;
@@ -30,7 +31,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpGet("auth-url")]
-
+    [RequiresPermission("GET", "/api/v1/google-calendar/auth-url")]
     public IActionResult GetAuthUrl([FromQuery] string? origin = null)
     {
         try
@@ -95,7 +96,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpGet("status")]
-
+    [RequiresPermission("GET", "/api/v1/google-calendar/status")]
     public async Task<IActionResult> GetStatus()
     {
         try
@@ -112,7 +113,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpPost("disconnect")]
-
+    [RequiresPermission("POST", "/api/v1/google-calendar/disconnect")]
     public async Task<IActionResult> Disconnect()
     {
         try
@@ -128,7 +129,7 @@ public class GoogleCalendarController : ControllerBase
     }
 
     [HttpPost("sync-existing")]
-
+    [RequiresPermission("POST", "/api/v1/google-calendar/sync-existing")]
     public async Task<IActionResult> SyncExisting()
     {
         try

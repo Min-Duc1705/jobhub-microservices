@@ -199,6 +199,12 @@ public static class DatabaseSeeder
         new() { Name = "Nộp đơn ứng tuyển",             ApiPath = "/api/v1/applications",                Method = "POST",   Module = "APPLICATION" },
         new() { Name = "Hủy đơn ứng tuyển",             ApiPath = "/api/v1/applications/{id}",           Method = "DELETE", Module = "APPLICATION" },
         new() { Name = "Cập nhật trạng thái đơn ứng tuyển", ApiPath = "/api/v1/applications/{id}/status", Method = "PATCH",  Module = "APPLICATION" },
+
+        // ── GOOGLE CALENDAR ──────────────────────────────────────────────────
+        new() { Name = "Lấy URL liên kết Google Calendar", ApiPath = "/api/v1/google-calendar/auth-url", Method = "GET", Module = "GOOGLE_CALENDAR" },
+        new() { Name = "Xem trạng thái Google Calendar", ApiPath = "/api/v1/google-calendar/status", Method = "GET", Module = "GOOGLE_CALENDAR" },
+        new() { Name = "Hủy liên kết Google Calendar", ApiPath = "/api/v1/google-calendar/disconnect", Method = "POST", Module = "GOOGLE_CALENDAR" },
+        new() { Name = "Đồng bộ lịch cũ sang Google", ApiPath = "/api/v1/google-calendar/sync-existing", Method = "POST", Module = "GOOGLE_CALENDAR" },
     };
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -250,6 +256,11 @@ public static class DatabaseSeeder
                 Get("GET",    "/api/v1/applications"),
                 Get("GET",    "/api/v1/applications/{id}"),
                 Get("PATCH",  "/api/v1/applications/{id}/status"),
+                // Google Calendar
+                Get("GET",    "/api/v1/google-calendar/auth-url"),
+                Get("GET",    "/api/v1/google-calendar/status"),
+                Get("POST",   "/api/v1/google-calendar/disconnect"),
+                Get("POST",   "/api/v1/google-calendar/sync-existing"),
             }
         };
 
