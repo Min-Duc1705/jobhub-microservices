@@ -15,7 +15,8 @@ from .candidate_executor import (
 )
 from .profile_executor import (
     execute_update_my_profile, execute_get_my_resumes,
-    execute_set_default_resume, execute_delete_resume, execute_get_my_applications
+    execute_set_default_resume, execute_delete_resume, execute_get_my_applications,
+    execute_get_candidate_profile
 )
 from .company_executor import (
     execute_get_my_company_info, execute_search_companies,
@@ -97,6 +98,7 @@ _TOOL_EXECUTOR_MAP = {
     "schedule_campaign_interview":  execute_schedule_campaign_interview,
     "get_campaign_conversations":   execute_get_campaign_conversations,
     "get_my_interviews":            execute_get_my_interviews,
+    "get_candidate_profile":        execute_get_candidate_profile,
     # Misc tools
     "navigate_to_page":         execute_navigate_to_page,
     "predict_salary":           execute_predict_salary,

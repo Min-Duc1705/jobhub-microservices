@@ -114,3 +114,8 @@ async def execute_get_my_applications(args: dict, user_token: str) -> dict:
             if "extractedText" in r and r["extractedText"]:
                 r["extractedText"] = r["extractedText"][:500] + "..."
     return result
+
+
+async def execute_get_candidate_profile(args: dict, user_token: str) -> dict:
+    cand_id = args.get("candidate_id", "")
+    return await _call_api("GET", f"http://profileservice:8080/api/v1/customers/{cand_id}", user_token)

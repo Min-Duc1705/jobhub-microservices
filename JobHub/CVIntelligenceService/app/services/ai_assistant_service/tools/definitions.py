@@ -488,6 +488,19 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "get_candidate_profile",
+        "description": "Lấy thông tin hồ sơ chi tiết (Họ và tên, Email, Số điện thoại) của một ứng viên theo ID của ứng viên",
+        "permissions_required": [("GET", "/api/v1/customers/{id}")],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "candidate_id": {"type": "string", "description": "ID của ứng viên (UUID)"}
+            },
+            "required": ["candidate_id"]
+        }
+    },
+    {
         "name": "broadcast_notification",
         "description": "Gửi thông báo hệ thống (broadcast) tới toàn bộ người dùng hoặc một nhóm đối tượng cụ thể (HR, Candidate)",
         "permissions_required": [("POST", "/api/v1/users/notifications/broadcast")],
