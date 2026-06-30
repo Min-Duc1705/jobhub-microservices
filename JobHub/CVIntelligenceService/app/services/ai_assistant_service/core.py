@@ -86,8 +86,13 @@ async def process_assistant_message(
     # Lấy / khởi tạo session
     session_history = get_or_create_session(session_id, request.conversation_history)
 
-    # Lọc tools theo quyền user
-    available_tool_defs = _filter_tools_by_permission(user_permissions, user_role)
+    # Lọc tools theo quyền user để biết danh sách các tool được cấp quyền thực tế
+    allowed_tool_defs = _filter_tools_by_permission(user_permissions, user_role)
+    allowed_tool_names = {td["name"] for td in allowed_tool_defs}
+
+    # Luôn cung cấp TOÀN BỘ các công cụ của hệ thống cho mô hình AI biết
+    from .tools.definitions import _ALL_TOOL_DEFS
+    available_tool_defs = _ALL_TOOL_DEFS
     tool_names = [td["name"] for td in available_tool_defs]
     gemini_tools = _build_gemini_tools(available_tool_defs)
 
@@ -214,6 +219,12 @@ async def process_assistant_message(
                             norm_args[k] = list(v)
                         else:
                             norm_args[k] = v
+                            
+                    # Kiểm tra quyền thực tế của người dùng trước khi gọi tool
+                    if t_name not in allowed_tool_names:
+                        logger.warning(f"[PermissionDeny-Vertex] User does not have permission for tool: {t_name}")
+                        return t_name, norm_args, {"error": "LỖI PHÂN QUYỀN: Bạn không có quyền thực hiện hành động này hoặc sử dụng công cụ này. Vui lòng liên hệ quản trị viên để được cấp quyền."}
+                        
                     logger.info(f"[VertexAI] Calling tool in parallel: {t_name}({norm_args})")
                     res = await _execute_tool(t_name, norm_args, user_token)
                     return t_name, norm_args, res
@@ -420,6 +431,12 @@ async def process_assistant_message(
                             norm_args[k] = list(v)
                         else:
                             norm_args[k] = v
+                            
+                    # Kiểm tra quyền thực tế của người dùng trước khi gọi tool
+                    if t_name not in allowed_tool_names:
+                        logger.warning(f"[PermissionDeny-Gemini] User does not have permission for tool: {t_name}")
+                        return t_name, norm_args, {"error": "LỖI PHÂN QUYỀN: Bạn không có quyền thực hiện hành động này hoặc sử dụng công cụ này. Vui lòng liên hệ quản trị viên để được cấp quyền."}
+                        
                     logger.info(f"[AIAssistant] Calling tool in parallel: {t_name}({norm_args})")
                     res = await _execute_tool(t_name, norm_args, user_token)
                     return t_name, norm_args, res
