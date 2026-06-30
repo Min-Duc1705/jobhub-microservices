@@ -450,7 +450,10 @@ services:
       - RabbitMQ__Password=guest
       - Telegram__BotToken=$TelegramBotToken
       - Telegram__WebhookDomain=https://jobhub.dpdns.org
-      - FrontendUrl=https://jobhub-frontend-two.vercel.app
+      - FrontendUrl=https://platform.jobhub.dpdns.org
+      - Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - Google__RedirectUri=https://jobhub.dpdns.org/api/v1/google-calendar/callback
     depends_on:
       postgres:
         condition: service_healthy
@@ -509,6 +512,7 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     volumes:
       - ./JobHub/CVIntelligenceService/gemini-keys.json:/app/gemini-keys.json
+      - ./JobHub/CVIntelligenceService/.cache/huggingface:/root/.cache/huggingface
     depends_on:
       mongodb:
         condition: service_started

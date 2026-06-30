@@ -1,5 +1,7 @@
 using CommonService.Exceptions;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using NotificationService.Data;
 using NotificationService.Hubs;
 using NotificationService.Models;
 using NotificationService.Repositories.Interface;
@@ -38,14 +40,42 @@ public partial class HireAgentServiceImpl
             // ── Intercept: candidate đang ở trạng thái PendingCandidateConfirm ──
             if (agentConv.Status == "PendingCandidateConfirm")
             {
-                var msgLower = candidateMessage.ToLowerInvariant().Trim();
+                string date1Str = campaign.InterviewDate.HasValue ? campaign.InterviewDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "";
+                string date2Str = campaign.BackupInterviewDate.HasValue ? campaign.BackupInterviewDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "";
+
+                // Gọi AI CVIntelligenceService để phân loại ý định qua ngôn ngữ tự nhiên
+                string confirmIntent = "unknown";
+                try
+                {
+                    var confirmPayload = new
+                    {
+                        date1 = date1Str,
+                        date2 = date2Str,
+                        candidate_message = candidateMessage
+                    };
+                    
+                    var reqMsg = new HttpRequestMessage(HttpMethod.Post, "http://cvintelligenceservice:5006/api/v1/cv/hire-agent/classify-intent");
+                    reqMsg.Content = new StringContent(JsonSerializer.Serialize(confirmPayload), Encoding.UTF8, "application/json");
+
+                    var resMsg = await _httpClient.SendAsync(reqMsg);
+                    if (resMsg.IsSuccessStatusCode)
+                    {
+                        var confirmJsonDoc = JsonDocument.Parse(await resMsg.Content.ReadAsStringAsync());
+                        if (confirmJsonDoc.RootElement.TryGetProperty("intent", out var confirmIntentProp))
+                        {
+                            confirmIntent = confirmIntentProp.GetString() ?? "unknown";
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[HireAgent-Classifier] Lỗi khi gọi AI phân loại ý định: {ex.Message}");
+                }
 
                 if (campaign.InterviewDate.HasValue && campaign.BackupInterviewDate.HasValue)
                 {
-                    // 1. Check if candidate chose Option 1
-                    if (msgLower == "1" || msgLower.Contains("phương án 1") || msgLower.Contains("phuong an 1") || 
-                        msgLower.Contains("lịch 1") || msgLower.Contains("lich 1") || msgLower.Contains("option 1") || 
-                        msgLower.Contains("pa 1") || msgLower.Contains("pa1") || msgLower.Contains("chọn 1") || msgLower.Contains("chon 1"))
+                    // 1. Ứng viên chọn Phương án 1
+                    if (confirmIntent == "confirm_1")
                     {
                         agentConv.InterviewDate = campaign.InterviewDate;
                         await _hireAgentRepo.UpdateConversationAsync(agentConv);
@@ -53,10 +83,8 @@ public partial class HireAgentServiceImpl
                         return;
                     }
 
-                    // 2. Check if candidate chose Option 2
-                    if (msgLower == "2" || msgLower.Contains("phương án 2") || msgLower.Contains("phuong an 2") || 
-                        msgLower.Contains("lịch 2") || msgLower.Contains("lich 2") || msgLower.Contains("option 2") || 
-                        msgLower.Contains("pa 2") || msgLower.Contains("pa2") || msgLower.Contains("chọn 2") || msgLower.Contains("chon 2"))
+                    // 2. Ứng viên chọn Phương án 2
+                    if (confirmIntent == "confirm_2")
                     {
                         agentConv.InterviewDate = campaign.BackupInterviewDate;
                         await _hireAgentRepo.UpdateConversationAsync(agentConv);
@@ -64,22 +92,39 @@ public partial class HireAgentServiceImpl
                         return;
                     }
 
-                    // 3. Check if candidate chose Option 3 / Busy with both / Reschedule
-                    if (msgLower == "3" || msgLower.Contains("bận cả hai") || msgLower.Contains("ban ca hai") || 
-                        msgLower.Contains("bận cả 2") || msgLower.Contains("ban ca 2") || msgLower.Contains("không được cả hai") || 
-                        _rescheduleKeywords.Any(k => msgLower.Contains(k)))
+                    // 3. Ứng viên muốn đổi lịch / dời giờ
+                    if (confirmIntent == "reschedule")
                     {
                         await ProposeRescheduleAsync(agentConv.CampaignId, agentConv.CandidateId, candidateMessage);
                         return;
                     }
 
-                    // 4. Default fallback: prompt them to choose clearly
-                    var date1Str = campaign.InterviewDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
-                    var date2Str = campaign.BackupInterviewDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                    // 4. Ứng viên muốn từ chối / hủy tuyển dụng
+                    if (confirmIntent == "cancel")
+                    {
+                        agentConv.Status = "Failed";
+                        agentConv.InterviewDate = null;
+                        await _hireAgentRepo.UpdateConversationAsync(agentConv);
+
+                        var cancelMsg = "[HỆ THỐNG] Đã ghi nhận yêu cầu hủy phỏng vấn và rút hồ sơ của bạn cho vị trí này. Trạng thái ứng tuyển đã chuyển sang Không đạt. Cảm ơn bạn và chúc bạn may mắn!";
+                        var sysMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, cancelMsg, "text");
+                        await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                        await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+
+                        var leaveMsg = "[HỆ THỐNG] Trợ lý AI đã rời khỏi cuộc trò chuyện.";
+                        var leaveMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, leaveMsg, "text");
+                        await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                        await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                        return;
+                    }
+
+                    // 5. Mặc định: Nhắc nhở ứng viên chọn rõ 1 trong các phương án
+                    var date1Formatted = campaign.InterviewDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                    var date2Formatted = campaign.BackupInterviewDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
 
                     var reminderMsg = $"[HỆ THỐNG] Bạn vui lòng chọn rõ phương án lịch phỏng vấn:\n" +
-                                      $"• Nhắn **1** để chọn Phương án 1: **{date1Str}**\n" +
-                                      $"• Nhắn **2** để chọn Phương án 2: **{date2Str}**\n" +
+                                      $"• Nhắn **1** để chọn Phương án 1: **{date1Formatted}**\n" +
+                                      $"• Nhắn **2** để chọn Phương án 2: **{date2Formatted}**\n" +
                                       $"• Nhắn **3** hoặc \"Bận cả hai\" nếu bạn muốn đề xuất khung giờ khác.";
                     var reminderResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, reminderMsg, "text");
                     await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", reminderResponse);
@@ -88,16 +133,34 @@ public partial class HireAgentServiceImpl
                 }
                 else
                 {
-                    // Fallback for legacy campaigns without preset dates
-                    if (_confirmKeywords.Any(k => msgLower.Contains(k)))
+                    // Trường hợp chỉ có 1 đề xuất thời gian (lịch phỏng vấn đơn hoặc đặt lịch thủ công)
+                    if (confirmIntent == "confirm_general" || confirmIntent == "confirm_1" || confirmIntent == "confirm_2")
                     {
                         await ConfirmInterviewAsync(agentConv.CampaignId, agentConv.CandidateId);
                         return;
                     }
 
-                    if (_rescheduleKeywords.Any(k => msgLower.Contains(k)))
+                    if (confirmIntent == "reschedule")
                     {
                         await ProposeRescheduleAsync(agentConv.CampaignId, agentConv.CandidateId, candidateMessage);
+                        return;
+                    }
+
+                    if (confirmIntent == "cancel")
+                    {
+                        agentConv.Status = "Failed";
+                        agentConv.InterviewDate = null;
+                        await _hireAgentRepo.UpdateConversationAsync(agentConv);
+
+                        var cancelMsg = "[HỆ THỐNG] Đã ghi nhận yêu cầu hủy phỏng vấn và rút hồ sơ của bạn cho vị trí này. Trạng thái ứng tuyển đã chuyển sang Không đạt. Cảm ơn bạn và chúc bạn may mắn!";
+                        var sysMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, cancelMsg, "text");
+                        await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+                        await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", sysMsgResponse);
+
+                        var leaveMsg = "[HỆ THỐNG] Trợ lý AI đã rời khỏi cuộc trò chuyện.";
+                        var leaveMsgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, leaveMsg, "text");
+                        await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
+                        await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", leaveMsgResponse);
                         return;
                     }
 
@@ -200,7 +263,7 @@ public partial class HireAgentServiceImpl
             }
 
             // 3. Gửi tin nhắn trả lời của Agent
-            var chatMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, reply, "text");
+            var chatMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, agentConv.CandidateId, "[AI] " + reply, "text");
             await _hubContext.Clients.Group(agentConv.CandidateId.ToLower()).SendAsync("ReceiveMessage", chatMessageResponse);
             await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", chatMessageResponse);
 
@@ -229,7 +292,7 @@ public partial class HireAgentServiceImpl
                         await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", passedResponse);
 
                         var chatPageUrl = $"{frontendUrl.TrimEnd('/')}/chat";
-                        _ = SendProposalEmailAsync(campaign, agentConv.CandidateId, $"{date1Str} hoặc {date2Str}", chatPageUrl);
+                        // _ = SendProposalEmailAsync(campaign, agentConv.CandidateId, $"{date1Str} hoặc {date2Str}", chatPageUrl);
 
                         // Gửi thông báo hệ thống và đẩy qua Telegram/SignalR cho HR
                         _ = Task.Run(async () =>
@@ -305,8 +368,23 @@ public partial class HireAgentServiceImpl
     public async Task<HireAgentConversation> ScheduleInterviewAsync(
         Guid campaignId, string candidateId, DateTimeOffset interviewDate)
     {
-        var conversation = await _hireAgentRepo.GetConversationByCandidateAndCampaignAsync(candidateId, campaignId)
-            ?? throw new NotFoundException("Không tìm thấy hội thoại tuyển dụng AI của ứng viên.");
+        var conversation = await _hireAgentRepo.GetConversationByCandidateAndCampaignAsync(candidateId, campaignId);
+        if (conversation == null)
+        {
+            conversation = new HireAgentConversation
+            {
+                Id             = Guid.NewGuid(),
+                CampaignId     = campaignId,
+                ConversationId = Guid.NewGuid(),
+                CandidateId    = candidateId,
+                CvText         = "Standard Application Candidate",
+                Status         = "PendingCandidateConfirm",
+                MatchingScore  = 100.0,
+                LastQuestionAt = DateTimeOffset.UtcNow,
+                CreatedAt      = DateTimeOffset.UtcNow
+            };
+            await _hireAgentRepo.CreateConversationAsync(conversation);
+        }
 
         conversation.Status        = "PendingCandidateConfirm";
         conversation.InterviewDate = interviewDate.ToUniversalTime();
@@ -325,7 +403,11 @@ public partial class HireAgentServiceImpl
             await _hubContext.Clients.Group(candidateId.ToLower()).SendAsync("ReceiveMessage", msgResponse);
             await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", msgResponse);
  
-            _ = SendProposalEmailAsync(campaign, candidateId, dateStr, chatPageUrl);
+            // Cập nhật lại ConversationId thực tế của cuộc trò chuyện Chat để AI Interceptor có thể khớp chính xác
+            conversation.ConversationId = msgResponse.ConversationId;
+            await _hireAgentRepo.UpdateConversationAsync(conversation);
+
+            // _ = SendProposalEmailAsync(campaign, candidateId, dateStr, chatPageUrl);
         }
 
         return conversation;
@@ -362,13 +444,56 @@ public partial class HireAgentServiceImpl
             {
                 try
                 {
+                    using var scope = _scopeFactory.CreateScope();
+                    var googleCalendarService = scope.ServiceProvider.GetRequiredService<IGoogleCalendarService>();
+                    var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
+
                     var candidateInfo = await UserInfoHelper.GetUserDetailsAsync(candidateId, _config);
                     var candidateName = candidateInfo.FullName ?? "Ứng viên";
                     var notifTitle = "📅 Lịch phỏng vấn được xác nhận";
                     var notifBody = $"Ứng viên {candidateName} đã xác nhận lịch phỏng vấn cho vị trí \"{campaign.JobName}\" vào lúc {dateStr}.";
                     SendNotificationToHr(campaign.RecruiterId, campaignId, candidateId, notifTitle, notifBody, $"hire_agent_scheduled:{campaignId}:{candidateId}");
+
+                    // Đồng bộ lên Google Calendar của Recruiter nếu đã liên kết
+                    var isConnected = await googleCalendarService.IsConnectedAsync(campaign.RecruiterId);
+                    if (isConnected)
+                    {
+                        var googleEventId = await googleCalendarService.CreateEventAsync(
+                            campaign.RecruiterId,
+                            $"[JobHub] Lịch phỏng vấn: {candidateName}",
+                            $"Lịch phỏng vấn vòng Final cho vị trí \"{campaign.JobName}\" (Chiến dịch AI Recruiter)",
+                            interviewDate,
+                            interviewDate.AddHours(1),
+                            candidateInfo.Email ?? "candidate@jobhub.com"
+                        );
+
+                        if (!string.IsNullOrEmpty(googleEventId))
+                        {
+                            // Đảm bảo không trùng map cũ
+                            var existingMap = await db.InterviewGoogleEvents.FirstOrDefaultAsync(m => m.InterviewId == conversation.Id);
+                            if (existingMap != null)
+                            {
+                                db.InterviewGoogleEvents.Remove(existingMap);
+                            }
+
+                            var newMap = new InterviewGoogleEvent
+                            {
+                                Id = Guid.NewGuid(),
+                                InterviewId = conversation.Id,
+                                GoogleEventId = googleEventId,
+                                RecruiterId = campaign.RecruiterId,
+                                CreatedAt = DateTimeOffset.UtcNow
+                            };
+                            await db.InterviewGoogleEvents.AddAsync(newMap);
+                            await db.SaveChangesAsync();
+                            Console.WriteLine($"[GoogleCalendar-HireAgent] Đã tự động tạo sự kiện Google Calendar: {googleEventId}");
+                        }
+                    }
                 }
-                catch {}
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[GoogleCalendar-HireAgent] Lỗi khi tạo sự kiện trên Google Calendar: {ex.Message}");
+                }
             });
         }
 
@@ -503,5 +628,50 @@ public partial class HireAgentServiceImpl
                 Console.WriteLine($"[HireAgent-NotifyHR] Lỗi khi gửi thông báo cho HR: {ex.Message}");
             }
         });
+    }
+
+    public async Task<HireAgentConversation> CancelInterviewAsync(Guid campaignId, string candidateId)
+    {
+        var conversation = await _hireAgentRepo.GetConversationByCandidateAndCampaignAsync(candidateId, campaignId)
+            ?? throw new NotFoundException("Không tìm thấy hội thoại tuyển dụng AI của ứng viên.");
+
+        // Reset về Passed và xóa ngày để quay về trạng thái chưa xếp lịch
+        conversation.Status = "Passed";
+        conversation.InterviewDate = null;
+
+        await _hireAgentRepo.UpdateConversationAsync(conversation);
+
+        var campaign = await _hireAgentRepo.GetCampaignAsync(campaignId);
+        
+        // Đồng bộ xóa sự kiện Google Calendar của Recruiter nếu có
+        try
+        {
+            if (campaign != null)
+            {
+                var map = await _dbContext.InterviewGoogleEvents.FirstOrDefaultAsync(m => m.InterviewId == conversation.Id);
+                if (map != null)
+                {
+                    await _googleCalendarService.DeleteEventAsync(campaign.RecruiterId, map.GoogleEventId);
+                    _dbContext.InterviewGoogleEvents.Remove(map);
+                    await _dbContext.SaveChangesAsync();
+                    Console.WriteLine($"[GoogleCalendar-Cancel] Đã xóa lịch trên Google Calendar ứng với ConversationId: {conversation.Id}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GoogleCalendar-Cancel] Lỗi khi hủy lịch trên Google Calendar: {ex.Message}");
+        }
+
+        // Gửi tin nhắn thông báo hủy lịch phỏng vấn đến ứng viên qua Chat
+        if (campaign != null)
+        {
+            var cancelMsg = "[HỆ THỐNG] 🔄 Nhà tuyển dụng đã hủy lịch hẹn phỏng vấn này. Cuộc trò chuyện đã quay trở lại trạng thái chờ xếp lịch phỏng vấn mới.";
+            var msgResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, candidateId, cancelMsg, "text");
+            await _hubContext.Clients.Group(candidateId.ToLower()).SendAsync("ReceiveMessage", msgResponse);
+            await _hubContext.Clients.Group(campaign.RecruiterId.ToLower()).SendAsync("ReceiveMessage", msgResponse);
+        }
+
+        return conversation;
     }
 }

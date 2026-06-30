@@ -10,8 +10,8 @@ conn = psycopg2.connect(
 cur = conn.cursor()
 cur.execute('SELECT "UserId", "TelegramChatId", "Username", "BotToken" FROM "UserTelegramBindings";')
 rows = cur.fetchall()
-print("Bindings count:", len(rows))
+print("Bindings:")
 for r in rows:
-    print(f"UserId: {r[0]}, ChatId: {r[1]}, Username: {r[2]}")
+    print(f"UserId: {r[0]}, ChatId: {r[1]}, Username: {r[2]}, BotToken: {r[3]}")
 cur.close()
 conn.close()

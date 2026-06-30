@@ -26,7 +26,7 @@ public class AssistantChatController : ControllerBase
     private readonly IChatService _chatService;
     private readonly NotificationDbContext _dbContext;
     private readonly IConfiguration _configuration;
-    private static readonly HttpClient _httpClient = new HttpClient();
+    private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
     public AssistantChatController(
         IChatService chatService,

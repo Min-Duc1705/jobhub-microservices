@@ -1,0 +1,204 @@
+﻿id,name,website,email,tax_code,created_by,active_jobs,total_jobs,reason
+8d084808-988f-4b98-b4e6-d38ffbceb4e3,AI Tech Lab,,,,system,0,0,explicit_fake
+4add5263-5bff-4cf8-b00a-1a93e34c0cfd,AI Tech Lab,,,,system,0,0,explicit_fake
+62db82b4-b20d-468e-89e3-2365f072e2e8,AI Tech Lab,,,,system,0,0,explicit_fake
+f2bb00a8-5178-4164-a840-17ca43a344d7,Apex Intelligence,https://www.apex-intelligence.com,contact@apex-intelligence.com,1357164774,CompanySeeder,0,0,synthetic_seed
+3a019ced-3508-4f5d-aeb5-3d7b63b2deb1,Apex Networks Vietnam,https://www.apex-networks-vietnam.com,contact@apex-networks-vietnam.com,1649415771,CompanySeeder,0,0,synthetic_seed
+fe315150-7ba6-479c-ada8-c0403d097710,Blue Code,https://www.blue-code.com,contact@blue-code.com,5548506635,CompanySeeder,0,0,synthetic_seed
+f0a5911b-5772-46bd-953a-899986ff1854,Blue Hub Vietnam,https://www.blue-hub-vietnam.com,contact@blue-hub-vietnam.com,3709506018,CompanySeeder,0,0,synthetic_seed
+1b5f3433-9b7b-40e4-bca2-af255e5610dd,Blue Innovation,https://www.blue-innovation.com,contact@blue-innovation.com,3266075689,CompanySeeder,0,0,synthetic_seed
+c12433e3-fdc1-4c3b-972a-111205c2e075,Blue Solutions,https://www.blue-solutions.com,contact@blue-solutions.com,9273197967,CompanySeeder,0,0,synthetic_seed
+70ec2bca-08d5-4c79-8aa4-21bf770bdc42,Cloud Code,https://www.cloud-code.com,contact@cloud-code.com,3976158464,CompanySeeder,0,0,synthetic_seed
+01ed60a9-5468-45fe-8600-0f4877b97105,Cloud Digital,https://www.cloud-digital.com,contact@cloud-digital.com,8046587306,CompanySeeder,0,0,synthetic_seed
+aead2263-9761-4960-8347-a3eb4ceed4d5,Cloud Labs,https://www.cloud-labs.com,contact@cloud-labs.com,6927670940,CompanySeeder,0,0,synthetic_seed
+ebbe5bc7-78d9-492b-8884-70f240cce758,Cloud Media Vietnam,https://www.cloud-media-vietnam.com,contact@cloud-media-vietnam.com,9061884791,CompanySeeder,0,0,synthetic_seed
+fb6c553b-6c61-4e02-823a-a7c7e01348ce,Cloud Space,https://www.cloud-space.com,contact@cloud-space.com,0737028382,CompanySeeder,0,0,synthetic_seed
+0fc4e4be-0b52-46cc-bf5e-b6c356322f1d,Cloud Systems,https://www.cloud-systems.com,contact@cloud-systems.com,2670812977,CompanySeeder,0,0,synthetic_seed
+b474e9bd-2fc2-408a-b406-c80cd73655fa,Cloud Technologies,https://www.cloud-technologies.com,contact@cloud-technologies.com,8375555974,CompanySeeder,0,0,synthetic_seed
+7414fbc0-4169-464a-adb9-f151199f9448,Cyber Media,https://www.cyber-media.com,contact@cyber-media.com,7500314503,CompanySeeder,0,0,synthetic_seed
+e0a58dd4-d115-45c2-a184-ab749b60c64e,Cyber Media Vietnam,https://www.cyber-media-vietnam.com,contact@cyber-media-vietnam.com,2198033463,CompanySeeder,0,0,synthetic_seed
+88a9bcf9-9f6b-470e-b5bd-ceaad35d602b,Cyber Software Vietnam,https://www.cyber-software-vietnam.com,contact@cyber-software-vietnam.com,0659397615,CompanySeeder,0,0,synthetic_seed
+2e2fe6ce-e8bf-4fa3-b410-7dc25a6cb32f,Cyber Works Global,https://www.cyber-works-global.com,contact@cyber-works-global.com,5973481241,CompanySeeder,0,0,synthetic_seed
+24d4a73f-71fb-48e8-84c4-80d38561fcbc,Data Hub,https://www.data-hub.com,contact@data-hub.com,6863166539,CompanySeeder,0,0,synthetic_seed
+7f2740f8-9dd7-42e6-a0c6-57f9d6bc1127,Data Tech,https://www.data-tech.com,contact@data-tech.com,2029944613,CompanySeeder,0,0,synthetic_seed
+f840d3c4-773f-4226-9caa-e84b36091096,Delta Analytics,https://www.delta-analytics.com,contact@delta-analytics.com,2653845355,CompanySeeder,0,0,synthetic_seed
+135eef81-4b26-4873-9c38-a59bba95dd5d,Delta Hub Vietnam,https://www.delta-hub-vietnam.com,contact@delta-hub-vietnam.com,0426371671,CompanySeeder,0,0,synthetic_seed
+58453662-4a99-4fad-ae43-1b3a431a5133,Delta Intelligence Vietnam,https://www.delta-intelligence-vietnam.com,contact@delta-intelligence-vietnam.com,3869695343,CompanySeeder,0,0,synthetic_seed
+17a2dea2-7a38-4957-87e9-5d72c6b18159,Delta Labs,https://www.delta-labs.com,contact@delta-labs.com,9273305703,CompanySeeder,0,0,synthetic_seed
+396ec3d7-e229-40f7-ab71-d91772d3bb5d,Delta Media,https://www.delta-media.com,contact@delta-media.com,2039622098,CompanySeeder,0,0,synthetic_seed
+70492f77-99c0-4ffb-b2d3-5a3061500f55,Delta Networks,https://www.delta-networks.com,contact@delta-networks.com,2185491452,CompanySeeder,0,0,synthetic_seed
+a1a8f11e-3776-4309-9c19-7a61c4ef76ba,Delta Soft,https://www.delta-soft.com,contact@delta-soft.com,4541465908,CompanySeeder,0,0,synthetic_seed
+734a967d-40b9-4517-9ff6-5e2ce189c6ce,Delta Solutions Vietnam,https://www.delta-solutions-vietnam.com,contact@delta-solutions-vietnam.com,2269780438,CompanySeeder,0,0,synthetic_seed
+ec9cfdac-e10e-4eed-8bef-4067b4781658,Delta Space,https://www.delta-space.com,contact@delta-space.com,4177588814,CompanySeeder,0,0,synthetic_seed
+c023d1e7-f954-48b4-8a9c-b9c2efc7da8c,Delta Systems,https://www.delta-systems.com,contact@delta-systems.com,9677204126,CompanySeeder,0,0,synthetic_seed
+ac9bdd3d-a43b-4dcd-95af-2012ca693af4,Delta Works,https://www.delta-works.com,contact@delta-works.com,3595349404,CompanySeeder,0,0,synthetic_seed
+110366aa-4d8e-4344-ab11-6bdbd3f30a15,Eco Labs,https://www.eco-labs.com,contact@eco-labs.com,5100637171,CompanySeeder,0,0,synthetic_seed
+29438af3-b5ee-49ec-9390-ed1c98918b57,Eco Media,https://www.eco-media.com,contact@eco-media.com,4201461338,CompanySeeder,0,0,synthetic_seed
+04e8cef4-5066-4a57-aac5-ca9767349f2e,Eco Solutions,https://www.eco-solutions.com,contact@eco-solutions.com,0520070091,CompanySeeder,0,0,synthetic_seed
+7f1a60e9-9197-4e9c-9103-e78355a9d0f5,Forte Digital,https://www.forte-digital.com,contact@forte-digital.com,0812977057,CompanySeeder,0,0,synthetic_seed
+c331951b-03cf-47ec-b359-499e9f2b7a11,Forte Labs Global,https://www.forte-labs-global.com,contact@forte-labs-global.com,8452059972,CompanySeeder,0,0,synthetic_seed
+7f9b2ba9-9937-4796-9b70-34357b355430,Forte Media,https://www.forte-media.com,contact@forte-media.com,9585190431,CompanySeeder,0,0,synthetic_seed
+43508366-11ce-4e04-9f8b-e838c3de846b,Forte Soft,https://www.forte-soft.com,contact@forte-soft.com,0161055008,CompanySeeder,0,0,synthetic_seed
+67752a7c-38b5-4b0e-be52-6b395497ea53,Forte Solutions Global,https://www.forte-solutions-global.com,contact@forte-solutions-global.com,7516886561,CompanySeeder,0,0,synthetic_seed
+87460d74-ee35-4e6a-bbc0-730c205c0e38,Forte Space,https://www.forte-space.com,contact@forte-space.com,8012537392,CompanySeeder,0,0,synthetic_seed
+a9437caa-1ee4-406d-b4db-a52605fc01a6,Genesis Code,https://www.genesis-code.com,contact@genesis-code.com,9797802520,CompanySeeder,0,0,synthetic_seed
+ce48fcf8-bae3-4dc9-b2e7-7b81f104d4b3,Genesis Hub,https://www.genesis-hub.com,contact@genesis-hub.com,0675548506,CompanySeeder,0,0,synthetic_seed
+1e25cbb8-2fb2-46f6-804b-fd543fad4581,Genesis Innovation Vietnam,https://www.genesis-innovation-vietnam.com,contact@genesis-innovation-vietnam.com,1030225021,CompanySeeder,0,0,synthetic_seed
+7cabc89c-8d14-468f-9e45-2b3182577262,Genesis Labs Vietnam,https://www.genesis-labs-vietnam.com,contact@genesis-labs-vietnam.com,6882834728,CompanySeeder,0,0,synthetic_seed
+3bc430b9-2c02-4d2e-9486-21f3ef6e552d,Global Consulting,https://www.global-consulting.com,contact@global-consulting.com,5681518844,CompanySeeder,0,0,synthetic_seed
+b25677b3-3864-4f94-a408-6ca19bf2de68,Global Hub,https://www.global-hub.com,contact@global-hub.com,8766344002,CompanySeeder,0,0,synthetic_seed
+8734b68e-5af6-4bbc-869a-6afa3c87e058,Global Innovation,https://www.global-innovation.com,contact@global-innovation.com,0135100637,CompanySeeder,0,0,synthetic_seed
+26df75f7-d20d-4578-ae0b-6736b87f5c75,Global Media,https://www.global-media.com,contact@global-media.com,2683508111,CompanySeeder,0,0,synthetic_seed
+56128560-de71-4d97-a561-f31c34d1f90a,Global Soft,https://www.global-soft.com,contact@global-soft.com,9615679596,CompanySeeder,0,0,synthetic_seed
+d39e321e-5f95-47bc-9220-0d6f1eaa84d5,Global Solutions,https://www.global-solutions.com,contact@global-solutions.com,5049657096,CompanySeeder,0,0,synthetic_seed
+a3866b87-3fa4-4182-8cc7-f47f52fca3be,Global Solutions Global,https://www.global-solutions-global.com,contact@global-solutions-global.com,0807370283,CompanySeeder,0,0,synthetic_seed
+c1061638-88b9-49b4-b593-cd16d6298576,Hanoi Hub Global,https://www.hanoi-hub-global.com,contact@hanoi-hub-global.com,6604713936,CompanySeeder,0,0,synthetic_seed
+30dbb235-4832-46d9-a2d5-7aea7c3ba8ed,Hanoi Media,https://www.hanoi-media.com,contact@hanoi-media.com,0553848856,CompanySeeder,0,0,synthetic_seed
+e1f6af1b-4891-463f-b173-426a049ddf54,Hanoi Networks,https://www.hanoi-networks.com,contact@hanoi-networks.com,4778768045,CompanySeeder,0,0,synthetic_seed
+a866ee81-36b6-44b2-9493-149153d4078f,Hanoi Networks Global,https://www.hanoi-networks-global.com,contact@hanoi-networks-global.com,6270107981,CompanySeeder,0,0,synthetic_seed
+8172edf6-2b9a-4f70-ba1e-65ad596b4e98,Hanoi Systems Vietnam,https://www.hanoi-systems-vietnam.com,contact@hanoi-systems-vietnam.com,9897600282,CompanySeeder,0,0,synthetic_seed
+629b31ea-5457-4e3c-9497-6e09cc89a5a4,Helix Innovation,https://www.helix-innovation.com,contact@helix-innovation.com,9730911417,CompanySeeder,0,12,synthetic_seed
+c86c6b5b-f216-4e2e-99cb-5439674662a5,Helix Innovation Global,https://www.helix-innovation-global.com,contact@helix-innovation-global.com,4284352814,CompanySeeder,0,0,synthetic_seed
+5ccd9841-1182-4820-b10c-82d3e92a842f,Helix Intelligence,https://www.helix-intelligence.com,contact@helix-intelligence.com,2143049074,CompanySeeder,0,0,synthetic_seed
+37cf54c0-0f56-46bf-b9ff-b220d3d739b0,Helix Media,https://www.helix-media.com,contact@helix-media.com,9922983695,CompanySeeder,0,0,synthetic_seed
+298dd02e-001f-40dd-bfde-d171482a437b,Helix Solutions Vietnam,https://www.helix-solutions-vietnam.com,contact@helix-solutions-vietnam.com,6322808864,CompanySeeder,0,0,synthetic_seed
+87c0a846-3af6-432d-b097-dbb3ecf34373,Helix Tech Global,https://www.helix-tech-global.com,contact@helix-tech-global.com,9406925666,CompanySeeder,0,0,synthetic_seed
+9151a5e1-a316-4246-a49c-43ae42df2758,Helix Technologies,https://www.helix-technologies.com,contact@helix-technologies.com,4335165850,CompanySeeder,0,0,synthetic_seed
+2ba57a6a-1c28-4c95-bb45-84bc40d86353,Helix Works,https://www.helix-works.com,contact@helix-works.com,4133017568,CompanySeeder,0,0,synthetic_seed
+c2a31ef5-1b8e-4aad-b51e-4304887eeed8,Intellect Consulting,https://www.intellect-consulting.com,contact@intellect-consulting.com,8010005200,CompanySeeder,0,0,synthetic_seed
+8c808c95-f273-439e-874a-6b69f863d230,Intellect Software,https://www.intellect-software.com,contact@intellect-software.com,8895755521,CompanySeeder,0,0,synthetic_seed
+4fa6810c-a229-44cb-8f79-25f1f4947a97,Intellect Tech Global,https://www.intellect-tech-global.com,contact@intellect-tech-global.com,0288375555,CompanySeeder,0,0,synthetic_seed
+5892aa50-6808-4210-8b5f-88f221cd1e88,Intellect Technologies Global,https://www.intellect-technologies-global.com,contact@intellect-technologies-global.com,1649753325,CompanySeeder,0,0,synthetic_seed
+48d43440-39ab-4411-b04a-abcb82b8f9c3,Jet Consulting Vietnam,https://www.jet-consulting-vietnam.com,contact@jet-consulting-vietnam.com,0787457212,CompanySeeder,0,0,synthetic_seed
+ff1964d7-0a28-493a-907c-00aa80ae0b4d,Jet Digital Global,https://www.jet-digital-global.com,contact@jet-digital-global.com,9004422485,CompanySeeder,0,0,synthetic_seed
+c4c27eaf-69b2-4f78-a352-5410331a806f,Jet Innovation Global,https://www.jet-innovation-global.com,contact@jet-innovation-global.com,7001594502,CompanySeeder,0,0,synthetic_seed
+9df9a20f-7c40-48b0-9021-631cd591d267,Jet Labs,https://www.jet-labs.com,contact@jet-labs.com,4013761561,CompanySeeder,0,0,synthetic_seed
+58a918e9-5564-41e7-97fc-b56eb6b0877e,Jet Media,https://www.jet-media.com,contact@jet-media.com,7010875262,CompanySeeder,0,0,synthetic_seed
+6684bc1a-7bbd-4526-adca-ef9ac8ef93d2,Jet Soft,https://www.jet-soft.com,contact@jet-soft.com,7804385817,CompanySeeder,0,0,synthetic_seed
+3c86723e-a48a-4bb9-aa1a-ca51d1beef4a,Jet Software Global,https://www.jet-software-global.com,contact@jet-software-global.com,2634789235,CompanySeeder,0,0,synthetic_seed
+aadcb7fb-9a8d-47b1-99bc-a263d88b2759,Jet Space,https://www.jet-space.com,contact@jet-space.com,5178836550,CompanySeeder,0,0,synthetic_seed
+58a7acf0-0e40-4cda-b978-dfe275c054a6,Krypton Intelligence,https://www.krypton-intelligence.com,contact@krypton-intelligence.com,1166033042,CompanySeeder,0,0,synthetic_seed
+e732fbec-455f-43f1-8bf0-2582eaef3e8b,Krypton Intelligence Vietnam,https://www.krypton-intelligence-vietnam.com,contact@krypton-intelligence-vietnam.com,1206176958,CompanySeeder,0,0,synthetic_seed
+bd346ce0-88a3-4ede-b42c-6911dd5cf492,Krypton Labs,https://www.krypton-labs.com,contact@krypton-labs.com,8133702718,CompanySeeder,0,0,synthetic_seed
+4b9d40dc-4da4-4dd9-a7f8-10835218ccdd,Krypton Tech,https://www.krypton-tech.com,contact@krypton-tech.com,5218549145,CompanySeeder,0,0,synthetic_seed
+772cd4aa-5cfb-4473-bacd-03746a609eab,Krypton Works Vietnam,https://www.krypton-works-vietnam.com,contact@krypton-works-vietnam.com,6584409324,CompanySeeder,0,0,synthetic_seed
+b7d9c3ca-a9f8-410a-9f8c-7f8a40eeba56,Lumina Code,https://www.lumina-code.com,contact@lumina-code.com,6378276082,CompanySeeder,0,0,synthetic_seed
+7079a862-b83e-4d22-980b-b138850a0171,Lumina Hub,https://www.lumina-hub.com,contact@lumina-hub.com,9871120984,CompanySeeder,0,0,synthetic_seed
+ec927e6c-fcc7-4ce4-998a-8287d9bd6af8,Lumina Labs,https://www.lumina-labs.com,contact@lumina-labs.com,3556963279,CompanySeeder,0,0,synthetic_seed
+d86a73d8-ced9-4fde-8257-221d23b14ed7,Lumina Soft,https://www.lumina-soft.com,contact@lumina-soft.com,7147513627,CompanySeeder,0,0,synthetic_seed
+b32bae72-853c-4e07-b352-64d05e5c76a5,Lumina Software,https://www.lumina-software.com,contact@lumina-software.com,2422042628,CompanySeeder,0,0,synthetic_seed
+e1301564-3188-492d-844a-dcb55b0d1bf9,Lumina Tech Global,https://www.lumina-tech-global.com,contact@lumina-tech-global.com,6070022386,CompanySeeder,0,0,synthetic_seed
+5e90efc9-6bff-4f22-9a59-99ff6875aebd,Lumina Technologies Global,https://www.lumina-technologies-global.com,contact@lumina-technologies-global.com,8564271051,CompanySeeder,0,0,synthetic_seed
+994c0755-13fc-4536-bda5-17c78790f824,Matrix Analytics Vietnam,https://www.matrix-analytics-vietnam.com,contact@matrix-analytics-vietnam.com,3048877816,CompanySeeder,0,0,synthetic_seed
+ad6935d5-7f37-4a9d-bb5c-3cf1dde7751c,Matrix Consulting,https://www.matrix-consulting.com,contact@matrix-consulting.com,7876804571,CompanySeeder,0,0,synthetic_seed
+5fd11514-4b4a-4d70-bd31-b3f331ba9e55,Matrix Soft Global,https://www.matrix-soft-global.com,contact@matrix-soft-global.com,4456078745,CompanySeeder,0,0,synthetic_seed
+62012b35-8452-4781-8c5a-70cbd0f3c785,Matrix Software,https://www.matrix-software.com,contact@matrix-software.com,7658280258,CompanySeeder,0,0,synthetic_seed
+b4f85637-4075-4363-bc9a-7a9cef82c8b6,Matrix Software Vietnam,https://www.matrix-software-vietnam.com,contact@matrix-software-vietnam.com,2152051148,CompanySeeder,0,0,synthetic_seed
+fa4f6c6c-307c-4e02-b95d-2f78586bba69,Matrix Space,https://www.matrix-space.com,contact@matrix-space.com,1253739241,CompanySeeder,0,0,synthetic_seed
+f4c974de-04cd-4cb0-87ae-bb4be536e729,Matrix Technologies Global,https://www.matrix-technologies-global.com,contact@matrix-technologies-global.com,7352866753,CompanySeeder,0,0,synthetic_seed
+d87244ea-1cc4-4500-8860-e4c1711ebca7,Mekong Hub Global,https://www.mekong-hub-global.com,contact@mekong-hub-global.com,2948662836,CompanySeeder,0,0,synthetic_seed
+1d6c0a72-7912-48a6-8128-566dd999d3b1,Mekong Labs,https://www.mekong-labs.com,contact@mekong-labs.com,4728556898,CompanySeeder,0,0,synthetic_seed
+ada7c34a-4269-452e-8ec6-d57912f26036,Mekong Software,https://www.mekong-software.com,contact@mekong-software.com,1543829932,CompanySeeder,0,0,synthetic_seed
+7c489f62-207a-4fa0-82d8-67c242f5509d,Mekong Solutions,https://www.mekong-solutions.com,contact@mekong-solutions.com,0159450283,CompanySeeder,0,0,synthetic_seed
+b64bea12-977d-4587-ba1c-ac8109e88615,Mekong Tech,https://www.mekong-tech.com,contact@mekong-tech.com,9986987973,CompanySeeder,0,0,synthetic_seed
+46a44c24-adc9-42a7-a7d7-a886ebb28e1d,Mekong Works,https://www.mekong-works.com,contact@mekong-works.com,9320819672,CompanySeeder,0,0,synthetic_seed
+3b45ec67-e873-444f-aed0-3bd5fff3194a,Nexus Software,https://www.nexus-software.com,contact@nexus-software.com,7536455681,CompanySeeder,0,0,synthetic_seed
+9e1254ba-0420-4583-b524-aa5b34c127e3,Nexus Space,https://www.nexus-space.com,contact@nexus-space.com,4658730642,CompanySeeder,0,0,synthetic_seed
+c69e2a9b-c18a-4973-af7c-5ccb1604ae86,Nexus Tech,https://www.nexus-tech.com,contact@nexus-tech.com,8413301756,CompanySeeder,0,0,synthetic_seed
+d6d49693-e8ab-4553-a4c2-8d0ab2bed087,Nova Digital,https://www.nova-digital.com,contact@nova-digital.com,9264515474,CompanySeeder,0,0,synthetic_seed
+4b1fc366-5785-4432-ac28-0c3d71b6ca9b,Nova Hub Vietnam,https://www.nova-hub-vietnam.com,contact@nova-hub-vietnam.com,8238613521,CompanySeeder,0,0,synthetic_seed
+bc6cec7f-1898-4d7a-b604-b697b5930a2f,Nova Intelligence,https://www.nova-intelligence.com,contact@nova-intelligence.com,0108752623,CompanySeeder,0,0,synthetic_seed
+96b1b90a-1148-4d88-acbd-77f53e390d59,Nova Space Vietnam,https://www.nova-space-vietnam.com,contact@nova-space-vietnam.com,0578037041,CompanySeeder,0,0,synthetic_seed
+97fb50f1-eaaf-48fb-9bdb-ac7e10e49e72,Nova Works Global,https://www.nova-works-global.com,contact@nova-works-global.com,3370271861,CompanySeeder,0,0,synthetic_seed
+95c58863-0fc5-444e-b99c-921cc8c5862e,Omni Digital,https://www.omni-digital.com,contact@omni-digital.com,8196727317,CompanySeeder,0,0,synthetic_seed
+db25982e-48f9-4e86-9627-2669a3ce7b0c,Omni Labs,https://www.omni-labs.com,contact@omni-labs.com,1488181378,CompanySeeder,0,0,synthetic_seed
+89d26de5-4b4f-4cdf-8d76-a6dcd495bf51,Omni Networks,https://www.omni-networks.com,contact@omni-networks.com,1222386378,CompanySeeder,0,0,synthetic_seed
+6704782b-29c8-4f96-b312-1f60c6395eda,Omni Soft,https://www.omni-soft.com,contact@omni-soft.com,2829092082,CompanySeeder,0,0,synthetic_seed
+a8c808d4-3683-45d6-817c-ebae9eb319cd,Omni Space,https://www.omni-space.com,contact@omni-space.com,8498556830,CompanySeeder,0,0,synthetic_seed
+a69bc7cc-ab69-4283-b46c-da0232d42614,Prime Analytics,https://www.prime-analytics.com,contact@prime-analytics.com,4789713311,CompanySeeder,0,0,synthetic_seed
+1f351957-7af1-4307-a50c-495c65bc20eb,Prime Innovation,https://www.prime-innovation.com,contact@prime-innovation.com,3421723349,CompanySeeder,0,0,synthetic_seed
+ea78c769-ae2b-43b2-8bb7-5ec679c7435a,Prime Media,https://www.prime-media.com,contact@prime-media.com,2987112098,CompanySeeder,0,0,synthetic_seed
+7db127a6-a51f-45b2-a578-b1fb403d5af5,Prime Networks Vietnam,https://www.prime-networks-vietnam.com,contact@prime-networks-vietnam.com,0383004030,CompanySeeder,0,0,synthetic_seed
+dff53ec9-8192-44b5-96a7-7032f4bd3bac,Prime Space,https://www.prime-space.com,contact@prime-space.com,5013327967,CompanySeeder,0,0,synthetic_seed
+e2b06ae1-f291-4d10-85a1-7893a67398cf,Quantum Analytics Global,https://www.quantum-analytics-global.com,contact@quantum-analytics-global.com,4999248005,CompanySeeder,0,0,synthetic_seed
+7b8ef939-6fc6-4677-a5e1-280d35265daf,Quantum Analytics Vietnam,https://www.quantum-analytics-vietnam.com,contact@quantum-analytics-vietnam.com,8557652373,CompanySeeder,0,0,synthetic_seed
+b0989254-2c17-4b7a-a721-f4866058db5f,Quantum Code,https://www.quantum-code.com,contact@quantum-code.com,4033013205,CompanySeeder,0,0,synthetic_seed
+0fc6e447-1cb9-401e-9a4d-6ee1975f61b1,Quantum Digital,https://www.quantum-digital.com,contact@quantum-digital.com,9677500314,CompanySeeder,0,0,synthetic_seed
+48af6c39-e412-4909-92ec-f125204030e9,Quantum Hub,https://www.quantum-hub.com,contact@quantum-hub.com,5771883579,CompanySeeder,0,0,synthetic_seed
+54940e33-31e2-439a-8618-4f6c296ee237,Quantum Innovation,https://www.quantum-innovation.com,contact@quantum-innovation.com,9943982864,CompanySeeder,0,0,synthetic_seed
+f1df67f1-6781-432d-9463-70a8aaf23838,Quantum Labs,https://www.quantum-labs.com,contact@quantum-labs.com,9725844419,CompanySeeder,0,0,synthetic_seed
+05c21b1d-57b3-48fa-b7dc-0f46fced9035,Quantum Soft,https://www.quantum-soft.com,contact@quantum-soft.com,0130411895,CompanySeeder,0,0,synthetic_seed
+e5ac584c-2d8f-414b-8df9-ac9df6f3d7c0,Quantum Tech,https://www.quantum-tech.com,contact@quantum-tech.com,9753325719,CompanySeeder,0,0,synthetic_seed
+37365cd1-5a98-42df-b500-11c07064d9c3,Rift Soft,https://www.rift-soft.com,contact@rift-soft.com,1642524776,CompanySeeder,0,0,synthetic_seed
+e7d19bfa-635e-4855-b123-7f5791418a8d,Rift Space,https://www.rift-space.com,contact@rift-space.com,9418341908,CompanySeeder,0,0,synthetic_seed
+91ab8e8c-f82b-42c6-a92d-3acb830c847f,Rift Systems,https://www.rift-systems.com,contact@rift-systems.com,2974476604,CompanySeeder,0,0,synthetic_seed
+f407c759-3136-4816-a1c5-f0222412dd90,Saigon Analytics,https://www.saigon-analytics.com,contact@saigon-analytics.com,7363856073,CompanySeeder,0,0,synthetic_seed
+77376d51-e7d3-4251-803a-9fbd30a6f47d,Saigon Code,https://www.saigon-code.com,contact@saigon-code.com,0736087243,CompanySeeder,0,0,synthetic_seed
+bba12177-cbfb-41dc-80d8-4dd81aab20fe,Saigon Networks,https://www.saigon-networks.com,contact@saigon-networks.com,0626148836,CompanySeeder,0,0,synthetic_seed
+395a4f8f-4b0a-40cc-88a1-1200410bd45a,Saigon Soft Vietnam,https://www.saigon-soft-vietnam.com,contact@saigon-soft-vietnam.com,9128084585,CompanySeeder,0,0,synthetic_seed
+71bf8f93-c9ea-42db-9c32-915ef57cac37,Saigon Software,https://www.saigon-software.com,contact@saigon-software.com,6464403301,CompanySeeder,0,0,synthetic_seed
+ee7e742a-2b05-4c9e-8b59-44c11ad9e376,Saigon Space Vietnam,https://www.saigon-space-vietnam.com,contact@saigon-space-vietnam.com,4887663440,CompanySeeder,0,0,synthetic_seed
+f4b3d225-8bcd-4b9a-b921-635cd5ca8b40,Saigon Systems,https://www.saigon-systems.com,contact@saigon-systems.com,3311592123,CompanySeeder,0,0,synthetic_seed
+f5a8b2e6-8702-45fb-8940-365186ecdb06,Saigon Works,https://www.saigon-works.com,contact@saigon-works.com,2760821961,CompanySeeder,0,0,synthetic_seed
+15ba7786-266b-4648-a674-b5a11a52a085,Sigma Analytics,https://www.sigma-analytics.com,contact@sigma-analytics.com,5469059828,CompanySeeder,0,0,synthetic_seed
+4c84cdfe-391f-4f96-b8ff-8864b0c91c41,Sigma Code,https://www.sigma-code.com,contact@sigma-code.com,7096056433,CompanySeeder,0,0,synthetic_seed
+a0473818-ee7e-4407-a00e-6d931280ed43,Sigma Digital,https://www.sigma-digital.com,contact@sigma-digital.com,0791135716,CompanySeeder,0,0,synthetic_seed
+978b96c9-2b8a-4bb2-92d0-af161cccd317,Sigma Innovation,https://www.sigma-innovation.com,contact@sigma-innovation.com,1980334635,CompanySeeder,0,0,synthetic_seed
+b06331f8-fc24-4bf7-91f8-8e6d69f7c5e8,Sigma Intelligence Global,https://www.sigma-intelligence-global.com,contact@sigma-intelligence-global.com,8716897684,CompanySeeder,0,0,synthetic_seed
+ed6d7bdc-7586-41ea-a779-6523a7d63ebe,Sigma Networks Vietnam,https://www.sigma-networks-vietnam.com,contact@sigma-networks-vietnam.com,0976582802,CompanySeeder,0,0,synthetic_seed
+adb7121f-c68e-4384-9038-ed2350528704,Sigma Soft,https://www.sigma-soft.com,contact@sigma-soft.com,8631665398,CompanySeeder,0,0,synthetic_seed
+3ec6a098-dbe9-4c1b-a434-9f983a3c9933,Sigma Solutions,https://www.sigma-solutions.com,contact@sigma-solutions.com,4182889837,CompanySeeder,0,0,synthetic_seed
+e4016901-4598-4c87-9550-7fe104e04b18,Sigma Space Global,https://www.sigma-space-global.com,contact@sigma-space-global.com,3470424761,CompanySeeder,0,0,synthetic_seed
+b1085cfc-43a6-4007-9b94-7d40e49b9190,Sigma Systems,https://www.sigma-systems.com,contact@sigma-systems.com,4751688656,CompanySeeder,0,0,synthetic_seed
+df364378-e199-4de3-b3ce-1ad6c2626dc1,Smart Digital,https://www.smart-digital.com,contact@smart-digital.com,8639848864,CompanySeeder,0,0,synthetic_seed
+b425e35c-52bd-4e53-bbb2-292559e08ec7,Smart Labs,https://www.smart-labs.com,contact@smart-labs.com,8776040542,CompanySeeder,0,0,synthetic_seed
+e1bf32eb-bcc8-4f64-8ab8-fa6421b1728c,Smart Space,https://www.smart-space.com,contact@smart-space.com,7109964446,CompanySeeder,0,0,synthetic_seed
+f3da459d-a467-4d3a-8c3a-116941183754,SongHong Digital Vietnam,https://www.songhong-digital-vietnam.com,contact@songhong-digital-vietnam.com,9534940429,CompanySeeder,0,0,synthetic_seed
+f59f3b11-f83b-468e-87db-bfb0aed7bcd5,SongHong Intelligence,https://www.songhong-intelligence.com,contact@songhong-intelligence.com,0161284001,CompanySeeder,0,0,synthetic_seed
+7c8fb250-982a-459c-80cb-70ba531936f3,SongHong Space Global,https://www.songhong-space-global.com,contact@songhong-space-global.com,8538671300,CompanySeeder,0,0,synthetic_seed
+61caceaf-9488-4c83-8431-339c2bbf6ad5,SongHong Systems,https://www.songhong-systems.com,contact@songhong-systems.com,2446026195,CompanySeeder,0,0,synthetic_seed
+c21d2060-0b42-495f-b6ad-bb4f30fc74d8,SongHong Tech,https://www.songhong-tech.com,contact@songhong-tech.com,6114635110,CompanySeeder,0,0,synthetic_seed
+e81cc0c5-58d7-4898-83b3-b584937264f5,SongHong Technologies,https://www.songhong-technologies.com,contact@songhong-technologies.com,3972584441,CompanySeeder,0,0,synthetic_seed
+15dae5c6-7ac7-4031-9c7b-d162ddcea9c1,Titan Consulting,https://www.titan-consulting.com,contact@titan-consulting.com,6135161994,CompanySeeder,0,0,synthetic_seed
+649824d8-e3f6-4989-98d2-3d570985c7d1,Titan Labs Vietnam,https://www.titan-labs-vietnam.com,contact@titan-labs-vietnam.com,7058602145,CompanySeeder,0,0,synthetic_seed
+b3ea7eac-0533-4df5-8796-eee1eb5993cd,Titan Networks,https://www.titan-networks.com,contact@titan-networks.com,4210839490,CompanySeeder,0,0,synthetic_seed
+8ba6b317-2490-4748-b142-717ed2350a86,Titan Tech,https://www.titan-tech.com,contact@titan-tech.com,7801332526,CompanySeeder,0,0,synthetic_seed
+3abebeef-a49d-43fe-b76e-cc74218a0467,Titan Technologies,https://www.titan-technologies.com,contact@titan-technologies.com,9276709409,CompanySeeder,0,0,synthetic_seed
+d0da6cfc-adaf-4eb0-b840-a4102fee836b,Ultra Analytics,https://www.ultra-analytics.com,contact@ultra-analytics.com,5813421723,CompanySeeder,0,0,synthetic_seed
+1c968db0-6a2e-4ad1-9dc2-5eb6acc6afc9,Ultra Hub,https://www.ultra-hub.com,contact@ultra-hub.com,1152761138,CompanySeeder,0,0,synthetic_seed
+d2a91cc6-0a62-4006-8f97-0946fe66d28e,Ultra Hub Global,https://www.ultra-hub-global.com,contact@ultra-hub-global.com,5305147865,CompanySeeder,0,0,synthetic_seed
+7a474bc4-0488-46f5-9fd0-db460f1079be,Ultra Intelligence Global,https://www.ultra-intelligence-global.com,contact@ultra-intelligence-global.com,1241726436,CompanySeeder,0,0,synthetic_seed
+572140b0-803d-4860-b77d-52f2e1f50f49,Ultra Solutions,https://www.ultra-solutions.com,contact@ultra-solutions.com,0370382653,CompanySeeder,0,0,synthetic_seed
+c93b9c33-e462-4e1d-a916-b450b462d178,Ultra Tech,https://www.ultra-tech.com,contact@ultra-tech.com,6697961567,CompanySeeder,0,0,synthetic_seed
+5ea33c14-ab05-46a0-bf59-94483e3ae192,Ultra Tech Global,https://www.ultra-tech-global.com,contact@ultra-tech-global.com,6589305977,CompanySeeder,0,0,synthetic_seed
+ad1c3f01-6638-47e2-ae1d-377af593b68f,Vertex Hub,https://www.vertex-hub.com,contact@vertex-hub.com,1465908538,CompanySeeder,0,0,synthetic_seed
+4205ee25-1074-40e9-b6ce-8e9fb325027b,Vertex Networks Global,https://www.vertex-networks-global.com,contact@vertex-networks-global.com,2488619307,CompanySeeder,0,0,synthetic_seed
+793d8425-cb9d-4ad4-b23f-2026643b98ec,Vertex Soft,https://www.vertex-soft.com,contact@vertex-soft.com,7883655062,CompanySeeder,0,0,synthetic_seed
+ce139fef-5232-4298-8859-0645c6cfe5df,Vertex Space,https://www.vertex-space.com,contact@vertex-space.com,9848864573,CompanySeeder,0,0,synthetic_seed
+626aefe5-9553-4d4a-b51c-08ea8cb9887c,Vertex Technologies Vietnam,https://www.vertex-technologies-vietnam.com,contact@vertex-technologies-vietnam.com,2771862107,CompanySeeder,0,0,synthetic_seed
+94ec93a6-7ace-48db-98c0-fee0991fad2d,Viet Consulting,https://www.viet-consulting.com,contact@viet-consulting.com,5205997283,CompanySeeder,0,0,synthetic_seed
+b0c28667-ffee-4e87-bb91-e0a801a19709,Viet Labs,https://www.viet-labs.com,contact@viet-labs.com,1126584409,CompanySeeder,0,0,synthetic_seed
+f8a2b0ae-cd5d-4d75-9eee-92d35149cbc6,Viet Labs Global,https://www.viet-labs-global.com,contact@viet-labs-global.com,8939494821,CompanySeeder,0,0,synthetic_seed
+3fb3fab0-2479-424d-8e6d-4446c0242478,Viet Soft,https://www.viet-soft.com,contact@viet-soft.com,6425247764,CompanySeeder,0,0,synthetic_seed
+4e6b61de-aea0-4fe9-b17e-ae7e56de221e,Viet Software,https://www.viet-software.com,contact@viet-software.com,7645291280,CompanySeeder,0,0,synthetic_seed
+8c9e021e-2716-4f0c-b5a5-6694567e6ac1,Viet Systems,https://www.viet-systems.com,contact@viet-systems.com,3540115276,CompanySeeder,0,0,synthetic_seed
+665cd702-4ec5-4e46-ae9f-a0b13de4d37a,Viet Works,https://www.viet-works.com,contact@viet-works.com,0421631111,CompanySeeder,0,0,synthetic_seed
+e1328bd4-1588-4f11-b08f-74c9ee8aec87,Viet Works Global,https://www.viet-works-global.com,contact@viet-works-global.com,6695389650,CompanySeeder,0,0,synthetic_seed
+322fe094-3c9f-414f-81ca-94c0b6d1dde7,Vina Code Vietnam,https://www.vina-code-vietnam.com,contact@vina-code-vietnam.com,1059148335,CompanySeeder,0,0,synthetic_seed
+6cbb27d3-c1be-403f-a092-74de6b0098c8,Vina Solutions,https://www.vina-solutions.com,contact@vina-solutions.com,0727615141,CompanySeeder,0,0,synthetic_seed
+a2d69e4b-6787-4c86-b9b5-b7e879691a18,Vina Space,https://www.vina-space.com,contact@vina-space.com,9432627058,CompanySeeder,0,0,synthetic_seed
+8486e7ff-3efe-44ec-b218-7e4258d22614,Vina Systems Vietnam,https://www.vina-systems-vietnam.com,contact@vina-systems-vietnam.com,6817922328,CompanySeeder,0,0,synthetic_seed
+eb142482-0c92-4a31-b98f-7e02caafa104,Vina Tech,https://www.vina-tech.com,contact@vina-tech.com,8890421631,CompanySeeder,0,0,synthetic_seed
+b243cf84-4766-4704-93b3-23084a9b7e55,Wave Analytics,https://www.wave-analytics.com,contact@wave-analytics.com,7042476134,CompanySeeder,0,0,synthetic_seed
+753f54ed-1116-4be5-a4c9-a7a63449ee8a,Wave Analytics Vietnam,https://www.wave-analytics-vietnam.com,contact@wave-analytics-vietnam.com,7077510626,CompanySeeder,0,0,synthetic_seed
+9478a376-0dde-4cba-baea-5fb707acdaf7,Wave Code,https://www.wave-code.com,contact@wave-code.com,4705670904,CompanySeeder,0,0,synthetic_seed
+43bda013-1f6d-423a-8be4-d418d164a20e,Wave Intelligence,https://www.wave-intelligence.com,contact@wave-intelligence.com,9085417758,CompanySeeder,0,0,synthetic_seed
+bd7eb879-b254-48c9-9039-d0d0d0fad8fd,Wave Software Vietnam,https://www.wave-software-vietnam.com,contact@wave-software-vietnam.com,9836957931,CompanySeeder,0,0,synthetic_seed
+b27e9a85-8499-41bd-b9be-62b0af6710db,Wave Space,https://www.wave-space.com,contact@wave-space.com,8319489394,CompanySeeder,0,0,synthetic_seed
+ef5e4028-e90a-4c37-90c9-c6af85044b94,Wave Systems Global,https://www.wave-systems-global.com,contact@wave-systems-global.com,7443256885,CompanySeeder,0,0,synthetic_seed
+64b2e2c1-47d3-4315-834a-8b476141c037,Wave Works Global,https://www.wave-works-global.com,contact@wave-works-global.com,1660330428,CompanySeeder,0,0,synthetic_seed
+61df1c28-f1d9-493c-aef7-86b262be1205,Zenith Hub,https://www.zenith-hub.com,contact@zenith-hub.com,4685424276,CompanySeeder,0,0,synthetic_seed
+2cde8fcd-b224-406e-bddc-d0a74569614d,Zenith Labs,https://www.zenith-labs.com,contact@zenith-labs.com,4885681067,CompanySeeder,0,0,synthetic_seed
+1aee8d96-4af0-45d0-be4b-adeef63b5288,Zenith Networks,https://www.zenith-networks.com,contact@zenith-networks.com,1698716897,CompanySeeder,0,0,synthetic_seed
+7bd422d6-15ff-4696-b61c-5311e8756abd,Zenith Solutions,https://www.zenith-solutions.com,contact@zenith-solutions.com,1889870415,CompanySeeder,0,0,synthetic_seed
+5d07a65d-2afe-40f4-9eab-2c083d0eeecf,Zenith Systems,https://www.zenith-systems.com,contact@zenith-systems.com,8509868015,CompanySeeder,0,0,synthetic_seed

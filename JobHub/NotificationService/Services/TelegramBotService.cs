@@ -501,7 +501,8 @@ public partial class TelegramBotService : ITelegramBotService
                 reaction = new[]
                 {
                     new { type = "emoji", emoji = "❤️" }
-                }
+                },
+                is_big = true
             };
 
             var json = JsonSerializer.Serialize(payload);

@@ -64,7 +64,9 @@ async def execute_search_jobs(args: dict, user_token: str) -> dict:
             "salaryMin": j.get("salaryMin"),
             "salaryMax": j.get("salaryMax"),
             "salaryCurrency": j.get("salaryCurrency", "VND"),
-            "status": j.get("status")
+            "status": j.get("status"),
+            "description": j.get("description"),
+            "requirements": j.get("requirements")
         }
         for j in raw_jobs
     ]
@@ -93,7 +95,9 @@ async def execute_get_my_jobs(args: dict, user_token: str) -> dict:
             "location": j.get("location"),
             "salaryMin": j.get("salaryMin"),
             "salaryMax": j.get("salaryMax"),
-            "salaryCurrency": j.get("salaryCurrency", "VND")
+            "salaryCurrency": j.get("salaryCurrency", "VND"),
+            "description": j.get("description"),
+            "requirements": j.get("requirements")
         }
         for j in raw_jobs
     ]

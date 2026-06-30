@@ -28,9 +28,9 @@ public partial class TelegramBotService
             var userIdStr = parts[1].Substring(5);
             if (Guid.TryParse(userIdStr, out Guid userId))
             {
-                // Giải phóng TelegramChatId nếu đã được liên kết với User khác
+                // Giải phóng TelegramChatId nếu đã được liên kết với User khác qua CÙNG botToken
                 var otherBinding = await _dbContext.UserTelegramBindings
-                    .FirstOrDefaultAsync(x => x.TelegramChatId == chatId && x.UserId != userId);
+                    .FirstOrDefaultAsync(x => x.TelegramChatId == chatId && x.BotToken == botToken && x.UserId != userId);
                 if (otherBinding != null)
                 {
                     _dbContext.UserTelegramBindings.Remove(otherBinding);

@@ -24,6 +24,8 @@ public class NotificationDbContext : DbContext
     public DbSet<HireAgentConversation> HireAgentConversations { get; set; } = null!;
     public DbSet<UserTelegramBinding> UserTelegramBindings { get; set; } = null!;
     public DbSet<UserCronSchedule> UserCronSchedules { get; set; } = null!;
+    public DbSet<UserGoogleCredential> UserGoogleCredentials { get; set; } = null!;
+    public DbSet<InterviewGoogleEvent> InterviewGoogleEvents { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,7 +35,7 @@ public class NotificationDbContext : DbContext
         {
             entity.HasKey(ut => ut.Id);
             entity.HasIndex(ut => ut.UserId).IsUnique().HasDatabaseName("IX_UserTelegramBindings_UserId");
-            entity.HasIndex(ut => ut.TelegramChatId).IsUnique().HasDatabaseName("IX_UserTelegramBindings_TelegramChatId");
+            entity.HasIndex(ut => new { ut.TelegramChatId, ut.BotToken }).IsUnique().HasDatabaseName("IX_UserTelegramBindings_TelegramChatId_BotToken");
         });
 
         modelBuilder.Entity<Notification>(entity =>

@@ -1,0 +1,141 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using NotificationService.Services.Interface;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace NotificationService.Controllers;
+
+[ApiController]
+[Route("api/v1/google-calendar")]
+public class GoogleCalendarController : ControllerBase
+{
+    private readonly IGoogleCalendarService _googleCalendarService;
+    private readonly IConfiguration _config;
+
+    public GoogleCalendarController(IGoogleCalendarService googleCalendarService, IConfiguration config)
+    {
+        _googleCalendarService = googleCalendarService;
+        _config = config;
+    }
+
+    private string GetCurrentUserId()
+    {
+        return User.FindFirstValue(ClaimTypes.NameIdentifier)
+               ?? User.FindFirstValue("sub")
+               ?? throw new UnauthorizedAccessException("Không tìm thấy thông tin User.");
+    }
+
+    [HttpGet("auth-url")]
+    [Authorize]
+    public IActionResult GetAuthUrl()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var url = _googleCalendarService.GetAuthUrl(userId);
+            return Ok(new { url });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("callback")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
+            {
+                return BadRequest("Mã xác thực code hoặc state bị thiếu.");
+            }
+
+            // state là userId của recruiter truyền từ GetAuthUrl
+            var userId = state;
+            await _googleCalendarService.ExchangeCodeForTokensAsync(userId, code);
+
+            // Chạy ngầm đồng bộ tất cả lịch hẹn cũ của chiến dịch tuyển dụng AI sang Google Calendar vừa liên kết
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _googleCalendarService.SyncAllExistingInterviewsAsync(userId);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[GoogleCalendar-OAuth] Lỗi tự động đồng bộ sau OAuth: {ex.Message}");
+                }
+            });
+
+            // Chuyển hướng người dùng quay trở lại giao diện Frontend
+            var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+            return Redirect($"{frontendUrl.TrimEnd('/')}/hr/interview-scheduler?google_sync=success");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GoogleCalendar-Callback] Lỗi callback: {ex.Message}");
+            var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+            return Redirect($"{frontendUrl.TrimEnd('/')}/hr/interview-scheduler?google_sync=failed&error={Uri.EscapeDataString(ex.Message)}");
+        }
+    }
+
+    [HttpGet("status")]
+    [Authorize]
+    public async Task<IActionResult> GetStatus()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var isConnected = await _googleCalendarService.IsConnectedAsync(userId);
+            var email = isConnected ? await _googleCalendarService.GetConnectedEmailAsync(userId) : string.Empty;
+            return Ok(new { isConnected, email });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("disconnect")]
+    [Authorize]
+    public async Task<IActionResult> Disconnect()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            await _googleCalendarService.DisconnectAsync(userId);
+            return Ok(new { message = "Đã hủy liên kết Google Calendar thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("sync-existing")]
+    [Authorize]
+    public async Task<IActionResult> SyncExisting()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var isConnected = await _googleCalendarService.IsConnectedAsync(userId);
+            if (!isConnected)
+            {
+                return BadRequest(new { message = "Tài khoản Google Calendar chưa được liên kết." });
+            }
+
+            await _googleCalendarService.SyncAllExistingInterviewsAsync(userId);
+            return Ok(new { message = "Đồng bộ lịch cũ thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+}

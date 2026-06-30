@@ -21,3 +21,13 @@ async def chat_screening(req: HireAgentChatRequest):
         is_completed=res.get("is_completed", False),
         is_passed=res.get("is_passed", False)
     )
+
+@router.post("/classify-intent", summary="Phân tích ý định xác nhận lịch phỏng vấn của ứng viên")
+async def classify_intent(req: dict):
+    res = await hire_agent_service.classify_scheduling_intent(
+        date1=req.get("date1", ""),
+        date2=req.get("date2", ""),
+        candidate_message=req.get("candidate_message", "")
+    )
+    return res
+

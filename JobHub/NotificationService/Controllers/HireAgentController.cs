@@ -109,6 +109,18 @@ public class HireAgentController : ControllerBase
         return Ok(conversation);
     }
 
+    /// <summary>HR hủy lịch hẹn phỏng vấn → thông báo ứng viên, reset về Passed và xóa ngày</summary>
+    [HttpPost("campaigns/{campaignId:guid}/cancel-schedule")]
+    [ApiMessage("Hủy lịch phỏng vấn thành công")]
+    public async Task<IActionResult> CancelInterview(Guid campaignId, [FromBody] CancelInterviewRequest request)
+    {
+        if (string.IsNullOrEmpty(request.CandidateId))
+            return BadRequest("CandidateId là bắt buộc.");
+
+        var conversation = await _hireAgentService.CancelInterviewAsync(campaignId, request.CandidateId);
+        return Ok(conversation);
+    }
+
     [HttpGet("campaigns/{campaignId:guid}/my-conversation")]
     [ApiMessage("Lấy thông tin hội thoại phỏng vấn của ứng viên thành công")]
     public async Task<IActionResult> GetMyConversation(Guid campaignId)

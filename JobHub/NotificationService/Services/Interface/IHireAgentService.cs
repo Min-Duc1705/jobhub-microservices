@@ -23,5 +23,8 @@ public interface IHireAgentService
     /// <summary>Candidate đề xuất đổi lịch → thông báo HR, reset về Passed</summary>
     Task<HireAgentConversation> ProposeRescheduleAsync(Guid campaignId, string candidateId, string? message = null);
 
+    /// <summary>HR hủy lịch hẹn phỏng vấn → thông báo ứng viên, reset về Passed và xóa ngày</summary>
+    Task<HireAgentConversation> CancelInterviewAsync(Guid campaignId, string candidateId);
+
     Task<HireAgentConversation?> GetConversationByCandidateAndCampaignAsync(Guid campaignId, string candidateId);
 }

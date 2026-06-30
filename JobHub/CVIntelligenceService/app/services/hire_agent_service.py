@@ -183,3 +183,85 @@ async def process_screening_chat(
             attempt += 1
 
     return default_empty
+
+
+_SCHEDULING_PROMPT = """
+Bạn là một AI phân tích ý định tin nhắn của ứng viên trong giai đoạn chốt lịch phỏng vấn.
+Nhiệm vụ của bạn là xác định ý định của ứng viên dựa trên tin nhắn cuối cùng và các tùy chọn lịch của nhà tuyển dụng.
+
+=== LỊCH ĐỀ XUẤT ===
+Phương án 1: {date1}
+Phương án 2: {date2}
+
+=== TIN NHẮN CUỐI CỦA ỨNG VIÊN ===
+"{candidate_message}"
+
+=== CÁC LOẠI Ý ĐỊNH (INTENT) ===
+- "confirm_1": Ứng viên đồng ý chọn Phương án 1 (Ví dụ: "chọn 1", "phương án 1", "lịch đầu tiên", "1", "mình rảnh 1", v.v.).
+- "confirm_2": Ứng viên đồng ý chọn Phương án 2 (Ví dụ: "chọn 2", "phương án 2", "lịch thứ hai", "2", "mình rảnh 2", v.v.).
+- "confirm_general": Ứng viên đồng ý phỏng vấn chung chung nhưng không nêu rõ phương án nào, hoặc đồng ý với lịch hẹn (trường hợp chỉ có 1 lịch hẹn duy nhất đề xuất). Ví dụ: "mình đồng ý", "ok bạn", "nhất trí", "chốt lịch nha", "đồng ý phỏng vấn", v.v.
+- "reschedule": Ứng viên báo bận, muốn đổi lịch, dời giờ, chọn ngày khác, hoặc không rảnh cả 2 phương án (Ví dụ: "bận cả hai", "đổi lịch giúp mình", "lúc khác được không", "thứ hai tuần sau nhé", "bận rồi", "không được", v.v.).
+- "cancel": Ứng viên từ chối phỏng vấn hoàn toàn, rút hồ sơ, không muốn tham gia nữa (Ví dụ: "không muốn phỏng vấn nữa", "hủy lịch và rút hồ sơ", "tôi không tham gia nữa", v.v.).
+- "unknown": Các câu hỏi khác không rõ ràng hoặc không liên quan trực tiếp đến việc đồng ý/đổi lịch.
+
+Hãy phân tích và trả về kết quả dưới dạng JSON (CẤM markdown ```json):
+{{
+  "reasoning": "Giải thích ngắn gọn lý do phân loại ý định",
+  "intent": "confirm_1 | confirm_2 | confirm_general | reschedule | cancel | unknown"
+}}
+"""
+
+async def classify_scheduling_intent(
+    date1: str,
+    date2: str,
+    candidate_message: str
+) -> dict:
+    default_empty = {
+        "intent": "unknown",
+        "reasoning": "Thất bại khi gọi model phân loại"
+    }
+
+    keys = _load_api_keys()
+    if not keys:
+        return default_empty
+
+    prompt = _SCHEDULING_PROMPT.format(
+        date1=date1 or "(Không có)",
+        date2=date2 or "(Không có)",
+        candidate_message=candidate_message
+    )
+
+    models_to_try = GEMINI_MODELS
+    num_keys = len(keys)
+    num_models = len(models_to_try)
+    total_attempts = num_keys * num_models
+
+    global _current_key_idx, _current_model_idx
+    curr_key_idx = _current_key_idx % num_keys
+    curr_model_idx = _current_model_idx % num_models
+
+    attempt = 0
+    while attempt < total_attempts:
+        key = keys[curr_key_idx]
+        target_model = models_to_try[curr_model_idx]
+
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel(target_model)
+            response = await model.generate_content_async(
+                contents=prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                ),
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            logger.warning(f"[Classifier] Thất bại với Key Index {curr_key_idx}: {e}")
+            curr_model_idx = (curr_model_idx + 1) % num_models
+            if curr_model_idx == 0:
+                curr_key_idx = (curr_key_idx + 1) % num_keys
+            attempt += 1
+
+    return default_empty
+

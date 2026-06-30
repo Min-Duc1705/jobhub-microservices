@@ -27,11 +27,13 @@ builder.Services.AddCommonRedisCache(builder.Configuration, "JobHubAuth_");
 // ── Repositories ──────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IResumeRepository,      ResumeRepository>();
 builder.Services.AddScoped<IApplicationRepository, ApplicationRepository>();
+builder.Services.AddScoped<IInterviewRepository,    InterviewRepository>();
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IResumeService,      ResumeServiceImpl>();
 builder.Services.AddScoped<IApplicationService, ApplicationServiceImpl>();
+builder.Services.AddScoped<IInterviewService,    InterviewServiceImpl>();
 builder.Services.AddScoped<IResumeTextExtractionService, ResumeTextExtractionService>();
 builder.Services.AddMinioStorage(builder.Configuration);
 builder.Services.AddFileService();
@@ -166,6 +168,32 @@ using (var scope = app.Services.CreateScope())
             CONSTRAINT ""FK_Applications_Resumes"" FOREIGN KEY (""ResumeId"")
                 REFERENCES ""Resumes"" (""Id"") ON DELETE RESTRICT
         );
+
+        -- ── Bảng Interviews ──────────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS ""Interviews"" (
+            ""Id""               uuid          NOT NULL DEFAULT gen_random_uuid(),
+            ""JobId""            uuid          NOT NULL,
+            ""CandidateId""      uuid          NOT NULL,
+            ""RecruiterId""      uuid          NOT NULL,
+            ""InterviewDate""    timestamptz   NOT NULL,
+            ""Type""             varchar(50)   NOT NULL,
+            ""Status""           varchar(50)   NOT NULL DEFAULT 'PendingConfirm',
+            ""MeetingLink""      varchar(2000),
+            ""Location""         varchar(1000),
+            ""Notes""            text,
+            ""IsDeleted""        boolean       NOT NULL DEFAULT false,
+            ""DeletedAt""        timestamptz,
+            ""CreatedDate""      timestamptz   NOT NULL DEFAULT now(),
+            ""LastModifiedDate"" timestamptz,
+            ""CreatedBy""        varchar(255)  NOT NULL DEFAULT '',
+            ""LastModifiedBy""   varchar(255),
+            CONSTRAINT ""PK_Interviews"" PRIMARY KEY (""Id"")
+        );
+
+        CREATE INDEX IF NOT EXISTS ""IX_Interviews_JobId""       ON ""Interviews"" (""JobId"");
+        CREATE INDEX IF NOT EXISTS ""IX_Interviews_CandidateId"" ON ""Interviews"" (""CandidateId"");
+        CREATE INDEX IF NOT EXISTS ""IX_Interviews_RecruiterId"" ON ""Interviews"" (""RecruiterId"");
+        CREATE INDEX IF NOT EXISTS ""IX_Interviews_IsDeleted""   ON ""Interviews"" (""IsDeleted"");
 
         -- ── Thêm cột CV Builder nếu chưa có (cho DB cũ đã tồn tại) ──────────
         ALTER TABLE ""Resumes"" ADD COLUMN IF NOT EXISTS ""IsOnlineCv""  boolean NOT NULL DEFAULT false;

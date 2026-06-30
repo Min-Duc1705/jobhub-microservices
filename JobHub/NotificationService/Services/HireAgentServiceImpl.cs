@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
+using NotificationService.Data;
 using NotificationService.Hubs;
 using NotificationService.Repositories.Interface;
 using NotificationService.Services.Interface;
@@ -27,9 +28,11 @@ public partial class HireAgentServiceImpl : IHireAgentService
     private readonly IHubContext<ChatHub>        _hubContext;
     private readonly IConfiguration             _config;
     private readonly IServiceScopeFactory       _scopeFactory;
+    private readonly IGoogleCalendarService     _googleCalendarService;
+    private readonly NotificationDbContext      _dbContext;
 
     // ── Shared statics ───────────────────────────────────────────────────────
-    private static readonly HttpClient _httpClient = new HttpClient();
+    private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
     /// <summary>Ngăn chạy song song cùng một chiến dịch (CampaignId → running flag).</summary>
     private static readonly ConcurrentDictionary<Guid, bool> _runningCampaigns = new();
@@ -40,7 +43,9 @@ public partial class HireAgentServiceImpl : IHireAgentService
         IChatService chatService,
         IHubContext<ChatHub> hubContext,
         IConfiguration config,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IGoogleCalendarService googleCalendarService,
+        NotificationDbContext dbContext)
     {
         _hireAgentRepo = hireAgentRepo;
         _chatRepo      = chatRepo;
@@ -48,5 +53,7 @@ public partial class HireAgentServiceImpl : IHireAgentService
         _hubContext    = hubContext;
         _config        = config;
         _scopeFactory  = scopeFactory;
+        _googleCalendarService = googleCalendarService;
+        _dbContext     = dbContext;
     }
 }

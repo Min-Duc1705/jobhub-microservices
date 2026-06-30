@@ -24,7 +24,7 @@ public class ChatServiceImpl : IChatService
     private readonly IChatRepository _chatRepo;
     private readonly IMapper _mapper;
     private readonly IServiceScopeFactory _scopeFactory;
-    private static readonly HttpClient _httpClient = new HttpClient();
+    private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
     public ChatServiceImpl(IChatRepository chatRepo, IMapper mapper, IServiceScopeFactory scopeFactory)
     {

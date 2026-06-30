@@ -31,13 +31,13 @@ public partial class TelegramBotService
         var activeClient = GetBotClient(botToken);
         if (activeClient == null) return;
 
-        // Giới hạn tối đa 5 lịch mỗi user
+        // Giới hạn tối đa 10 lịch mỗi user
         var existingCount = await _dbContext.UserCronSchedules
             .CountAsync(s => s.UserId == userId && s.IsActive);
-        if (existingCount >= 5)
+        if (existingCount >= 10)
         {
             await activeClient.SendTextMessageAsync(chatId,
-                "⚠️ Bạn đã có tối đa *5 lịch tự động* đang chạy.\n\nDùng `/list` để xem và `/delete <id>` để xoá bớt trước khi thêm mới.",
+                "⚠️ Bạn đã có tối đa *10 lịch tự động* đang chạy.\n\nDùng `/list` để xem và `/delete <id>` để xoá bớt trước khi thêm mới.",
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             return;
         }

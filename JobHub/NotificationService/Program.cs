@@ -44,6 +44,7 @@ builder.Services.AddScoped<IChatService, ChatServiceImpl>();
 builder.Services.AddScoped<IContactService, ContactServiceImpl>();
 builder.Services.AddScoped<IHireAgentService, HireAgentServiceImpl>();
 builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
+builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
 builder.Services.AddHostedService<HireAgentWorker>();
 builder.Services.AddHostedService<CronSchedulerWorker>();
 
@@ -75,6 +76,7 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<SendNotificationConsumer>();
     x.AddConsumer<AuditLogCreatedConsumer>();
     x.AddConsumer<NotificationUserDeletedConsumer>();
+    x.AddConsumer<InterviewScheduleChangedConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -302,7 +304,8 @@ using (var scope = app.Services.CreateScope())
         ALTER TABLE ""UserTelegramBindings"" ADD COLUMN IF NOT EXISTS ""BotToken"" text;
         ALTER TABLE ""UserTelegramBindings"" ADD COLUMN IF NOT EXISTS ""BotUsername"" text;
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_UserId"" ON ""UserTelegramBindings"" (""UserId"");
-        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_TelegramChatId"" ON ""UserTelegramBindings"" (""TelegramChatId"") WHERE ""TelegramChatId"" IS NOT NULL;
+        DROP INDEX IF EXISTS ""IX_UserTelegramBindings_TelegramChatId"";
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserTelegramBindings_TelegramChatId_BotToken"" ON ""UserTelegramBindings"" (""TelegramChatId"", ""BotToken"") WHERE ""TelegramChatId"" IS NOT NULL;
 
         CREATE TABLE IF NOT EXISTS ""UserCronSchedules"" (
             ""Id""              serial        NOT NULL,

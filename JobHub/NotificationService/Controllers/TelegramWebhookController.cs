@@ -1,5 +1,7 @@
 using System;
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +24,15 @@ public class TelegramWebhookController : ControllerBase
     private readonly NotificationDbContext _dbContext;
     private readonly IConfiguration _configuration;
     private readonly ILogger<TelegramWebhookController> _logger;
+
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        Converters = { 
+            new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
+            new UnixDateTimeConverter()
+        }
+    };
 
     public TelegramWebhookController(
         ITelegramBotService telegramBotService,
@@ -50,7 +61,7 @@ public class TelegramWebhookController : ControllerBase
         {
             using var reader = new System.IO.StreamReader(Request.Body);
             var json = await reader.ReadToEndAsync();
-            var update = Newtonsoft.Json.JsonConvert.DeserializeObject<Update>(json);
+            var update = JsonSerializer.Deserialize<Update>(json, _jsonOptions);
             if (update != null)
             {
                 await _telegramBotService.ProcessUpdateAsync(update);
@@ -70,7 +81,7 @@ public class TelegramWebhookController : ControllerBase
         {
             using var reader = new System.IO.StreamReader(Request.Body);
             var json = await reader.ReadToEndAsync();
-            var update = Newtonsoft.Json.JsonConvert.DeserializeObject<Update>(json);
+            var update = JsonSerializer.Deserialize<Update>(json, _jsonOptions);
             if (update != null)
             {
                 await _telegramBotService.ProcessUpdateAsync(update, botToken);
@@ -228,9 +239,9 @@ public class TelegramWebhookController : ControllerBase
 
             var existingCount = await _dbContext.UserCronSchedules
                 .CountAsync(s => s.UserId == userId && s.IsActive);
-            if (existingCount >= 5)
+            if (existingCount >= 10)
             {
-                return BadRequest(new { message = "Bạn đã có tối đa 5 lịch tự động đang chạy." });
+                return BadRequest(new { message = "Bạn đã có tối đa 10 lịch tự động đang chạy." });
             }
 
             var nextRun = (request.NextRunAt ?? DateTimeOffset.UtcNow.AddMinutes(interval <= 0 ? 5 : interval)).ToUniversalTime();
@@ -377,3 +388,23 @@ public class SubscribeRequest
     public int IntervalMinutes { get; set; }
     public DateTimeOffset? NextRunAt { get; set; }
 }
+
+public class UnixDateTimeConverter : JsonConverter<DateTime>
+{
+    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            long unixTime = reader.GetInt64();
+            return DateTimeOffset.FromUnixTimeSeconds(unixTime).UtcDateTime;
+        }
+        return reader.GetDateTime();
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+    {
+        long unixTime = ((DateTimeOffset)value).ToUnixTimeSeconds();
+        writer.WriteNumberValue(unixTime);
+    }
+}
+

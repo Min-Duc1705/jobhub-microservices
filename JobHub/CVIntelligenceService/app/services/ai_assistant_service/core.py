@@ -249,8 +249,8 @@ async def process_assistant_message(
                         ))
                         
                     serialized_res = json.dumps(result, ensure_ascii=False)
-                    if len(serialized_res) > 15000:
-                        serialized_res = serialized_res[:15000] + "... [TRUNCATED]"
+                    if len(serialized_res) > 150000:
+                        serialized_res = serialized_res[:150000] + "... [TRUNCATED]"
                         
                     fn_responses.append(
                         Part.from_function_response(
@@ -311,10 +311,15 @@ async def process_assistant_message(
 
     models_to_try = [
         "gemini-3.5-flash",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-pro-preview",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-3.1-flash-lite",
+        "gemini-3-flash-preview",
         "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
         "gemini-1.5-flash-latest",
     ]
@@ -453,8 +458,8 @@ async def process_assistant_message(
                         ))
 
                     serialized_res = json.dumps(result, ensure_ascii=False)
-                    if len(serialized_res) > 15000:
-                        serialized_res = serialized_res[:15000] + "... [TRUNCATED]"
+                    if len(serialized_res) > 150000:
+                        serialized_res = serialized_res[:150000] + "... [TRUNCATED]"
 
                     fn_responses.append(
                         genai.protos.Part(

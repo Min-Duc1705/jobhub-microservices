@@ -310,7 +310,7 @@ public partial class HireAgentServiceImpl
                         var welcomeMsg = chatDoc.RootElement.GetProperty("reply").GetString()
                             ?? $"Chào bạn, tôi là trợ lý AI tuyển dụng của {campaign.JobName}. Tôi thấy hồ sơ của bạn rất ấn tượng và muốn trao đổi cơ hội làm việc!";
 
-                        var chatMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, candidateId, welcomeMsg, "text");
+                        var chatMessageResponse = await _chatService.SendMessageAsync(campaign.RecruiterId, candidateId, "[AI] " + welcomeMsg, "text");
 
                         var agentConv = new HireAgentConversation
                         {

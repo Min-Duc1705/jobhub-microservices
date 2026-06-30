@@ -28,6 +28,7 @@ public class ResumeDbContext : DbContext
     // ── DbSets ────────────────────────────────────────────────────────────────
     public DbSet<Resume>      Resumes      { get; set; } = null!;
     public DbSet<Application> Applications { get; set; } = null!;
+    public DbSet<Interview>   Interviews   { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,6 +83,27 @@ public class ResumeDbContext : DbContext
 
             // Soft-delete query filter
             entity.HasQueryFilter(a => !a.IsDeleted);
+        });
+
+        // ── Interview ─────────────────────────────────────────────────────────
+        modelBuilder.Entity<Interview>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+
+            entity.Property(i => i.Type).IsRequired().HasMaxLength(50);
+            entity.Property(i => i.Status).IsRequired().HasMaxLength(50);
+            entity.Property(i => i.MeetingLink).IsRequired(false).HasMaxLength(2000);
+            entity.Property(i => i.Location).IsRequired(false).HasMaxLength(1000);
+            entity.Property(i => i.Notes).IsRequired(false);
+
+            // Indexes
+            entity.HasIndex(i => i.JobId).HasDatabaseName("IX_Interviews_JobId");
+            entity.HasIndex(i => i.CandidateId).HasDatabaseName("IX_Interviews_CandidateId");
+            entity.HasIndex(i => i.RecruiterId).HasDatabaseName("IX_Interviews_RecruiterId");
+            entity.HasIndex(i => i.IsDeleted).HasDatabaseName("IX_Interviews_IsDeleted");
+
+            // Soft-delete query filter
+            entity.HasQueryFilter(i => !i.IsDeleted);
         });
     }
 
