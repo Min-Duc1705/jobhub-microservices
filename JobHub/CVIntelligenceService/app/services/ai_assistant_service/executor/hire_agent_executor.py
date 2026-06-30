@@ -37,3 +37,8 @@ async def execute_schedule_campaign_interview(args: dict, user_token: str) -> di
         "POST", f"http://notificationservice:8080/api/v1/hire-agent/campaigns/{camp_id}/schedule",
         user_token, json_data=payload
     )
+
+
+async def execute_get_campaign_conversations(args: dict, user_token: str) -> dict:
+    camp_id = args.get("campaign_id", "")
+    return await _call_api("GET", f"http://notificationservice:8080/api/v1/hire-agent/campaigns/{camp_id}/conversations", user_token)

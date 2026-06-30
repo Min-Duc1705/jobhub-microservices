@@ -464,6 +464,19 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "get_campaign_conversations",
+        "description": "Lấy danh sách các cuộc hội thoại sàng lọc tuyển dụng AI (kèm thông tin ứng viên và trạng thái phỏng vấn) của một chiến dịch tuyển dụng cụ thể",
+        "permissions_required": [("POST", "/api/v1/jobs")],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {"type": "string", "description": "ID của chiến dịch tuyển dụng AI (UUID)"}
+            },
+            "required": ["campaign_id"]
+        }
+    },
+    {
         "name": "broadcast_notification",
         "description": "Gửi thông báo hệ thống (broadcast) tới toàn bộ người dùng hoặc một nhóm đối tượng cụ thể (HR, Candidate)",
         "permissions_required": [("POST", "/api/v1/users/notifications/broadcast")],
