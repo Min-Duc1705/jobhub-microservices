@@ -174,21 +174,79 @@ async def execute_score_candidates_for_job(args: dict, user_token: str) -> dict:
             "cv_text": cv_text
         })
 
-    # 5. Call cv_service.batch_score
-    from app.services.cv_service import batch_score
-    from app.schemas.cv_scoring import SkillScoringRequest
+    # 5. Extract user ID from token
+    from .token_utils import _get_customer_id_from_token
+    user_id = _get_customer_id_from_token(user_token)
 
-    scoring_req = SkillScoringRequest(
-        job_description=job_desc,
-        cv_list=cv_list
-    )
+    # 6. Define background task
+    async def run_scoring_in_background():
+        try:
+            logger.info(f"[BackgroundScoring] Starting background score for job {job_id} ({len(cv_list)} CVs)")
+            from app.services.cv_service import batch_score
+            from app.schemas.cv_scoring import SkillScoringRequest
+            import json
 
-    try:
-        score_res = await batch_score(scoring_req, top_n=top_n)
-        return score_res.model_dump()
-    except Exception as e:
-        logger.error(f"[CandidateExecutor] Error running batch_score: {e}")
-        return {"error": f"Lỗi khi chạy thuật toán chấm điểm AI: {str(e)}"}
+            scoring_req = SkillScoringRequest(
+                job_description=job_desc,
+                cv_list=cv_list
+            )
+
+            score_res_obj = await batch_score(scoring_req, top_n=top_n)
+            score_res = score_res_obj.model_dump()
+            results_list = score_res.get("results", [])
+
+            # Format the ranking table
+            table_md = f"🤖 **Kết quả chấm điểm hàng loạt hoàn tất cho Job: {job_data.get('name', 'Tin tuyển dụng')}**\n\n"
+            table_md += "| Hạng | Ứng viên | Điểm tương thích | Trạng thái |\n"
+            table_md += "| :--- | :--- | :--- | :--- |\n"
+            
+            # Show top 15 in chat
+            for idx, item in enumerate(results_list[:15]):
+                cust_id = item.get("customer_id")
+                candidate_name = "Ứng viên"
+                try:
+                    prof_resp = await _call_api("GET", f"http://profileservice:8080/api/v1/customers/{cust_id}", user_token)
+                    candidate_name = prof_resp.get("data", {}).get("fullName") or prof_resp.get("data", {}).get("username") or "Ứng viên"
+                except Exception:
+                    pass
+
+                # Resolve application status from the original apps list
+                status_str = "Chờ xử lý"
+                app_obj = next((a for a in apps if a.get("id") == item.get("application_id")), None)
+                if app_obj:
+                    raw_status = str(app_obj.get("status", "")).upper()
+                    if raw_status == "APPROVED":
+                        status_str = "Đã duyệt"
+                    elif raw_status == "REJECTED":
+                        status_str = "Đã từ chối"
+                    elif raw_status == "REVIEWING":
+                        status_str = "Đang xem xét"
+
+                table_md += f"| {idx+1} | **{candidate_name}** | **{item.get('matching_score')}%** | {status_str} |\n"
+
+            table_md += f"\n*Tổng số ứng viên đã xử lý: {len(results_list)}.*"
+            table_md += "\n\n*Lưu ý: Kết quả phân tích chi tiết thế mạnh/điểm yếu đã được cập nhật thành công lên website.*"
+
+            # Push the message back to the user via Platform Chat API
+            if user_id:
+                logger.info(f"[BackgroundScoring] Sending results message to user {user_id}")
+                payload = {
+                    "receiverId": user_id,
+                    "content": table_md,
+                    "type": "text"
+                }
+                await _call_api("POST", "http://notificationservice:8080/api/v1/chat/messages", user_token, json_data=payload)
+        except Exception as e:
+            logger.error(f"[BackgroundScoring] Error in background scoring task: {e}")
+
+    # Launch task in parallel background
+    import asyncio
+    asyncio.create_task(run_scoring_in_background())
+
+    return {
+        "status": "processing",
+        "message": f"Hệ thống đã tiếp nhận yêu cầu và bắt đầu chạy chấm điểm tự động hàng loạt cho {len(cv_list)} ứng viên trong nền. Khi hoàn tất, kết quả bảng xếp hạng sẽ được cập nhật tự động lên website và gửi trực tiếp vào đây cho bạn. Vui lòng đợi trong giây lát!"
+    }
 
 
 async def execute_get_candidate_evaluation_detail(args: dict, user_token: str) -> dict:
