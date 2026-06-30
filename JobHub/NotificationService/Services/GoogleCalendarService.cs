@@ -43,11 +43,12 @@ public class GoogleCalendarService : IGoogleCalendarService
         }
     }
 
-    public string GetAuthUrl(string userId)
+    public string GetAuthUrl(string userId, string? origin = null)
     {
         var scope = Uri.EscapeDataString("https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email");
         var redirect = Uri.EscapeDataString(RedirectUri);
-        return $"https://accounts.google.com/o/oauth2/v2/auth?client_id={ClientId}&redirect_uri={redirect}&response_type=code&scope={scope}&access_type=offline&prompt=consent&state={userId}";
+        var state = string.IsNullOrEmpty(origin) ? userId : $"{userId}|{origin}";
+        return $"https://accounts.google.com/o/oauth2/v2/auth?client_id={ClientId}&redirect_uri={redirect}&response_type=code&scope={scope}&access_type=offline&prompt=consent&state={state}";
     }
 
     public async Task<UserGoogleCredential> ExchangeCodeForTokensAsync(string userId, string code)

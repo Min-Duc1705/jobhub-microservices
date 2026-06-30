@@ -6,7 +6,7 @@ namespace NotificationService.Services.Interface;
 
 public interface IGoogleCalendarService
 {
-    string GetAuthUrl(string userId);
+    string GetAuthUrl(string userId, string? origin = null);
     Task<UserGoogleCredential> ExchangeCodeForTokensAsync(string userId, string code);
     Task<bool> IsConnectedAsync(string userId);
     Task<string> GetConnectedEmailAsync(string userId);

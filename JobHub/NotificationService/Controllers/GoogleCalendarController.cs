@@ -30,12 +30,12 @@ public class GoogleCalendarController : ControllerBase
 
     [HttpGet("auth-url")]
     [Authorize]
-    public IActionResult GetAuthUrl()
+    public IActionResult GetAuthUrl([FromQuery] string? origin = null)
     {
         try
         {
             var userId = GetCurrentUserId();
-            var url = _googleCalendarService.GetAuthUrl(userId);
+            var url = _googleCalendarService.GetAuthUrl(userId, origin);
             return Ok(new { url });
         }
         catch (Exception ex)
@@ -48,6 +48,8 @@ public class GoogleCalendarController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
     {
+        string? origin = null;
+        string userId = state;
         try
         {
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
@@ -55,16 +57,23 @@ public class GoogleCalendarController : ControllerBase
                 return BadRequest("Mã xác thực code hoặc state bị thiếu.");
             }
 
-            // state là userId của recruiter truyền từ GetAuthUrl
-            var userId = state;
+            // state chứa userId và có thể chứa origin phân tách bởi dấu |
+            if (state.Contains('|'))
+            {
+                var parts = state.Split('|');
+                userId = parts[0];
+                origin = parts[1];
+            }
+
             await _googleCalendarService.ExchangeCodeForTokensAsync(userId, code);
 
             // Chạy ngầm đồng bộ tất cả lịch hẹn cũ của chiến dịch tuyển dụng AI sang Google Calendar vừa liên kết
+            var syncUserId = userId;
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await _googleCalendarService.SyncAllExistingInterviewsAsync(userId);
+                    await _googleCalendarService.SyncAllExistingInterviewsAsync(syncUserId);
                 }
                 catch (Exception ex)
                 {
@@ -73,13 +82,13 @@ public class GoogleCalendarController : ControllerBase
             });
 
             // Chuyển hướng người dùng quay trở lại giao diện Frontend
-            var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+            var frontendUrl = !string.IsNullOrEmpty(origin) ? origin : (_config["FrontendUrl"] ?? "http://localhost:5173");
             return Redirect($"{frontendUrl.TrimEnd('/')}/hr/interview-scheduler?google_sync=success");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[GoogleCalendar-Callback] Lỗi callback: {ex.Message}");
-            var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+            var frontendUrl = !string.IsNullOrEmpty(origin) ? origin : (_config["FrontendUrl"] ?? "http://localhost:5173");
             return Redirect($"{frontendUrl.TrimEnd('/')}/hr/interview-scheduler?google_sync=failed&error={Uri.EscapeDataString(ex.Message)}");
         }
     }
