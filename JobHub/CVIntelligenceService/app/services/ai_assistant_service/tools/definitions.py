@@ -65,6 +65,33 @@ _ALL_TOOL_DEFS = [
         }
     },
     {
+        "name": "confirm_create_job",
+        "description": "Thực sự tạo và đăng tin tuyển dụng lên hệ thống sau khi người dùng đã xác nhận hoặc đồng ý thông qua chat",
+        "permissions_required": [("POST", "/api/v1/jobs")],
+        "action_type": "read",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Tên vị trí tuyển dụng"},
+                "description": {"type": "string", "description": "Mô tả công việc chi tiết. BẮT BUỘC phải sử dụng ký tự xuống dòng '\\n' để phân tách các câu hoặc đoạn văn rõ ràng."},
+                "requirements": {"type": "string", "description": "Yêu cầu ứng viên. BẮT BUỘC định dạng gạch đầu dòng, mỗi dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: '- Yêu cầu 1\\n- Yêu cầu 2')."},
+                "benefits": {"type": "string", "description": "Quyền lợi và phúc lợi. BẮT BUỘC định dạng gạch đầu dòng, mỗi dòng bắt đầu bằng '- ' và cách nhau bằng ký tự '\\n' (ví dụ: '- Quyền lợi 1\\n- Quyền lợi 2')."},
+                "location": {"type": "string", "description": "Địa điểm làm việc"},
+                "salary_min": {"type": "number", "description": "Mức lương tối thiểu (VND hoặc USD thực tế). BẮT BUỘC nếu là VND phải điền đầy đủ số tiền thực tế (ví dụ: 15 triệu VND điền 15000000), nếu là USD điền số USD thực tế (ví dụ: 1000)."},
+                "salary_max": {"type": "number", "description": "Mức lương tối đa (VND hoặc USD thực tế). BẮT BUỘC nếu là VND phải điền đầy đủ số tiền thực tế (ví dụ: 25 triệu VND điền 25000000), nếu là USD điền số USD thực tế (ví dụ: 2500)."},
+                "salary_currency": {"type": "string", "description": "Loại tiền tệ của mức lương, chỉ nhận 'VND' hoặc 'USD'. Mặc định là 'VND'."},
+                "is_salary_negotiable": {"type": "boolean", "description": "Mức lương có thỏa thuận/thương lượng hay không. Đặt bằng false nếu có mức lương số cụ thể (ví dụ: 15-20 triệu) để hiển thị số tiền trên website. BẮT BUỘC đặt bằng true nếu JD ghi lương 'Thỏa thuận', 'Thương lượng', hoặc không đề cập mức lương cụ thể."},
+                "level": {"type": "string", "description": "Cấp độ công việc. BẮT BUỘC chọn một trong các giá trị sau: 'INTERN', 'FRESHER', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEADER', 'MANAGER'."},
+                "quantity": {"type": "integer", "description": "Số lượng tuyển dụng"},
+                "deadline": {"type": "string", "description": "Hạn nộp hồ sơ (YYYY-MM-DD)"},
+                "skill_names": {"type": "array", "items": {"type": "string"}, "description": "Danh sách kỹ năng yêu cầu"},
+                "experience_required": {"type": "string", "description": "Kinh nghiệm yêu cầu (ví dụ: '2 năm', 'Không yêu cầu', '1-3 năm')"},
+                "category": {"type": "string", "description": "Ngành nghề công việc. BẮT BUỘC chọn một trong các giá trị sau: 'Software Development', 'Frontend Development', 'Backend Development', 'Fullstack Development', 'Mobile Development', 'DevOps & Cloud', 'Data Engineering', 'Data Science & AI', 'Cybersecurity', 'QA & Testing', 'UI/UX Design', 'Product Management', 'Business Analysis', 'ERP & Enterprise Systems', 'Network & Sysadmin', 'IT Support', 'Game Development', 'Blockchain & Web3', 'Embedded & IoT', 'Engineering', 'Marketing', 'Sales', 'Other'."}
+            },
+            "required": ["name", "salary_currency"]
+        }
+    },
+    {
         "name": "delete_job",
         "description": "Tạo bản xem trước (preview) xác nhận xóa tin tuyển dụng theo ID. Công cụ này chỉ tạo preview hiển thị giao diện xác nhận xóa cho HR, không thực sự xóa ngay lập tức.",
         "permissions_required": [("DELETE", "/api/v1/jobs/{id}")],

@@ -223,3 +223,10 @@ async def execute_change_job_status(args: dict, user_token: str) -> dict:
         "PATCH", f"http://jobhub_jobservice:8080/api/v1/jobs/{job_id}/status",
         user_token, params={"status": status}
     )
+
+
+async def execute_confirm_create_job(args: dict, user_token: str) -> dict:
+    """Thực sự tạo và đăng tin tuyển dụng lên hệ thống."""
+    from ..job_confirm_service import confirm_create_job
+    company_id = args.get("company_id") or ""
+    return await confirm_create_job(args, user_token, company_id)

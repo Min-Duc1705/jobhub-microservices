@@ -6,7 +6,7 @@ import logging
 from .job_executor import (
     execute_search_jobs, execute_get_job_detail, execute_get_my_jobs,
     execute_preview_create_job, execute_delete_job,
-    execute_update_job, execute_change_job_status
+    execute_update_job, execute_change_job_status, execute_confirm_create_job
 )
 from .candidate_executor import (
     execute_search_candidates, execute_get_applications_for_job,
@@ -64,6 +64,7 @@ _TOOL_EXECUTOR_MAP = {
     "delete_job":           execute_delete_job,
     "update_job":           execute_update_job,
     "change_job_status":    execute_change_job_status,
+    "confirm_create_job":   execute_confirm_create_job,
     # Candidate/Application tools
     "search_candidates":            execute_search_candidates,
     "get_applications_for_job":     execute_get_applications_for_job,
