@@ -135,7 +135,7 @@ _ALL_TOOL_DEFS = [
     {
         "name": "score_candidates_for_job",
         "description": "Thực hiện chấm điểm độ tương thích (Matching Score) và phân tích điểm mạnh/yếu của tất cả các ứng viên đã ứng tuyển vào một tin tuyển dụng (Job). Kết quả được lưu chính thức vào database để đồng bộ với Web UI.",
-        "permissions_required": [("POST", "/api/v1/cv/score/batch")],
+        "permissions_required": [],
         "action_type": "read",
         "parameters": {
             "type": "object",
@@ -149,7 +149,7 @@ _ALL_TOOL_DEFS = [
     {
         "name": "get_candidate_evaluation_detail",
         "description": "Xem nhận xét chi tiết bằng AI (bao gồm điểm mạnh strengths, điểm yếu weaknesses, nhận xét chi tiết ai_feedback và kỹ năng extracted_skills) của một ứng viên cụ thể đã được chấm điểm trước đó, dựa trên Tên ứng viên hoặc Application ID.",
-        "permissions_required": [("POST", "/api/v1/cv/score")],
+        "permissions_required": [],
         "action_type": "read",
         "parameters": {
             "type": "object",
