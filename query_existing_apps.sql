@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM "Applications" WHERE "JobId" = '444a2fd2-5c2a-4887-978d-048781ed2923';
