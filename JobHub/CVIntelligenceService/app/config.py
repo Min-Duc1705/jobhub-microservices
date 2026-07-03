@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # Gemini API (giai đoạn 2 sinh nhận xét bằng LLM)
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # Local AI Settings
     USE_LOCAL_AI: bool = False
