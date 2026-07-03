@@ -44,7 +44,12 @@ async def startup():
     from app.services.cv_service import start_periodic_svd_training
     asyncio.create_task(start_periodic_svd_training())
 
-    logger.info("[Startup] CVIntelligenceService đã sẵn sàng!")
+    # Preload SBERT model trong một thread pool để tránh block event loop
+    from app.ml.sbert_scorer import _load_model
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, _load_model)
+
+    logger.info("[Startup] CVIntelligenceService đã sẵn sàng và đang tải sẵn model SBERT chạy ngầm!")
 
 
 @app.get("/health", tags=["Health"])

@@ -512,7 +512,7 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     volumes:
       - ./JobHub/CVIntelligenceService/gemini-keys.json:/app/gemini-keys.json
-      - ./JobHub/CVIntelligenceService/.cache/huggingface:/root/.cache/huggingface
+      - ./JobHub/CVIntelligenceService/.cache/huggingface:/app/.cache/huggingface
     depends_on:
       mongodb:
         condition: service_started

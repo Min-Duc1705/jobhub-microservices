@@ -77,3 +77,9 @@ coverage.xml
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# ==========================
+# CACHE & LARGE FILES
+# ==========================
+.cache/
+.cache/**

@@ -229,6 +229,7 @@ def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
 
     # 3. Tính toán hình phạt nếu lệch cấp bậc
     if jd_level > cv_level:
+        # Trường hợp ứng viên THIẾU kinh nghiệm so với JD (Under-qualified)
         diff = jd_level - cv_level
         if diff == 1:
             penalty = 0.8
@@ -237,7 +238,25 @@ def _compute_seniority_penalty(jd_text: str, cv_text: str) -> float:
         else:
             penalty = 0.35
         logger.info(
-            f"[SeniorityPenalty] Lệch cấp bậc: JD Level {jd_level} vs CV Level {cv_level}. "
+            f"[SeniorityPenalty] Thiếu cấp bậc (Under-qualified): JD Level {jd_level} vs CV Level {cv_level}. "
+            f"Phạt x{penalty}"
+        )
+        return penalty
+
+    elif cv_level > jd_level:
+        # Trường hợp ứng viên THỪA kinh nghiệm so với JD (Over-qualified)
+        diff = cv_level - jd_level
+        if diff == 1:
+            # Lệch 1 cấp (JD Fresher vs CV Junior) -> Vẫn tốt, phạt nhẹ x0.9
+            penalty = 0.9
+        elif diff == 2:
+            # Lệch 2 cấp (JD Fresher vs CV Middle) -> Chênh lệch lớn về lương & kỳ vọng công việc
+            penalty = 0.7
+        else:
+            # Lệch 3 cấp (JD Fresher vs CV Senior) -> Mismatch nghiêm trọng
+            penalty = 0.5
+        logger.info(
+            f"[SeniorityPenalty] Thừa cấp bậc (Over-qualified): JD Level {jd_level} vs CV Level {cv_level}. "
             f"Phạt x{penalty}"
         )
         return penalty
