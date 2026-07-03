@@ -138,8 +138,25 @@ def predict_salary(
     min_salary = round(predicted_mid - (predicted_spread / 2.0), 1)
     max_salary = round(predicted_mid + (predicted_spread / 2.0), 1)
 
+    # Giới hạn trần thực tế theo Level để tránh việc model quá khớp (overfit) vào các skill AI lương cao
+    lvl_upper = level.upper()
+    if lvl_upper == "INTERN":
+        min_salary = min(min_salary, 7.0)
+        max_salary = min(max_salary, 10.0)
+    elif lvl_upper == "FRESHER":
+        min_salary = min(min_salary, 15.0)
+        max_salary = min(max_salary, 22.0)
+    elif lvl_upper == "JUNIOR":
+        min_salary = min(min_salary, 25.0)
+        max_salary = min(max_salary, 35.0)
+    elif lvl_upper == "MIDDLE":
+        min_salary = min(min_salary, 38.0)
+        max_salary = min(max_salary, 58.0)
+
     if min_salary < 1.0: 
         min_salary = 1.0
+    if max_salary < min_salary + 2.0:
+        max_salary = min_salary + 2.0
 
     confidence = 0.85   # Tăng độ mượt mà tự tin
 
