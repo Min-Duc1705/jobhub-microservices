@@ -113,6 +113,35 @@ public partial class HireAgentServiceImpl
                 var candidateScores    = new List<(JsonElement Resume, double Score)>();
                 var currentConversations = await _hireAgentRepo.GetConversationsByCampaignAsync(campaignId);
 
+                var appliedCandidates = new HashSet<string>();
+                try
+                {
+                    var appRequest = new HttpRequestMessage(HttpMethod.Get, $"http://resumeservice:8080/api/v1/applications?jobId={campaign.JobId}&pageSize=1000");
+                    appRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    var appResponse = await _httpClient.SendAsync(appRequest);
+                    if (appResponse.IsSuccessStatusCode)
+                    {
+                        var appJsonDoc = JsonDocument.Parse(await appResponse.Content.ReadAsStringAsync());
+                        var appResults = appJsonDoc.RootElement.GetProperty("data").GetProperty("result");
+                        if (appResults.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var app in appResults.EnumerateArray())
+                            {
+                                if (app.TryGetProperty("customerId", out var cidProp) && cidProp.ValueKind != JsonValueKind.Null)
+                                {
+                                    var cid = cidProp.GetString();
+                                    if (!string.IsNullOrEmpty(cid))
+                                        appliedCandidates.Add(cid);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[HireAgent-Outreach] Lỗi khi lấy danh sách ứng viên đã nộp: {ex.Message}");
+                }
+
                 var uniqueResumes = new List<JsonElement>();
                 var seenCandidates = new HashSet<string>();
                 foreach (var resume in resumes.EnumerateArray())
@@ -130,6 +159,7 @@ public partial class HireAgentServiceImpl
                     if (string.IsNullOrEmpty(candidateId)) return;
 
                     if (currentConversations.Any(c => c.CandidateId == candidateId)) return;
+                    if (appliedCandidates.Contains(candidateId)) return;
 
                     // Kiểm tra trạng thái tìm việc + Province từ ProfileService
                     string? candidateProvince = null;

@@ -304,7 +304,7 @@ public class CronSchedulerWorker : BackgroundService
                 if (jobId == null) continue;
 
                 var appReq = new HttpRequestMessage(HttpMethod.Get,
-                    $"http://jobservice:8080/api/v1/applications?jobId={jobId}&pageSize=100&sortBy=createdAt&sortDirection=desc");
+                    $"http://resumeservice:8080/api/v1/applications?jobId={jobId}&pageSize=100&sortBy=createdAt&sortDirection=desc");
                 appReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var appRes = await _http.SendAsync(appReq);
                 if (!appRes.IsSuccessStatusCode) continue;
