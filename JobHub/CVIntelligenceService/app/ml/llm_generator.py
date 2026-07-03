@@ -179,7 +179,7 @@ async def generate_feedback(
                     temperature=0.3,
                     response_mime_type="application/json",
                 ),
-                request_options={"timeout": 15.0}
+                request_options={"timeout": 30.0}
             )
             # Parse JSON an toàn
             text_content = response.text

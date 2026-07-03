@@ -626,7 +626,7 @@
         "AuthenticationProviderKey": "Bearer"
       },
       "QoSOptions": {
-        "TimeoutValue": 30000
+        "TimeoutValue": 60000
       }
     },
     {
