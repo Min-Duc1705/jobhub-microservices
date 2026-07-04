@@ -275,15 +275,62 @@ public class JobServiceImpl : IJobService
         return FormatUrls(_mapper.Map<JobResponse>(job));
     }
 
-    private int ParseYearsOfExperience(string? exp)
+    private async Task<int> ParseYearsOfExperienceAsync(string? exp)
     {
         if (string.IsNullOrWhiteSpace(exp)) return 0;
-        var match = System.Text.RegularExpressions.Regex.Match(exp, @"\d+");
-        if (match.Success && int.TryParse(match.Value, out var years))
+
+        int FallbackParse(string text)
         {
-            return years;
+            var expLower = text.ToLower();
+            if (expLower.Contains("dưới 1 năm") || 
+                expLower.Contains("không yêu cầu") || 
+                expLower.Contains("chấp nhận fresher") || 
+                expLower.Contains("không có kinh nghiệm") ||
+                expLower.Contains("no experience") ||
+                expLower.Contains("under 1 year"))
+            {
+                return 0;
+            }
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"\d+");
+            if (match.Success && int.TryParse(match.Value, out var years))
+            {
+                return years;
+            }
+            return 0;
         }
-        return 0;
+
+        try
+        {
+            bool inDocker = Environment.GetEnvironmentVariable("RUNNING_IN_DOCKER") == "true";
+            string url = inDocker 
+                ? "http://cvintelligenceservice:5006/api/v1/cv/parse-experience" 
+                : "http://localhost:5006/api/v1/cv/parse-experience";
+
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var payload = new { experience_text = exp };
+            var content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(payload), 
+                System.Text.Encoding.UTF8, 
+                "application/json"
+            );
+
+            var response = await client.PostAsync(url, content);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseString = await response.Content.ReadAsStringAsync();
+                using var doc = System.Text.Json.JsonDocument.Parse(responseString);
+                if (doc.RootElement.TryGetProperty("years", out var yearsProp))
+                {
+                    return yearsProp.GetInt32();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"[LLM Exp Parser] Error calling CVIntelligenceService: {ex.Message}. Using regex fallback.");
+        }
+
+        return FallbackParse(exp);
     }
 
     private async Task PublishJobPublishedEventAsync(Guid jobId)
@@ -298,7 +345,7 @@ public class JobServiceImpl : IJobService
                 {
                     JobId = job.Id,
                     JobTitle = job.Name,
-                    YearsOfExperience = ParseYearsOfExperience(job.ExperienceRequired),
+                    YearsOfExperience = await ParseYearsOfExperienceAsync(job.ExperienceRequired),
                     SkillSet = job.JobSkills
                         .Where(js => js.Skill != null)
                         .Select(js => js.Skill.Name)

@@ -45,10 +45,12 @@ _LOCATION_MAP = {
 }
 
 _model = None
+_trained_skills = []
+_role_keywords = []
 
 
 def _load_model():
-    global _model
+    global _model, _trained_skills, _role_keywords
     if _model is not None:
         return _model
 
@@ -60,8 +62,24 @@ def _load_model():
         )
 
     logger.info(f"[Salary] Đang load model từ '{model_path}'...")
-    _model = joblib.load(model_path)
-    logger.info("[Salary] Model sẵn sàng!")
+    model_data = joblib.load(model_path)
+    
+    if isinstance(model_data, dict):
+        _model = model_data["model"]
+        _trained_skills = model_data.get("trained_skills", [])
+        _role_keywords = model_data.get("role_keywords", [])
+        logger.info(f"[Salary] Model sẵn sàng với {len(_trained_skills)} dynamic skills và {len(_role_keywords)} role keywords!")
+    else:
+        # Fallback for old style model dump
+        _model = model_data
+        _trained_skills = _KNOWN_SKILLS
+        _role_keywords = [
+            "software", "engineer", "developer", "tester", "manager", "leader", 
+            "analyst", "designer", "embedded", "data", "ai", "blockchain", 
+            "devops", "fullstack", "backend", "frontend"
+        ]
+        logger.info("[Salary] Model sẵn sàng (old style fallback)!")
+        
     return _model
 
 
@@ -76,6 +94,9 @@ def _build_features(
     Chuyển input thô thành vector số để model predict.
     Phải đồng bộ 100% với script train.
     """
+    # Ensure model loaded to populate feature schemas
+    _load_model()
+    
     features = []
 
     # 1. Số năm kinh nghiệm
@@ -102,10 +123,14 @@ def _build_features(
             loc_val = 4
     features.append(loc_val)
 
+    # 4. Role keywords features (distinguish role types)
+    title_lower = job_title.lower()
+    for kw in _role_keywords:
+        features.append(1 if kw in title_lower else 0)
 
-    # 4. Skills one-hot encoding (50 bits)
+    # 5. Skills one-hot encoding (dynamically mapped)
     skill_set_lower = {s.lower() for s in skill_set}
-    for known in _KNOWN_SKILLS:
+    for known in _trained_skills:
         features.append(1 if known.lower() in skill_set_lower else 0)
 
     return np.array(features).reshape(1, -1)
@@ -140,6 +165,8 @@ def predict_salary(
 
     if min_salary < 1.0: 
         min_salary = 1.0
+    if max_salary < min_salary + 2.0:
+        max_salary = min_salary + 3.0
 
     confidence = 0.85   # Tăng độ mượt mà tự tin
 

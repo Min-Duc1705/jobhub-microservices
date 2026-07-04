@@ -20,6 +20,7 @@ TÁI TRAINING:
 import asyncio
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # Fix UnicodeEncodeError tren Windows (cp1252 khong ho tro emoji)
@@ -43,8 +44,8 @@ MONGO_URL   = os.getenv("MONGO_URL", "mongodb://root:root@localhost:27017/?authS
 MONGO_DB    = os.getenv("MONGO_DB", "DataAnalyticsDB")
 OUTPUT_PATH = "app/ml/artifacts/salary_model.pkl"
 
-# Phải đồng bộ với salary_predictor.py
-KNOWN_SKILLS = [
+# Default skills to guarantee a baseline set of features
+DEFAULT_KNOWN_SKILLS = [
     "Python", "Java", "JavaScript", "TypeScript", "C#", "C++", "Go", "Rust",
     "React", "Vue", "Angular", "Next.js", "Node.js", "FastAPI", "Django", "Spring",
     ".NET", "ASP.NET", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis",
@@ -56,18 +57,26 @@ KNOWN_SKILLS = [
 LEVEL_MAP    = {"INTERN": 0, "FRESHER": 1, "JUNIOR": 2, "MIDDLE": 3, "SENIOR": 4, "LEADER": 5, "MANAGER": 6}
 LOCATION_MAP = {"Hà Nội": 0, "TP.HCM": 1, "Đà Nẵng": 2, "Hải Phòng": 3, "Khác": 4, "Remote": 5}
 
+# Role keywords to extract from job titles
+ROLE_KEYWORDS = [
+    "software", "engineer", "developer", "tester", "manager", "leader", 
+    "analyst", "designer", "embedded", "data", "ai", "blockchain", 
+    "devops", "fullstack", "backend", "frontend"
+]
+
 
 async def load_data_from_mongo() -> pd.DataFrame:
     client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
     col = client[MONGO_DB]["salary_datasets"]
-    docs = await col.find({}).to_list(length=None)
+    # Train exclusively on the clean TopCV dataset to prevent noise and outliers
+    docs = await col.find({"source": "topcv-seed-2026"}).to_list(length=None)
 
     if not docs:
-        print("[Train] FAILED: Khong co du lieu trong MongoDB 'salary_datasets'.")
-        print("[Train] Hay them du lieu truoc qua API POST /api/v1/salary/dataset")
+        print("[Train] FAILED: Khong co du lieu trong MongoDB 'salary_datasets' voi source 'topcv-seed-2026'.")
+        print("[Train] Hay run scripts/seed_topcv_data.py truoc.")
         sys.exit(1)
 
-    print(f"[Train] OK: Da tai {len(docs)} ban ghi tu MongoDB.")
+    print(f"[Train] OK: Da tai {len(docs)} ban ghi TopCV tu MongoDB.")
     return pd.DataFrame(docs)
 
 
@@ -77,6 +86,16 @@ def build_features(df: pd.DataFrame):
 
     # Loại bỏ các job Thoả Thuận khỏi tập train vĩnh viễn (vì không có Y)
     df = df[df.get("is_negotiable", False) != True]
+
+    # Dynamically extract all unique skills from the training dataset
+    unique_skills = set(DEFAULT_KNOWN_SKILLS)
+    for _, row in df.iterrows():
+        for skill in row.get("skill_set", []):
+            if skill and isinstance(skill, str):
+                unique_skills.add(skill.strip())
+    
+    # Sort alphabetically to guarantee identical feature order
+    trained_skills = sorted(list(unique_skills))
 
     for _, row in df.iterrows():
         min_salary = float(row.get("salary_min", 0))
@@ -95,6 +114,8 @@ def build_features(df: pd.DataFrame):
         features = []
         features.append(int(row.get("years_of_experience", 0)))
         features.append(LEVEL_MAP.get(str(row.get("level", "JUNIOR")).upper(), 2))
+        
+        # Location
         loc_str = str(row.get("location", "Khác")).lower()
         loc_val = 4
         if "hà nội" in loc_str or "ha noi" in loc_str:
@@ -111,9 +132,14 @@ def build_features(df: pd.DataFrame):
             loc_val = 4
         features.append(loc_val)
 
+        # Role keywords features (important to distinguish Software Engineer vs Frontend/Backend/Tester)
+        title_lower = str(row.get("job_title", "")).lower()
+        for kw in ROLE_KEYWORDS:
+            features.append(1 if kw in title_lower else 0)
 
+        # Dynamic Skill features
         skill_set_lower = {s.lower() for s in row.get("skill_set", [])}
-        for skill in KNOWN_SKILLS:
+        for skill in trained_skills:
             features.append(1 if skill.lower() in skill_set_lower else 0)
 
         rows.append(features)
@@ -125,12 +151,12 @@ def build_features(df: pd.DataFrame):
 
     X = np.array(rows)
     Y = np.array(labels)
-    return X, Y
+    return X, Y, trained_skills
 
 
 async def train():
     df = await load_data_from_mongo()
-    X, y = build_features(df)
+    X, y, trained_skills = build_features(df)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     print(f"[Train] Training set: {len(X_train)} mẫu | Test set: {len(X_test)} mẫu")
@@ -162,7 +188,15 @@ async def train():
     print(f"  R2 Midpoint : {r2_mid:.4f} (gan 1 la tot nhat)")
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-    joblib.dump(model, OUTPUT_PATH)
+    
+    # Save model and meta-features dictionary
+    model_data = {
+        "model": model,
+        "trained_skills": trained_skills,
+        "role_keywords": ROLE_KEYWORDS,
+        "trained_at": datetime.now().isoformat()
+    }
+    joblib.dump(model_data, OUTPUT_PATH)
     print(f"\n[Train] DONE: Model da luu tai: {OUTPUT_PATH}")
     print("[Train] Restart DataAnalyticsService de load model moi.")
 

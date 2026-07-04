@@ -28,12 +28,21 @@ KNOWN_SKILLS = [
 ]
 LEVEL_MAP = {"INTERN": 0, "FRESHER": 1, "JUNIOR": 2, "MIDDLE": 3, "SENIOR": 4, "LEADER": 5, "MANAGER": 6}
 
+ROLE_KEYWORDS = [
+    "software", "engineer", "developer", "tester", "manager", "leader", 
+    "analyst", "designer", "embedded", "data", "ai", "blockchain", 
+    "devops", "fullstack", "backend", "frontend"
+]
+
+logger = logging.getLogger(__name__)
+
 async def _run_background_retrain(current_count: int):
     """Huấn luyện lại XGBoost model dưới nền và ghi đè file salary_model.pkl."""
     logger.info("[Auto-Retrain] Bắt đầu tự động huấn luyện lại model lương...")
     try:
         col = get_salary_dataset_col()
-        docs = await col.find({}).to_list(length=None)
+        # Train exclusively on the clean TopCV dataset to prevent noise and outliers
+        docs = await col.find({"source": "topcv-seed-2026"}).to_list(length=None)
         if not docs:
             logger.warning("[Auto-Retrain] Không có dữ liệu để train.")
             return
@@ -77,6 +86,12 @@ async def _run_background_retrain(current_count: int):
                 loc_val = 4
             features.append(loc_val)
 
+            # Role keywords features
+            title_lower = str(row.get("job_title", "")).lower()
+            for kw in ROLE_KEYWORDS:
+                features.append(1 if kw in title_lower else 0)
+
+            # Skill features
             skill_set_lower = {s.lower() for s in row.get("skill_set", [])}
             for skill in KNOWN_SKILLS:
                 features.append(1 if skill.lower() in skill_set_lower else 0)

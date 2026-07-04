@@ -205,3 +205,115 @@ async def generate_feedback(
 
     logger.error("[LLM] Đã thử tất cả API Key và Model nhưng đều thất bại.")
     return default_empty
+
+
+_PARSE_EXP_PROMPT = """
+You are an expert HR assistant. Given the job experience requirement text below, extract the minimum years of experience required as a single integer.
+Follow these rules:
+1. If no experience is required, or it says "dưới 1 năm" (under 1 year), "fresher", "intern", "không yêu cầu", return 0.
+2. If it specifies a range like "1-3 năm" or "1 to 3 years", return the lower bound (e.g., 1).
+3. If it specifies "Trên 5 năm" (over 5 years) or "5+ years", return 5.
+4. If it's a student (e.g. "sinh viên năm 4") but says "dưới 1 năm kinh nghiệm" or "không yêu cầu kinh nghiệm", return 0.
+5. Return ONLY a JSON object containing the field "years".
+
+=== EXPERIENCE TEXT ===
+{experience_text}
+
+=== OUTPUT FORMAT ===
+{{
+  "years": 0
+}}
+"""
+
+async def parse_experience_with_llm(experience_text: str) -> int:
+    """
+    Sử dụng Gemini LLM hoặc Local AI để bóc tách số năm kinh nghiệm từ chuỗi văn bản.
+    """
+    prompt = _PARSE_EXP_PROMPT.format(experience_text=experience_text)
+    
+    # Try Local AI if configured
+    if settings.USE_LOCAL_AI:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                res = await client.post(
+                    f"{settings.LOCAL_AI_URL.rstrip('/')}/api/chat",
+                    json={
+                        "model": settings.LOCAL_AI_MODEL,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "stream": False,
+                        "options": {"temperature": 0.1}
+                    }
+                )
+                if res.status_code == 200:
+                    reply_text = res.json()["message"]["content"]
+                    import re
+                    clean_match = re.search(r"\{.*\}", reply_text, re.DOTALL)
+                    if clean_match:
+                        reply_text = clean_match.group(0)
+                    result = json.loads(reply_text)
+                    return int(result.get("years", 0))
+        except Exception as e:
+            logger.warning(f"[LLM-Local] Lỗi bóc tách kinh nghiệm: {e}")
+            
+    # Try Vertex AI if configured
+    if settings.USE_VERTEX_AI:
+        try:
+            from app.services.ai_assistant_service.vertex_initializer import _init_vertex_ai
+            from vertexai.generative_models import GenerativeModel, GenerationConfig
+            _init_vertex_ai()
+            model = GenerativeModel(settings.GEMINI_MODEL.replace("models/", ""))
+            response = await model.generate_content_async(
+                contents=prompt,
+                generation_config=GenerationConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                ),
+            )
+            result = json.loads(response.text)
+            return int(result.get("years", 0))
+        except Exception as e:
+            logger.warning(f"[LLM-Vertex] Lỗi bóc tách kinh nghiệm: {e}")
+
+    # Gemini API with key rotation
+    keys = _load_api_keys()
+    if not keys:
+        return 0
+        
+    models_to_try = GEMINI_MODELS
+    num_keys = len(keys)
+    num_models = len(models_to_try)
+    total_attempts = num_keys * num_models
+
+    global _current_key_idx, _current_model_idx
+    curr_key_idx = _current_key_idx % num_keys
+    curr_model_idx = _current_model_idx % num_models
+    attempt = 0
+
+    while attempt < total_attempts:
+        key = keys[curr_key_idx]
+        target_model = models_to_try[curr_model_idx]
+        
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel(target_model)
+            response = await model.generate_content_async(
+                contents=prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                ),
+                request_options={"timeout": 15.0}
+            )
+            result = json.loads(response.text)
+            _current_key_idx = curr_key_idx
+            _current_model_idx = curr_model_idx
+            return int(result.get("years", 0))
+        except Exception as e:
+            logger.warning(f"[LLM] Bóc tách exp thất bại với Key {curr_key_idx}, Model {target_model}: {e}")
+            curr_model_idx = (curr_model_idx + 1) % num_models
+            if curr_model_idx == 0:
+                curr_key_idx = (curr_key_idx + 1) % num_keys
+            attempt += 1
+
+    return 0

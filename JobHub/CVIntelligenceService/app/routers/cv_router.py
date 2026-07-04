@@ -80,3 +80,18 @@ async def recommend_jobs(req: dict):
         "message": "Gợi ý việc làm thành công",
         "data": res
     }
+
+
+from app.ml.llm_generator import parse_experience_with_llm
+
+@router.post("/parse-experience", summary="Bóc tách số năm kinh nghiệm bằng LLM")
+async def parse_experience(req: dict):
+    """
+    Sử dụng Gemini LLM để bóc tách số năm kinh nghiệm từ chuỗi văn bản tự do.
+    """
+    experience_text = req.get("experience_text", "")
+    years = await parse_experience_with_llm(experience_text)
+    return {
+        "statusCode": 200,
+        "years": years
+    }
