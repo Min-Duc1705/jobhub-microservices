@@ -52,9 +52,9 @@ async def seed_trends():
     
     records = []
     
-    # Tạo dữ liệu lịch sử cho 6 tháng: 1/2026 -> 6/2026
+    # Tạo dữ liệu lịch sử từ 1/2026 -> 7/2026
     months_data = [
-        (1, 2026), (2, 2026), (3, 2026), (4, 2026), (5, 2026), (6, 2026)
+        (1, 2026), (2, 2026), (3, 2026), (4, 2026), (5, 2026), (6, 2026), (7, 2026)
     ]
     
     print("[Seed Trends] Đang sinh dữ liệu xu hướng thực tế...")
