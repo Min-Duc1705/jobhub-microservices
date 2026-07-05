@@ -289,6 +289,24 @@ async def score_single_cv(req: CvScoringRequest) -> ScoringResult:
     Bước 1.5: Áp dụng Hard Skill Penalty & Seniority Penalty.
     Bước 2 (tuỳ chọn): Nếu có application_id → sinh feedback bằng LLM và lưu vào MongoDB.
     """
+    # ── ĐỌC CACHE TRƯỚC ĐỂ TRÁNH GỌI LẠI LLM (CHẬM) ──
+    if req.application_id:
+        col = get_resume_analysis_col()
+        cached = await col.find_one({"application_id": req.application_id})
+        if cached:
+            # Nếu chỉ cần score, hoặc đã có feedback rồi
+            if not req.generate_feedback or cached.get("ai_feedback"):
+                logger.info(f"[Score-Cache] Hit cache cho application_id={req.application_id}!")
+                return ScoringResult(
+                    application_id=cached.get("application_id"),
+                    customer_id=cached.get("customer_id"),
+                    matching_score=cached.get("matching_score", 0.0),
+                    extracted_skills=cached.get("extracted_skills", []),
+                    strengths=cached.get("strengths", []),
+                    weaknesses=cached.get("weaknesses", []),
+                    ai_feedback=cached.get("ai_feedback")
+                )
+
     jd_skills = []
     if req.job_id:
         jd_skills = await _fetch_job_skills_from_api(req.job_id)
