@@ -44,7 +44,7 @@ async def seed_trends():
     print(f"[Seed Trends] Đang kết nối tới MongoDB: {MONGO_URL}...")
     client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
     db = client[MONGO_DB]
-    col = db["job_trends"]
+    col = db["job_trend_snapshots"]
     
     # Xóa dữ liệu cũ của các skill này để tránh trùng lặp
     print("[Seed Trends] Đang dọn dẹp các bản ghi xu hướng cũ...")
