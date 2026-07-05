@@ -305,26 +305,55 @@ async def record_trend_snapshot(
 
 
 def _simple_moving_avg_forecast(history: list[TrendDataPoint], months: int) -> list[TrendDataPoint]:
-    """Dự báo đơn giản Moving Average 3 tháng — placeholder cho Prophet."""
+    """Dự báo có tính toán xu hướng (slope), damping và dao động ngẫu nhiên ổn định."""
     if len(history) < 3:
         return []
-    window = 3
-    recent = history[-window:]
-    avg_count  = sum(p.job_count for p in recent) / window
-    avg_salary = sum(p.avg_salary for p in recent) / window
-
+        
+    p1 = history[-3]
+    p3 = history[-1]
+    
+    # Tính xu hướng tăng/giảm mỗi tháng từ 3 tháng gần nhất
+    slope_jobs = (p3.job_count - p1.job_count) / 2.0
+    slope_sal = (p3.avg_salary - p1.avg_salary) / 2.0
+    
+    # Giới hạn gia tốc tăng/giảm đột biến để tránh số âm hoặc quá lớn
+    max_job_delta = p3.job_count * 0.08
+    max_sal_delta = p3.avg_salary * 0.04
+    slope_jobs = max(-max_job_delta, min(max_job_delta, slope_jobs))
+    slope_sal = max(-max_sal_delta, min(max_sal_delta, slope_sal))
+    
     result = []
-    if history:
-        last = history[-1]
-        m, y = last.month, last.year
-        for _ in range(months):
-            m += 1
-            if m > 12:
-                m = 1
-                y += 1
-            result.append(TrendDataPoint(
-                month=m, year=y,
-                job_count=round(avg_count),
-                avg_salary=round(avg_salary, 1),
-            ))
+    m, y = p3.month, p3.year
+    curr_jobs = float(p3.job_count)
+    curr_sal = float(p3.avg_salary)
+    
+    import random
+    for step in range(1, months + 1):
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+            
+        # Sử dụng seed cố định theo tháng, năm và độ dài lịch sử để đường biểu đồ ổn định khi query lại
+        random.seed(m * 1000 + y + len(history))
+        
+        # Biến động thị trường ngẫu nhiên nhỏ (±3% jobs, ±1% salary)
+        noise_jobs = random.uniform(0.97, 1.03)
+        noise_sal = random.uniform(0.99, 1.01)
+        
+        # Tính lũy kế xu hướng với hệ số giảm chấn (damping factor)
+        damping = 0.88 ** (step - 1)
+        curr_jobs = max(1.0, curr_jobs + slope_jobs * damping)
+        curr_sal = max(1.0, curr_sal + slope_sal * damping)
+        
+        final_jobs = int(curr_jobs * noise_jobs)
+        final_sal = round(curr_sal * noise_sal, 2)
+        
+        result.append(TrendDataPoint(
+            month=m, year=y,
+            job_count=max(1, final_jobs),
+            avg_salary=final_sal,
+        ))
+        
+    random.seed() # Reset seed
     return result
